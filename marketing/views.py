@@ -290,24 +290,58 @@ class MarketInsightsView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Market Insights'
         
-        # Get stats
-        context['stats'] = GeoMarketStats.objects.filter(
+        # Active tab
+        tab = self.request.GET.get('tab', 'orders')
+        context['active_tab'] = tab
+        
+        # TAB 1: Order Markets (from shipping address)
+        context['order_stats'] = OrderMarketStats.objects.filter(
             period_type='all_time',
             district__isnull=True,
             pincode__isnull=True
         ).order_by('-revenue')[:20]
         
+        # TAB 2: Lead Markets (enriched only)
+        context['lead_stats'] = LeadMarketStats.objects.filter(
+            period_type='all_time',
+            district__isnull=True,
+            pincode__isnull=True
+        ).order_by('-leads_count')[:20]
+        
+        # Unknown Location Stats
+        context['unknown_stats'] = LeadService.get_unknown_location_stats()
+        
+        # Hotspots, Cold Zones, New Markets
         context['hotspots'] = MarketInsightsService.get_hotspot_markets(5)
         context['cold_zones'] = MarketInsightsService.get_cold_markets(5)
         context['new_markets'] = MarketInsightsService.get_new_markets(30, 5)
         
-        # Summary
-        totals = GeoMarketStats.objects.filter(period_type='all_time').aggregate(
-            total_leads=Sum('leads_count'),
+        # Abandoned Metrics
+        context['abandoned_metrics'] = AbandonedMetrics.objects.filter(
+            period_type='all_time',
+            state__isnull=True
+        ).first()
+        
+        # Loss Markets (enriched abandoned)
+        context['loss_markets'] = MarketInsightsService.get_loss_markets_by_state(5)
+        
+        # Summary totals
+        order_totals = OrderMarketStats.objects.filter(period_type='all_time').aggregate(
             total_orders=Sum('orders_count'),
             total_revenue=Sum('revenue')
         )
-        context['totals'] = totals
+        lead_totals = LeadMarketStats.objects.filter(period_type='all_time').aggregate(
+            total_leads=Sum('leads_count')
+        )
+        
+        context['totals'] = {
+            'total_leads': lead_totals.get('total_leads') or 0,
+            'total_orders': order_totals.get('total_orders') or 0,
+            'total_revenue': order_totals.get('total_revenue') or 0,
+        }
+        
+        # Legacy for backward compatibility
+        context['stats'] = context['order_stats']
         
         return context
 
@@ -329,6 +363,33 @@ class ColdZonesView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Cold Zones'
         context['markets'] = MarketInsightsService.get_cold_markets(50)
+        return context
+
+
+class AbandonedInsightsView(LoginRequiredMixin, TemplateView):
+    """Abandoned checkout insights with top products and loss markets."""
+    template_name = 'marketing/insights/abandoned.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Abandoned Insights'
+        
+        # Abandoned metrics
+        metrics = AbandonedMetrics.objects.filter(
+            period_type='all_time',
+            state__isnull=True
+        ).first()
+        context['metrics'] = metrics
+        
+        # Loss markets by state (enriched only)
+        context['loss_markets'] = MarketInsightsService.get_loss_markets_by_state(20)
+        
+        # Top abandoned leads
+        context['abandoned_leads'] = Lead.objects.filter(
+            lead_source__in=['shopify_abandoned_checkout', 'shopify_abandoned_cart'],
+            is_active=True
+        ).order_by('-cart_value')[:20]
+        
         return context
 
 
