@@ -1,37 +1,20 @@
-{% extends 'app/base.html' %}
-{% load static i18n crispy_forms_tags %}
-{% block title %}Oops! Internal Server Error: {{app_settings.site_title}}{% endblock %}
+{% extends 'ui/base.html' %}
+
+{% block title %}Server Error{% endblock %}
+{% block page_title %}500 - Server Error{% endblock %}
 
 {% block content %}
-
-<div class="side-app main-container detail_page">
-
-	<div class="page-header d-flex">
-		<div class="page-leftheader">
-			<div class="page-title">Oops! Internal Server Error</div>
-		</div>
-	</div>
-
-	<div class="row">
-		<div class="col-md-12">
-			<div class="card content_card">
-				<div class="card-body">
-
-					<div class="row">
-						<div class="col-md-5">
-							<img src="{% static 'app/images/png/error.png' %}" alt=" " class="mt-7">
-						</div>
-						<div class="col-md-7 mt-6">
-							<h1 class="h3  mb-3 font-weight-semibold">Oops! Internal Server Error</h1>
-							<a class="btn btn-primary" href="{% url 'core:home' %}"><i
-									class="fe fe-arrow-left-circle me-1"></i>Back to Home</a>
-						</div>
-					</div>
-
-				</div>
-			</div>
-		</div>
-	</div>
+<div class="flex items-center justify-center min-h-[60vh]" data-testid="error-500">
+    <div class="text-center">
+        <div class="w-24 h-24 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-6">
+            <i class="fas fa-exclamation-triangle text-5xl text-red-500"></i>
+        </div>
+        <h1 class="text-6xl font-bold text-gray-900 mb-4">500</h1>
+        <h2 class="text-2xl font-semibold text-gray-700 mb-2">Server Error</h2>
+        <p class="text-gray-500 mb-8 max-w-md mx-auto">Something went wrong on our end. Please try again later.</p>
+        <a href="{% url 'core:home' %}" class="px-6 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors inline-block">
+            <i class="fas fa-home mr-2"></i>Back to Dashboard
+        </a>
+    </div>
 </div>
-
 {% endblock %}

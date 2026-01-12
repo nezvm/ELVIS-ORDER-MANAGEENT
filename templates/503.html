@@ -1,42 +1,20 @@
-{% extends 'app/base.html' %}
-{% load static i18n crispy_forms_tags %}
-{% block title %}Serive Unavaliable: {{app_settings.site_title}}{% endblock %}
+{% extends 'ui/base.html' %}
+
+{% block title %}Service Unavailable{% endblock %}
+{% block page_title %}503 - Service Unavailable{% endblock %}
 
 {% block content %}
-
-<div class="side-app main-container detail_page">
-
-	<div class="page-header d-flex">
-		<div class="page-leftheader">
-			<div class="page-title">Serive Unavaliable</div>
-		</div>
-	</div>
-
-	<div class="row">
-		<div class="col-md-12">
-			<div class="card content_card">
-				<div class="card-body">
-
-					<div class="row">
-						<div class="col-md-5">
-							<img src="{% static 'app/images/png/error.png' %}" alt=" " class="mt-7">
-						</div>
-						<div class="col-md-7 mt-6">
-							<div class="display-1 text-white mb-5 font-weight-semibold texteffect"> 5<i
-									class="fa fa-frown-o"></i>3</div>
-							<h1 class="h3  mb-3 font-weight-semibold">Sorry, an error has occured, Serive Unavaliable
-							</h1>
-							<p class="h5 font-weight-normal mb-7 leading-normal">You may have mistyped the address or
-								the page may have moved.</p>
-							<a class="btn btn-danger" href="{% url 'core:home' %}"><i
-									class="fe fe-arrow-left-circle me-1"></i>Back to Home</a>
-						</div>
-					</div>
-
-				</div>
-			</div>
-		</div>
-	</div>
+<div class="flex items-center justify-center min-h-[60vh]" data-testid="error-503">
+    <div class="text-center">
+        <div class="w-24 h-24 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-6">
+            <i class="fas fa-cogs text-5xl text-purple-500"></i>
+        </div>
+        <h1 class="text-6xl font-bold text-gray-900 mb-4">503</h1>
+        <h2 class="text-2xl font-semibold text-gray-700 mb-2">Service Unavailable</h2>
+        <p class="text-gray-500 mb-8 max-w-md mx-auto">The service is temporarily unavailable. Please try again in a few minutes.</p>
+        <a href="{% url 'core:home' %}" class="px-6 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors inline-block">
+            <i class="fas fa-redo mr-2"></i>Try Again
+        </a>
+    </div>
 </div>
-
 {% endblock %}

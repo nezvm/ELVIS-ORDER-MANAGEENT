@@ -1,165 +1,69 @@
-{% extends 'app/base.html' %}
-{% load static i18n crispy_forms_tags %}
-{% block title %}{{object}}: {{app_settings.site_title}}{% endblock %}
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}{{ account.name }}{% endblock %}
+{% block page_title %}{{ account.name }}{% endblock %}
 
 {% block content %}
-
-<div class="side-app main-container detail_page">
-
-  <!--Page header-->
-  <div class="page-header d-flex">
-    <div class="page-rightheader ms-md-auto">
-      <div class="btn-list">
-
-        <a href="javascript:void(0);" onclick="window.print();" class="btn btn-sm btn-white" title="Print"> <i
-            class="feather feather-printer"></i> </a>
-
-        <a href="{{object.get_update_url}}" class="btn btn-sm btn-white d-inline-flex align-items-center"
-          data-bs-placement="top" data-bs-toggle="tooltip" title="Edit"> <i
-            class="text-primary feather feather-edit-3"></i> </a>
-
-        <a href="{{object.get_delete_url}}" class="btn btn-sm btn-white d-inline-flex align-items-center"
-          data-bs-placement="top" data-bs-toggle="tooltip" title="Delete"> <i
-            class="text-danger feather feather-trash-2"></i> </a>
-
-      </div>
+<div class="space-y-6" data-testid="account-detail">
+    <!-- Breadcrumb -->
+    <div class="flex items-center text-sm text-gray-500">
+        <a href="{% url 'master:account_list' %}" class="hover:text-primary-500">Accounts</a>
+        <i class="fas fa-chevron-right mx-2 text-xs"></i>
+        <span class="text-gray-900 font-medium">{{ account.name }}</span>
     </div>
-  </div>
-  <!--End Page header-->
-
-  <!-- Row-->
-  <div class="row">
-
-    <div class="col-md-12">
-      {% if object %}
-      <div class="card content_card">
-        <div class="card-header">
-          <div class="card-title d-flex align-items-center w-100">
-            <h5 class="mb-0">{{object}}</h5>
-          </div>
+    
+    <!-- Account Info Card -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div class="flex items-start justify-between">
+            <div class="flex items-center">
+                <div class="w-16 h-16 rounded-xl bg-primary-100 flex items-center justify-center">
+                    <i class="fas fa-building text-3xl text-primary-500"></i>
+                </div>
+                <div class="ml-5">
+                    <h2 class="text-2xl font-bold text-gray-900">{{ account.name }}</h2>
+                    <p class="text-base text-gray-500">{{ account.account_type|default:'Business Account' }}</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'master:account_update' account.id %}" class="px-5 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                    <i class="fas fa-edit mr-2"></i>Edit
+                </a>
+            </div>
         </div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover info_table mb-0" style="width:100%;">
-              <tbody>
-                {% for name, value in object.get_fields|slice:"5:7" %}
-                {% if value %}
-                <tr>
-                  <td> {{name}} </td>
-                  <td> {{ value }} </td>
-                </tr>
-                {% endif %}
-                {% endfor %}
-                <tr>
-                    <td>Account Created Balance</td>
-                    <td>{{ object.opening_balance}}</td>
-                </tr>
-                <tr>
-                    <td>Opening Balance</td>
-                    <td>{{ object.get_opening }}</td>
-                </tr>
-                <tr>
-                    <td>Today Income</td>
-                    <td>{{ object.get_today_orders }}.00</td>
-                </tr>
-                <tr>
-                  <td>Balance</td>
-                  <td>{{ object.get_balance }}</td>
-              </tr>
-              </tbody>
-            </table>
-          </div>
+        
+        <!-- Account Details Grid -->
+        <div class="grid grid-cols-3 gap-6 mt-8">
+            {% if account.email %}
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Email</p>
+                <p class="text-base font-semibold text-gray-900 mt-1">{{ account.email }}</p>
+            </div>
+            {% endif %}
+            {% if account.phone %}
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Phone</p>
+                <p class="text-base font-semibold text-gray-900 mt-1">{{ account.phone }}</p>
+            </div>
+            {% endif %}
+            {% if account.gst_number %}
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">GST Number</p>
+                <p class="text-base font-semibold text-gray-900 mt-1">{{ account.gst_number }}</p>
+            </div>
+            {% endif %}
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Created</p>
+                <p class="text-base font-semibold text-gray-900 mt-1">{{ account.created_at|date:"d M Y" }}</p>
+            </div>
         </div>
-
-      </div>
-      <div class="row">
-        <div class="table-responsive p-5 card ">
-          {% include 'app/partials/date_filter.html' %}
-          <table class="table table-hover table-striped datatable-custom mb-0" style="width:100%;">
-            <thead>
-              <tr>
-                <th class="wd-15p">Sl No</th>
-                <th class="wd-15p">Date</th>
-                <th class="wd-15p">Order No</th>
-                <th class="wd-15p">Channel</th>
-                <th class="wd-15p">Order By</th>
-                <th class="wd-15p">COD Charge</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for order in orders %}
-              <tr>
-                <td> {{forloop.counter}} </td>
-                <td> {{order.created}} </td>
-                <td> <a href="{{order.get_absolute_url}}">{{order.order_no}} </a> </td>
-                <td> {{order.channel}} </td>
-                <td> {{order.order_by}} </td>
-                <td class="cod"> {{order.cod_charge}} </td>
-                <td class="amt"> {{order.total_amount}} </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-            <tfoot>
-              <tr>
-                  <td colspan="5" class="text-center"><b class="tm_f14">Total</b></td>
-                  <td><b id="total_cod"></b></td>
-                  <td><b id="total_amt"></b></td>
-              </tr>
-          </tfoot>
-          </table>
-          
+        
+        {% if account.address %}
+        <div class="mt-6 p-4 bg-gray-50 rounded-xl">
+            <p class="text-sm text-gray-500 uppercase tracking-wide font-medium mb-2">Address</p>
+            <p class="text-base text-gray-700">{{ account.address }}</p>
         </div>
-      </div>
-      {% else %}
-      <div class="card content_card">
-        <div class="card-body">
-          <p class="text-center">There is nothing here</p>
-        </div>
-      </div>
-      {% endif %}
+        {% endif %}
     </div>
-
-  </div>
-  <!-- End Row-->
-
 </div>
-{% include 'app/partials/data_table.html' %}
-{% endblock content %}
-
-{% block js_plugins %}
-<script>
-    $('#div_id_account').hide();
-    var date = '{{date}}'
-    if (date == 'custom'){
-      $('#div_id_date__lte, #div_id_date__gte').show();
-    }
-    else{
-      $('#div_id_date__lte, #div_id_date__gte').hide();
-    }
-    $('#id_date').on('change', function () {
-              let data = $(this).val();
-              if(data == 'custom'){
-                  $('#div_id_date__lte, #div_id_date__gte').show();
-              }
-              else{
-                  $('#div_id_date__lte, #div_id_date__gte').hide();
-              }
-          });
-          
-  </script>
-  <script>
-    var total = 0;
-    var cod = 0;
-    $(".amt").each(function() {
-          let value = parseFloat($(this).text()) || 0;
-          total += value;
-      });
-      $(".cod").each(function() {
-          let value = parseFloat($(this).text()) || 0;
-          cod += value;
-      });
-    $("#total_amt").text(total.toFixed(2));
-    $("#total_cod").text(cod.toFixed(2));
-  </script>
-{% endblock js_plugins %}
+{% endblock %}

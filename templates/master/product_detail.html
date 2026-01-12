@@ -1,105 +1,136 @@
-{% extends 'app/base.html' %}
-{% load static i18n crispy_forms_tags %}
-{% block title %}{{object}}: {{app_settings.site_title}}{% endblock %}
+{% extends 'ui/base.html' %}
+{% load static humanize %}
+
+{% block title %}{{ product.product_name }}{% endblock %}
+{% block page_title %}{{ product.product_name }}{% endblock %}
+
+{% block page_subtitle %}
+<span class="ml-4 px-3 py-1 rounded-full text-sm font-semibold {% if product.is_active %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+    {% if product.is_active %}Active{% else %}Inactive{% endif %}
+</span>
+{% endblock %}
 
 {% block content %}
-
-<div class="side-app main-container detail_page">
-
-  <!--Page header-->
-  <div class="page-header d-flex">
-    <div class="page-rightheader ms-md-auto">
-      <div class="btn-list">
-
-        <a href="javascript:void(0);" onclick="window.print();" class="btn btn-sm btn-white" title="Print"> <i
-            class="feather feather-printer"></i> </a>
-
-        <a href="{{object.get_update_url}}" class="btn btn-sm btn-white d-inline-flex align-items-center"
-          data-bs-placement="top" data-bs-toggle="tooltip" title="Edit"> <i
-            class="text-primary feather feather-edit-3"></i> </a>
-
-        <a href="{{object.get_delete_url}}" class="btn btn-sm btn-white d-inline-flex align-items-center"
-          data-bs-placement="top" data-bs-toggle="tooltip" title="Delete"> <i
-            class="text-danger feather feather-trash-2"></i> </a>
-
-      </div>
+<div class="space-y-6" data-testid="product-detail">
+    <!-- Breadcrumb -->
+    <div class="flex items-center text-sm text-gray-500">
+        <a href="{% url 'master:product_list' %}" class="hover:text-primary-500">Products</a>
+        <i class="fas fa-chevron-right mx-2 text-xs"></i>
+        <span class="text-gray-900 font-medium">{{ product.product_name }}</span>
     </div>
-  </div>
-  <!--End Page header-->
-
-  <!-- Row-->
-  <div class="row">
-
-    <div class="col-md-12">
-      {% if object %}
-      <div class="card content_card">
-        <div class="card-header">
-          <div class="card-title d-flex align-items-center w-100">
-            <h5 class="mb-0">{{object}}</h5>
-          </div>
-        </div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover info_table mb-0" style="width:100%;">
-              <tbody>
-                {% for name, value in object.get_fields|slice:"5:" %}
-                {% if value %}
-                <tr>
-                  <td> {{name}} </td>
-                  <td> {{ value }} </td>
-                </tr>
+    
+    <!-- Product Info Card -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div class="flex items-start justify-between">
+            <div class="flex items-start">
+                {% if product.image %}
+                <img src="{{ product.image.url }}" alt="{{ product.product_name }}" class="w-24 h-24 rounded-xl object-cover">
+                {% else %}
+                <div class="w-24 h-24 rounded-xl bg-gray-100 flex items-center justify-center">
+                    <i class="fas fa-box text-4xl text-gray-400"></i>
+                </div>
                 {% endif %}
-                {% endfor %}
-              </tbody>
-            </table>
-            {% if object.get_orders %}
-            <h3 class="mt-3 p-3">Orders</h3>
-            <table class="table table-hover info_table mb-0" style="width:100%;">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Date</th>
-                    <th>Order ID</th>
-                    <th>Order By</th>
-                    <th>Channel</th>
-                    <th>Items</th>
-                    <th>Quantity</th>
-                    <th>Amount</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for order in object.get_orders %}
-                  <tr>
-                    <td> {{forloop.counter}} </td>
-                    <td> {{order.created}} </td>
-                    <td> {{order.order.order_no}} </td>
-                    <td> {{order.order.order_by}} </td>
-                    <td> {{order.order.channel}} </td>
-                    <td> {{order.product}} </td>
-                    <td> {{order.quantity}} </td>
-                    <td> {{order.amount}} </td>
-                    <td> <a href="{{order.order.get_update_url}}" class="btn btn-sm btn-primary">Edit</a></td>
-                  </tr>
-                  {% endfor %}
-              </table>
-            {% endif %}
-          </div>
+                <div class="ml-5">
+                    <h2 class="text-2xl font-bold text-gray-900">{{ product.product_name }}</h2>
+                    <p class="text-base text-gray-500">SKU: {{ product.sku|default:'-' }}</p>
+                    {% if product.category %}
+                    <span class="mt-2 inline-block px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">{{ product.category }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'master:product_update' product.id %}" class="px-5 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                    <i class="fas fa-edit mr-2"></i>Edit
+                </a>
+            </div>
         </div>
-
-      </div>
-      {% else %}
-      <div class="card content_card">
-        <div class="card-body">
-          <p class="text-center">There is nothing here</p>
+        
+        <!-- Product Details Grid -->
+        <div class="grid grid-cols-4 gap-6 mt-8">
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">MRP</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1">₹{{ product.mrp|floatformat:0|default:0 }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Selling Price</p>
+                <p class="text-2xl font-bold text-green-600 mt-1">₹{{ product.selling_price|floatformat:0|default:0 }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Cost Price</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1">₹{{ product.cost_price|floatformat:0|default:0 }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Margin</p>
+                {% with margin=product.selling_price|add:"-"|add:product.cost_price %}
+                <p class="text-2xl font-bold {% if margin > 0 %}text-green-600{% else %}text-red-600{% endif %} mt-1">
+                    {{ margin|floatformat:0|default:0 }}%
+                </p>
+                {% endwith %}
+            </div>
         </div>
-      </div>
-      {% endif %}
+        
+        <div class="grid grid-cols-3 gap-6 mt-6">
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Weight</p>
+                <p class="text-base font-semibold text-gray-900 mt-1">{{ product.weight|default:'-' }} kg</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">HSN Code</p>
+                <p class="text-base font-semibold text-gray-900 mt-1">{{ product.hsn_code|default:'-' }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Tax Rate</p>
+                <p class="text-base font-semibold text-gray-900 mt-1">{{ product.tax_rate|default:0 }}%</p>
+            </div>
+        </div>
+        
+        {% if product.description %}
+        <div class="mt-6 p-4 bg-gray-50 rounded-xl">
+            <p class="text-sm text-gray-500 uppercase tracking-wide font-medium mb-2">Description</p>
+            <p class="text-base text-gray-700">{{ product.description }}</p>
+        </div>
+        {% endif %}
     </div>
-
-  </div>
-  <!-- End Row-->
-
+    
+    <!-- Inventory Stats -->
+    <div class="grid grid-cols-3 gap-6">
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Current Stock</p>
+                    <p class="text-4xl font-bold {% if product.stock_qty <= 0 %}text-red-600{% elif product.stock_qty < 10 %}text-yellow-600{% else %}text-green-600{% endif %} mt-2">
+                        {{ product.stock_qty|default:0 }}
+                    </p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <i class="fas fa-cubes text-2xl text-blue-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Sold</p>
+                    <p class="text-4xl font-bold text-gray-900 mt-2">{{ product.total_sold|default:0 }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-shopping-cart text-2xl text-green-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Revenue</p>
+                    <p class="text-4xl font-bold text-gray-900 mt-2">₹{{ product.total_revenue|floatformat:0|default:0 }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center">
+                    <i class="fas fa-rupee-sign text-2xl text-purple-600"></i>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-
-{% endblock content %}
+{% endblock %}

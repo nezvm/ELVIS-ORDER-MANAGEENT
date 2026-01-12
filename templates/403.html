@@ -1,32 +1,20 @@
-{% extends 'app/base.html' %}
-{% load static i18n crispy_forms_tags %}
-{% block title %}Sorry, You don't have access to this page!: {{app_settings.site_title}}{% endblock %}
+{% extends 'ui/base.html' %}
+
+{% block title %}Forbidden{% endblock %}
+{% block page_title %}403 - Forbidden{% endblock %}
 
 {% block content %}
-
-<div class="side-app main-container detail_page">
-	<div class="row">
-		<div class="col-md-12">
-			<div class="card content_card mt-4">
-				<div class="card-body">
-
-					<div class="row">
-						
-						<div class="col-md-7 mt-6 mx-auto text-center">
-							<div class="display-1 mb-5 font-weight-bold texteffect"> 403</div>
-							<h1 class="h3  mb-3 font-weight-semibold">Sorry, You don't have access to this page!</h1>
-							<p class="h5 font-weight-normal mb-7 leading-normal">You may have mistyped the address or
-								the page may have
-								moved.</p>
-							<a class="btn btn-primary" href="{% url 'core:home' %}"><i
-									class="fe fe-arrow-left-circle me-1"></i>Back to Home</a>
-						</div>
-					</div>
-
-				</div>
-			</div>
-		</div>
-	</div>
+<div class="flex items-center justify-center min-h-[60vh]" data-testid="error-403">
+    <div class="text-center">
+        <div class="w-24 h-24 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-6">
+            <i class="fas fa-lock text-5xl text-yellow-500"></i>
+        </div>
+        <h1 class="text-6xl font-bold text-gray-900 mb-4">403</h1>
+        <h2 class="text-2xl font-semibold text-gray-700 mb-2">Access Forbidden</h2>
+        <p class="text-gray-500 mb-8 max-w-md mx-auto">You don't have permission to access this page.</p>
+        <a href="{% url 'core:home' %}" class="px-6 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors inline-block">
+            <i class="fas fa-home mr-2"></i>Back to Dashboard
+        </a>
+    </div>
 </div>
-
 {% endblock %}

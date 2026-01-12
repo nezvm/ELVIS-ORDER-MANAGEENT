@@ -1,130 +1,54 @@
-{% extends 'app/base.html' %}
-{% load static i18n crispy_forms_tags %}
-{% block title %}{{object}}: {{app_settings.site_title}}{% endblock %}
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}{{ channel.name }}{% endblock %}
+{% block page_title %}{{ channel.name }}{% endblock %}
 
 {% block content %}
-
-<div class="side-app main-container detail_page">
-
-  <!--Page header-->
-  <div class="page-header d-flex">
-    <div class="page-rightheader ms-md-auto">
-      <div class="btn-list">
-
-        <a href="javascript:void(0);" onclick="window.print();" class="btn btn-sm btn-white" title="Print"> <i
-            class="feather feather-printer"></i> </a>
-
-        <a href="{{object.get_update_url}}" class="btn btn-sm btn-white d-inline-flex align-items-center"
-          data-bs-placement="top" data-bs-toggle="tooltip" title="Edit"> <i
-            class="text-primary feather feather-edit-3"></i> </a>
-
-        <a href="{{object.get_delete_url}}" class="btn btn-sm btn-white d-inline-flex align-items-center"
-          data-bs-placement="top" data-bs-toggle="tooltip" title="Delete"> <i
-            class="text-danger feather feather-trash-2"></i> </a>
-
-      </div>
+<div class="space-y-6" data-testid="master-channel-detail">
+    <!-- Breadcrumb -->
+    <div class="flex items-center text-sm text-gray-500">
+        <a href="{% url 'master:channel_list' %}" class="hover:text-primary-500">Channels</a>
+        <i class="fas fa-chevron-right mx-2 text-xs"></i>
+        <span class="text-gray-900 font-medium">{{ channel.name }}</span>
     </div>
-  </div>
-  <!--End Page header-->
-
-  <!-- Row-->
-  <div class="row">
-
-    <div class="col-md-12">
-      {% if object %}
-      <div class="card content_card">
-        <div class="card-header">
-          <div class="card-title d-flex align-items-center w-100">
-            <h5 class="mb-0">{{object}}</h5>
-          </div>
+    
+    <!-- Channel Info Card -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div class="flex items-start justify-between">
+            <div class="flex items-center">
+                <div class="w-16 h-16 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <i class="fas fa-store text-3xl text-blue-500"></i>
+                </div>
+                <div class="ml-5">
+                    <h2 class="text-2xl font-bold text-gray-900">{{ channel.name }}</h2>
+                    <p class="text-base text-gray-500">{{ channel.channel_type }}</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'master:channel_update' channel.id %}" class="px-5 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                    <i class="fas fa-edit mr-2"></i>Edit
+                </a>
+            </div>
         </div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover info_table mb-0" style="width:100%;">
-              <tbody>
-                {% for name, value in object.get_fields|slice:"5:" %}
-                {% if value %}
-                <tr>
-                  <td> {{name}} </td>
-                  <td> {{ value }} </td>
-                </tr>
-                {% endif %}
-                {% endfor %}
-                
-              </tbody>
-            </table>
-          </div>
+        
+        <!-- Channel Details Grid -->
+        <div class="grid grid-cols-3 gap-6 mt-8">
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Type</p>
+                <p class="text-base font-semibold text-gray-900 mt-1">{{ channel.channel_type }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Status</p>
+                <p class="text-base font-semibold mt-1 {% if channel.is_active %}text-green-600{% else %}text-gray-500{% endif %}">
+                    {% if channel.is_active %}Active{% else %}Inactive{% endif %}
+                </p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Created</p>
+                <p class="text-base font-semibold text-gray-900 mt-1">{{ channel.created_at|date:"d M Y" }}</p>
+            </div>
         </div>
-
-      </div>
-      <div class="row">
-        <div class="table-responsive p-5 card ">
-          <table class="table table-hover table-striped datatable-custom mb-0" style="width:100%;">
-            <thead>
-              <tr>
-                <th class="wd-15p">Sl No</th>
-                <th class="wd-15p">Date</th>
-                <th class="wd-15p">Order No</th>
-                <th class="wd-15p">Order By</th>
-                <th class="wd-15p">Account</th>
-                <th class="wd-15p">COD Charge</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for order in object.get_orders %}
-              <tr>
-                <td> {{forloop.counter}} </td>
-                <td> {{order.created}} </td>
-                <td> <a href="{{order.get_absolute_url}}">{{order.order_no}} </a> </td>
-                <td> {{order.order_by}} </td>
-                <td> {{order.account}} </td>
-                <td class="cod"> {{order.cod_charge}} </td>
-                <td class="amt"> {{order.total_amount}} </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-            <tfoot>
-              <tr>
-                  <td colspan="5" class="text-center"><b class="tm_f14">Total</b></td>
-                  <td><b id="total_cod"></b></td>
-                  <td><b id="total_amt"></b></td>
-              </tr>
-          </tfoot>
-          </table>
-          
-        </div>
-      </div>
-      {% else %}
-      <div class="card content_card">
-        <div class="card-body">
-          <p class="text-center">There is nothing here</p>
-        </div>
-      </div>
-      {% endif %}
     </div>
-
-  </div>
-  <!-- End Row-->
-
 </div>
-{% include 'app/partials/data_table.html' %}
-{% endblock content %}
-
-{% block js_plugins %}
-
-  <script>
-    var total = 0;
-    var cod = 0;
-    $(".amt").each(function() {
-          let value = parseFloat($(this).text()) || 0;
-          total += value;
-      });
-      $(".cod").each(function() {
-          let value = parseFloat($(this).text()) || 0;
-          cod += value;
-      });
-    $("#total_amt").text(total.toFixed(2));
-    $("#total_cod").text(cod.toFixed(2));
-  </script>
-{% endblock js_plugins %}
+{% endblock %}
