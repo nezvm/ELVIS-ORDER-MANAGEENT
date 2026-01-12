@@ -19,6 +19,7 @@ urlpatterns = [
     path("inventory/", include("inventory.urls")),
     path("segmentation/", include("segmentation.urls")),
     path("integrations/", include("integrations.urls")),
+    path("marketing/", include("marketing.urls")),
     
     # REST API
     path("api/v1/", include("api.urls")),
