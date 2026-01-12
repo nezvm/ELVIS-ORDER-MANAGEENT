@@ -1,130 +1,88 @@
-{% extends 'app/base.html' %}
-{% load static i18n crispy_forms_tags %}
-{% block title %}{{object}}: {{app_settings.site_title}}{% endblock %}
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}{{ user_profile.username }}{% endblock %}
+{% block page_title %}User Profile{% endblock %}
 
 {% block content %}
-
-<div class="side-app main-container detail_page">
-
-  <!--Page header-->
-  <div class="page-header d-flex">
-    <div class="page-rightheader ms-md-auto">
-      <div class="btn-list">
-
-        <a href="javascript:void(0);" onclick="window.print();" class="btn btn-sm btn-white" title="Print"> <i
-            class="feather feather-printer"></i> </a>
-
-        <a href="{{object.get_update_url}}" class="btn btn-sm btn-white d-inline-flex align-items-center"
-          data-bs-placement="top" data-bs-toggle="tooltip" title="Edit"> <i
-            class="text-primary feather feather-edit-3"></i> </a>
-
-        <a href="{{object.get_delete_url}}" class="btn btn-sm btn-white d-inline-flex align-items-center"
-          data-bs-placement="top" data-bs-toggle="tooltip" title="Delete"> <i
-            class="text-danger feather feather-trash-2"></i> </a>
-
-      </div>
+<div class="space-y-6" data-testid="user-detail">
+    <!-- Breadcrumb -->
+    <div class="flex items-center text-sm text-gray-500">
+        <a href="{% url 'user:user_list' %}" class="hover:text-primary-500">Users</a>
+        <i class="fas fa-chevron-right mx-2 text-xs"></i>
+        <span class="text-gray-900 font-medium">{{ user_profile.username }}</span>
     </div>
-  </div>
-  <!--End Page header-->
-
-  <!-- Row-->
-  <div class="row">
-
-    <div class="col-md-12">
-      {% if object %}
-      <div class="card content_card">
-        <div class="card-header">
-          <div class="card-title d-flex align-items-center w-100">
-            <h5 class="mb-0">{{object}}</h5>
-          </div>
+    
+    <!-- User Info Card -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div class="flex items-start justify-between">
+            <div class="flex items-center">
+                <div class="w-20 h-20 rounded-xl bg-primary-500 flex items-center justify-center text-white text-3xl font-bold">
+                    {{ user_profile.username|slice:":1"|upper }}
+                </div>
+                <div class="ml-5">
+                    <h2 class="text-2xl font-bold text-gray-900">{{ user_profile.get_full_name|default:user_profile.username }}</h2>
+                    <p class="text-base text-gray-500">@{{ user_profile.username }}</p>
+                    {% if user_profile.is_staff %}
+                    <span class="mt-2 inline-block px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-semibold">Staff</span>
+                    {% endif %}
+                    {% if user_profile.is_superuser %}
+                    <span class="mt-2 inline-block ml-2 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold">Admin</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'user:user_update' user_profile.id %}" class="px-5 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                    <i class="fas fa-edit mr-2"></i>Edit
+                </a>
+            </div>
         </div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover info_table mb-0" style="width:100%;">
-              <tbody>
-                {% for name, value in object.get_fields|slice:"5:" %}
-                {% if value %}
-                <tr>
-                  <td> {{name}} </td>
-                  <td> {{ value }} </td>
-                </tr>
-                {% endif %}
+        
+        <!-- User Details Grid -->
+        <div class="grid grid-cols-3 gap-6 mt-8">
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Email</p>
+                <p class="text-base font-semibold text-gray-900 mt-1">{{ user_profile.email|default:'-' }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Status</p>
+                <p class="text-base font-semibold mt-1 {% if user_profile.is_active %}text-green-600{% else %}text-red-600{% endif %}">
+                    {% if user_profile.is_active %}Active{% else %}Inactive{% endif %}
+                </p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Date Joined</p>
+                <p class="text-base font-semibold text-gray-900 mt-1">{{ user_profile.date_joined|date:"d M Y" }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Last Login</p>
+                <p class="text-base font-semibold text-gray-900 mt-1">{{ user_profile.last_login|date:"d M Y, H:i"|default:'Never' }}</p>
+            </div>
+            {% if user_profile.usertype %}
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">User Type</p>
+                <p class="text-base font-semibold text-gray-900 mt-1">{{ user_profile.usertype }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Permissions -->
+    {% if user_profile.groups.all or user_profile.user_permissions.all %}
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Permissions & Groups</h3>
+        
+        {% if user_profile.groups.all %}
+        <div class="mb-4">
+            <p class="text-sm text-gray-500 uppercase tracking-wide font-medium mb-2">Groups</p>
+            <div class="flex flex-wrap gap-2">
+                {% for group in user_profile.groups.all %}
+                <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">{{ group.name }}</span>
                 {% endfor %}
-                
-              </tbody>
-            </table>
-          </div>
+            </div>
         </div>
-
-      </div>
-      <div class="row">
-        <div class="table-responsive p-5 card ">
-          <table class="table table-hover table-striped datatable-custom mb-0" style="width:100%;">
-            <thead>
-              <tr>
-                <th class="wd-15p">Sl No</th>
-                <th class="wd-15p">Date</th>
-                <th class="wd-15p">Order No</th>
-                <th class="wd-15p">Channel</th>
-                <th class="wd-15p">Account</th>
-                <th class="wd-15p">COD Charge</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for order in object.get_orders %}
-              <tr>
-                <td> {{forloop.counter}} </td>
-                <td> {{order.created}} </td>
-                <td> <a href="{{order.get_absolute_url}}">{{order.order_no}} </a> </td>
-                <td> {{order.channel}} </td>
-                <td> {{order.account}} </td>
-                <td class="cod"> {{order.cod_charge}} </td>
-                <td class="amt"> {{order.total_amount}} </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-            <tfoot>
-              <tr>
-                  <td colspan="5" class="text-center"><b class="tm_f14">Total</b></td>
-                  <td><b id="total_cod"></b></td>
-                  <td><b id="total_amt"></b></td>
-              </tr>
-          </tfoot>
-          </table>
-          
-        </div>
-      </div>
-      {% else %}
-      <div class="card content_card">
-        <div class="card-body">
-          <p class="text-center">There is nothing here</p>
-        </div>
-      </div>
-      {% endif %}
+        {% endif %}
     </div>
-
-  </div>
-  <!-- End Row-->
-
+    {% endif %}
 </div>
-{% include 'app/partials/data_table.html' %}
-{% endblock content %}
-
-{% block js_plugins %}
-
-  <script>
-    var total = 0;
-    var cod = 0;
-    $(".amt").each(function() {
-          let value = parseFloat($(this).text()) || 0;
-          total += value;
-      });
-      $(".cod").each(function() {
-          let value = parseFloat($(this).text()) || 0;
-          cod += value;
-      });
-    $("#total_amt").text(total.toFixed(2));
-    $("#total_cod").text(cod.toFixed(2));
-  </script>
-{% endblock js_plugins %}
+{% endblock %}

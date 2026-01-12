@@ -1,79 +1,72 @@
-{% extends 'app/base.html' %}
-{% load static i18n crispy_forms_tags %}
-{% block title %}{{object}}: {{app_settings.site_title}}{% endblock %}
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}Session Details{% endblock %}
+{% block page_title %}Session Details{% endblock %}
 
 {% block content %}
-
-<div class="side-app main-container detail_page">
-
-  <!--Page header-->
-  <div class="page-header d-flex">
-    <div class="page-rightheader ms-md-auto">
-      <div class="btn-list">
-
-        {% if object %}
-        <a href="javascript:void(0);" onclick="window.print();" class="btn btn-sm btn-white" title="Print"> <i
-            class="feather feather-printer"></i> </a>
-        {% endif %}
-
-        {% if can_change %}
-        <a href="{{object.get_update_url}}" class="btn btn-sm btn-white d-inline-flex align-items-center"
-          data-bs-placement="top" data-bs-toggle="tooltip" title="Edit"> <i
-            class="text-primary feather feather-edit-3"></i> </a>
-        {% endif %}
-
-        {% if can_delete %}
-        <a href="{{object.get_delete_url}}" class="btn btn-sm btn-white d-inline-flex align-items-center"
-          data-bs-placement="top" data-bs-toggle="tooltip" title="Delete"> <i
-            class="text-danger feather feather-trash-2"></i> </a>
-        {% endif %}
-
-      </div>
+<div class="space-y-6" data-testid="session-detail">
+    <!-- Breadcrumb -->
+    <div class="flex items-center text-sm text-gray-500">
+        <a href="{% url 'user_sessions:session_list' %}" class="hover:text-primary-500">Sessions</a>
+        <i class="fas fa-chevron-right mx-2 text-xs"></i>
+        <span class="text-gray-900 font-medium">Session Details</span>
     </div>
-  </div>
-  <!--End Page header-->
-
-  <!-- Row-->
-  <div class="row">
-
-    <div class="col-md-12">
-      {% if object %}
-      <div class="card content_card">
-        <div class="card-header">
-          <div class="card-title d-flex align-items-center w-100">
-            <h5 class="mb-0">{{object}}</h5>
-          </div>
+    
+    <!-- Session Info Card -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div class="flex items-start justify-between">
+            <div class="flex items-center">
+                <div class="w-16 h-16 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <i class="fas fa-desktop text-3xl text-blue-500"></i>
+                </div>
+                <div class="ml-5">
+                    <h2 class="text-2xl font-bold text-gray-900">{{ session.user.username }}</h2>
+                    <p class="text-base text-gray-500">{{ session.ip|default:'Unknown IP' }}</p>
+                </div>
+            </div>
+            <form action="{% url 'user_sessions:session_delete' session.pk %}" method="post">
+                {% csrf_token %}
+                <button type="submit" onclick="return confirm('Are you sure you want to terminate this session?')" class="px-5 py-3 bg-red-100 text-red-600 rounded-xl font-medium hover:bg-red-200 transition-colors">
+                    <i class="fas fa-times mr-2"></i>Terminate Session
+                </button>
+            </form>
         </div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover info_table mb-0" style="width:100%;">
-              <tbody>
-                {% for name, value in object.get_fields|slice:"5:" %}
-                {% if value %}
-                <tr>
-                  <td> {{name}} </td>
-                  <td> {{ value }} </td>
-                </tr>
-                {% endif %}
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
+        
+        <!-- Session Details Grid -->
+        <div class="grid grid-cols-3 gap-6 mt-8">
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">User</p>
+                <p class="text-base font-semibold text-gray-900 mt-1">{{ session.user.username }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">IP Address</p>
+                <p class="text-base font-semibold text-gray-900 mt-1">{{ session.ip|default:'-' }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Session Key</p>
+                <p class="text-sm font-mono text-gray-900 mt-1 truncate">{{ session.session_key }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Last Activity</p>
+                <p class="text-base font-semibold text-gray-900 mt-1">{{ session.last_activity|date:"d M Y, H:i" }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Created</p>
+                <p class="text-base font-semibold text-gray-900 mt-1">{{ session.created|date:"d M Y, H:i"|default:'-' }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Expires</p>
+                <p class="text-base font-semibold text-gray-900 mt-1">{{ session.expire_date|date:"d M Y, H:i" }}</p>
+            </div>
         </div>
-
-      </div>
-      {% else %}
-      <div class="card content_card">
-        <div class="card-body">
-          <p class="text-center">There is nothing here</p>
+        
+        {% if session.user_agent %}
+        <div class="mt-6 p-4 bg-gray-50 rounded-xl">
+            <p class="text-sm text-gray-500 uppercase tracking-wide font-medium mb-2">User Agent</p>
+            <p class="text-sm text-gray-700 font-mono">{{ session.user_agent }}</p>
         </div>
-      </div>
-      {% endif %}
+        {% endif %}
     </div>
-
-  </div>
-  <!-- End Row-->
-
 </div>
-
-{% endblock content %}
+{% endblock %}

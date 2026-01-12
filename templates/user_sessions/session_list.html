@@ -1,69 +1,66 @@
-{% extends "app/base.html" %}
-{% load user_sessions i18n %}
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}User Sessions{% endblock %}
+{% block page_title %}User Sessions{% endblock %}
 
 {% block content %}
-  {% translate "<em>unknown on unknown</em>" as unknown_on_unknown %}
-  {% translate "<em>unknown</em>" as unknown %}
-
-  <div class="side-app main-container edit_page">
-
-    <!--Page header-->
-    <div class="page-header d-flex">
-        <div class="page-leftheader">
-            <div class="page-title">{% translate "Active Sessions" %}</div>
-        </div>
+<div class="space-y-6" data-testid="sessions-list">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <p class="text-gray-500">Monitor active user sessions</p>
+        <a href="{% url 'user_sessions:session_filter' %}" class="px-5 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+            <i class="fas fa-filter mr-2"></i>Filter Sessions
+        </a>
     </div>
-    <!--End Page header-->
-
-    <div class="row row-sm">
-        <div class="col-lg-12">
-            <div class="card">
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table">
-                            <thead>
-                              <tr>
-                                <th>{% translate "Location" %}</th>
-                                <th>{% translate "Device" %}</th>
-                                <th>{% translate "Last Activity" %}</th>
-                              </tr>
-                            </thead>
-                            {% for object in object_list %}
-                              <tr {% if object.session_key == session_key %}class="active"{% endif %}>
-                                <td>{{ object.ip|location|default_if_none:unknown|safe }} <small>({{ object.ip }})</small></td>
-                                <td>{{ object.user_agent|device|default_if_none:unknown_on_unknown|safe }}</td>
-                                <td>
-                                  {% if object.session_key == session_key %}
-                                    {% blocktrans with time=object.last_activity|timesince %}{{ time }} ago (this session){% endblocktrans %}
-                                  {% else %}
-                                    {% blocktrans with time=object.last_activity|timesince %}{{ time }} ago{% endblocktrans %}
-                                  {% endif %}
-                                </td>
-                              </tr>
-                            {% endfor %}
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        {% if object_list.count > 1 %}
-        <div class="col-lg-12">
-            <div class="card">
-                <div class="card-body">
-                    <form method="post" action="{% url 'user_sessions:session_delete_other' %}">
-                      {% csrf_token %}
-                      <p>{% blocktrans %}You can also end all other sessions but the current.
-                        This will log you out on all other devices.{% endblocktrans %}</p>
-                      <button type="submit" class="btn  btn-outline-danger">{% translate "End All Other Sessions" %}</button>
-                    </form>
-                </div>
-            </div>
+    
+    <!-- Sessions Table -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {% if sessions %}
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">User</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">IP Address</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Device</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Last Activity</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Expires</th>
+                    <th class="px-6 py-4 text-right text-sm font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for session in sessions %}
+                <tr class="table-row transition-colors hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center text-primary-600 font-bold">
+                                {{ session.user.username|slice:":1"|upper }}
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-base font-semibold text-gray-900">{{ session.user.username }}</p>
+                                <p class="text-sm text-gray-500">{{ session.user.email|default:'-' }}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-base text-gray-900">{{ session.ip|default:'-' }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{{ session.user_agent|truncatechars:30 }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{{ session.last_activity|date:"d M Y, H:i" }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{{ session.expire_date|date:"d M Y, H:i" }}</td>
+                    <td class="px-6 py-4 text-right">
+                        <a href="{% url 'user_sessions:session_detail' session.pk %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm">
+                            View
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-12 text-center text-gray-500">
+            <i class="fas fa-desktop text-4xl text-gray-300 mb-4"></i>
+            <p class="text-lg font-medium">No active sessions</p>
         </div>
         {% endif %}
     </div>
-
-</div>
-
 </div>
 {% endblock %}
