@@ -1,0 +1,93 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}{% if object %}Edit Campaign{% else %}New Campaign{% endif %}{% endblock %}
+{% block page_title %}{% if object %}Edit Campaign{% else %}New Campaign{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl" data-testid="campaign-form-page">
+    <div class="mb-6">
+        <a href="{% url 'marketing:campaign_list' %}" class="flex items-center text-gray-500 hover:text-gray-700 transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Campaigns
+        </a>
+    </div>
+    
+    <form method="POST" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Basic Info -->
+        <div class="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-6">Campaign Details</h3>
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Campaign Name *</label>
+                    {{ form.name }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                    {{ form.description }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Provider & Template -->
+        <div class="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-6">Message Configuration</h3>
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">WhatsApp Provider *</label>
+                    {{ form.provider }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Message Template *</label>
+                    {{ form.template }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Scheduling -->
+        <div class="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-6">Scheduling</h3>
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Schedule For (optional)</label>
+                    {{ form.scheduled_at }}
+                    <p class="text-xs text-gray-400 mt-1">Leave empty to start manually</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Throttle Rate (msg/sec)</label>
+                    {{ form.throttle_rate }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Attribution -->
+        <div class="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-6">Attribution Settings</h3>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Attribution Window (days)</label>
+                {{ form.attribution_window_days }}
+                <p class="text-xs text-gray-400 mt-1">Track conversions within this many days after campaign</p>
+            </div>
+        </div>
+        
+        <!-- Audience Preview -->
+        <div class="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Audience Selection</h3>
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                <p class="text-sm text-blue-700"><i class="fas fa-info-circle mr-2"></i>Audience filters will be configured after creating the campaign. All opted-in leads will be included by default.</p>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex items-center justify-end space-x-4">
+            <a href="{% url 'marketing:campaign_list' %}" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors">
+                Cancel
+            </a>
+            <button type="submit" data-testid="save-campaign-btn" class="px-8 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
+                {% if object %}Update Campaign{% else %}Create Campaign{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

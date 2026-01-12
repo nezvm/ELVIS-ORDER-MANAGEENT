@@ -1,0 +1,154 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}Campaigns{% endblock %}
+{% block page_title %}Campaigns{% endblock %}
+
+{% block content %}
+<div class="space-y-6" data-testid="campaigns-page">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <span class="px-3 py-1 bg-gray-100 rounded-full text-sm font-medium text-gray-600">{{ campaigns.count|default:0 }} campaigns</span>
+        </div>
+        <a href="{% url 'marketing:campaign_create' %}" data-testid="create-campaign-btn" class="px-5 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
+            <i class="fas fa-plus mr-2"></i>Create Campaign
+        </a>
+    </div>
+    
+    {% if campaigns %}
+    <div class="space-y-4">
+        {% for campaign in campaigns %}
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow" data-testid="campaign-row-{{ campaign.id }}">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="w-14 h-14 rounded-2xl {% if campaign.status == 'running' %}bg-green-100{% elif campaign.status == 'completed' %}bg-blue-100{% elif campaign.status == 'draft' %}bg-gray-100{% else %}bg-yellow-100{% endif %} flex items-center justify-center">
+                        {% if campaign.status == 'running' %}
+                        <i class="fas fa-play text-2xl text-green-600"></i>
+                        {% elif campaign.status == 'completed' %}
+                        <i class="fas fa-check text-2xl text-blue-600"></i>
+                        {% elif campaign.status == 'draft' %}
+                        <i class="fas fa-edit text-2xl text-gray-600"></i>
+                        {% else %}
+                        <i class="fas fa-pause text-2xl text-yellow-600"></i>
+                        {% endif %}
+                    </div>
+                    <div class="ml-5">
+                        <h3 class="text-xl font-bold text-gray-900">{{ campaign.name }}</h3>
+                        <p class="text-base text-gray-500 mt-1">{{ campaign.template.name|default:"No template" }} • {{ campaign.provider.name|default:"No provider" }}</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-8">
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-gray-900">{{ campaign.total_recipients }}</p>
+                        <p class="text-sm text-gray-500">Recipients</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-green-600">{{ campaign.sent_count }}</p>
+                        <p class="text-sm text-gray-500">Sent</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-blue-600">{{ campaign.delivered_count }}</p>
+                        <p class="text-sm text-gray-500">Delivered</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-red-600">{{ campaign.failed_count }}</p>
+                        <p class="text-sm text-gray-500">Failed</p>
+                    </div>
+                    <span class="px-4 py-2 rounded-xl text-sm font-bold {% if campaign.status == 'running' %}bg-green-100 text-green-700{% elif campaign.status == 'completed' %}bg-blue-100 text-blue-700{% elif campaign.status == 'draft' %}bg-gray-100 text-gray-700{% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                        {{ campaign.get_status_display }}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-between mt-6 pt-6 border-t border-gray-100">
+                <div class="flex items-center space-x-6 text-sm text-gray-500">
+                    {% if campaign.scheduled_at %}
+                    <span><i class="fas fa-calendar mr-2"></i>Scheduled: {{ campaign.scheduled_at|date:"d M Y, h:i A" }}</span>
+                    {% endif %}
+                    {% if campaign.started_at %}
+                    <span><i class="fas fa-play mr-2"></i>Started: {{ campaign.started_at|date:"d M Y, h:i A" }}</span>
+                    {% endif %}
+                    <span><i class="fas fa-clock mr-2"></i>Created: {{ campaign.created|date:"d M Y" }}</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    {% if campaign.status == 'draft' or campaign.status == 'scheduled' or campaign.status == 'paused' %}
+                    <button onclick="startCampaign('{{ campaign.id }}')" class="px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors">
+                        <i class="fas fa-play mr-2"></i>Start
+                    </button>
+                    {% elif campaign.status == 'running' %}
+                    <button onclick="pauseCampaign('{{ campaign.id }}')" class="px-4 py-2 bg-yellow-600 text-white rounded-xl font-medium hover:bg-yellow-700 transition-colors">
+                        <i class="fas fa-pause mr-2"></i>Pause
+                    </button>
+                    {% endif %}
+                    <a href="{{ campaign.get_absolute_url }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                        <i class="fas fa-eye mr-2"></i>View
+                    </a>
+                    {% if campaign.status == 'draft' %}
+                    <a href="{% url 'marketing:campaign_update' campaign.id %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                        <i class="fas fa-edit mr-2"></i>Edit
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-2xl p-12 border border-gray-100 shadow-sm text-center">
+        <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-bullhorn text-4xl text-gray-400"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900">No campaigns yet</h3>
+        <p class="text-gray-500 mt-2">Create your first WhatsApp broadcast campaign</p>
+        <a href="{% url 'marketing:campaign_create' %}" class="inline-block mt-6 px-6 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
+            <i class="fas fa-plus mr-2"></i>Create Campaign
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function startCampaign(campaignId) {
+    if (!confirm('Are you sure you want to start this campaign?')) return;
+    
+    try {
+        const response = await fetch(`/marketing/api/campaign/${campaignId}/start/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrftoken}
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Failed to start campaign', 'error');
+    }
+}
+
+async function pauseCampaign(campaignId) {
+    try {
+        const response = await fetch(`/marketing/api/campaign/${campaignId}/pause/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrftoken}
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Failed to pause campaign', 'error');
+    }
+}
+</script>
+{% endblock %}
