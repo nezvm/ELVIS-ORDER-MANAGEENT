@@ -9,11 +9,14 @@
     <!-- Actions -->
     <div class="flex items-center justify-between">
         <div class="flex items-center space-x-4">
-            <a href="{% url 'marketing:hotspots' %}" class="px-4 py-2.5 bg-green-100 text-green-700 rounded-xl font-medium hover:bg-green-200 transition-colors">
+            <a href="{% url 'marketing:hotspots' %}" class="px-4 py-2.5 bg-red-100 text-red-700 rounded-xl font-medium hover:bg-red-200 transition-colors">
                 <i class="fas fa-fire mr-2"></i>Hot Markets
             </a>
             <a href="{% url 'marketing:cold_zones' %}" class="px-4 py-2.5 bg-blue-100 text-blue-700 rounded-xl font-medium hover:bg-blue-200 transition-colors">
                 <i class="fas fa-snowflake mr-2"></i>Cold Zones
+            </a>
+            <a href="{% url 'marketing:abandoned_insights' %}" class="px-4 py-2.5 bg-orange-100 text-orange-700 rounded-xl font-medium hover:bg-orange-200 transition-colors">
+                <i class="fas fa-shopping-cart mr-2"></i>Abandoned
             </a>
         </div>
         <button onclick="refreshInsights()" data-testid="refresh-insights-btn" class="px-5 py-2.5 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
@@ -21,13 +24,39 @@
         </button>
     </div>
     
+    <!-- Unknown Location Warning -->
+    {% if unknown_stats.unknown_percentage > 20 %}
+    <div class="bg-yellow-50 border border-yellow-200 rounded-2xl p-6" data-testid="unknown-location-warning">
+        <div class="flex items-start justify-between">
+            <div class="flex items-start">
+                <div class="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center mr-4">
+                    <i class="fas fa-map-marker-alt text-2xl text-yellow-600"></i>
+                </div>
+                <div>
+                    <h4 class="text-lg font-bold text-yellow-800">{{ unknown_stats.unknown_leads }} Leads Missing Location</h4>
+                    <p class="text-base text-yellow-700 mt-1">{{ unknown_stats.unknown_percentage }}% of your leads don't have pincode data</p>
+                    <p class="text-sm text-yellow-600 mt-2">
+                        <i class="fas fa-lightbulb mr-1"></i>
+                        <strong>Action hint:</strong> Collect pincode via WhatsApp to unlock region insights
+                    </p>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-3xl font-bold text-yellow-700">{{ unknown_stats.unknown_percentage }}%</p>
+                <p class="text-sm text-yellow-600">Missing pincode</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
     <!-- Summary Stats -->
     <div class="grid grid-cols-4 gap-6">
         <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Leads</p>
-                    <p class="text-4xl font-bold text-gray-900 mt-2">{{ totals.total_leads|default:0 }}</p>
+                    <p class="text-4xl font-bold text-gray-900 mt-2">{{ unknown_stats.total_leads|default:0 }}</p>
+                    <p class="text-sm text-gray-500 mt-1">{{ unknown_stats.unknown_leads }} unknown location</p>
                 </div>
                 <div class="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center">
                     <i class="fas fa-users text-2xl text-purple-600"></i>
@@ -62,13 +91,144 @@
         <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">States Covered</p>
-                    <p class="text-4xl font-bold text-gray-900 mt-2">{{ stats.count|default:0 }}</p>
+                    <p class="text-sm font-medium text-orange-600 uppercase tracking-wide">Abandoned Carts</p>
+                    <p class="text-4xl font-bold text-orange-600 mt-2">{{ abandoned_metrics.abandoned_count|default:0 }}</p>
+                    <p class="text-sm text-gray-500 mt-1">{{ abandoned_metrics.converted_count|default:0 }} converted</p>
                 </div>
                 <div class="w-14 h-14 rounded-xl bg-orange-100 flex items-center justify-center">
-                    <i class="fas fa-map-marker-alt text-2xl text-orange-600"></i>
+                    <i class="fas fa-cart-arrow-down text-2xl text-orange-600"></i>
                 </div>
             </div>
+        </div>
+    </div>
+    
+    <!-- Tabs -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" data-testid="insights-tabs">
+        <!-- Tab Headers -->
+        <div class="border-b border-gray-200 bg-gray-50">
+            <nav class="flex px-6" role="tablist">
+                <button onclick="switchTab('orders')" data-testid="tab-orders" class="tab-btn px-6 py-4 text-base font-semibold border-b-2 -mb-px {% if active_tab == 'orders' %}border-primary-500 text-primary-600{% else %}border-transparent text-gray-500 hover:text-gray-700{% endif %} transition-colors">
+                    <i class="fas fa-shopping-bag mr-2"></i>Order Markets (Accurate)
+                </button>
+                <button onclick="switchTab('leads')" data-testid="tab-leads" class="tab-btn px-6 py-4 text-base font-semibold border-b-2 -mb-px {% if active_tab == 'leads' %}border-primary-500 text-primary-600{% else %}border-transparent text-gray-500 hover:text-gray-700{% endif %} transition-colors">
+                    <i class="fas fa-user-tag mr-2"></i>Lead Markets (Enriched Only)
+                </button>
+            </nav>
+        </div>
+        
+        <!-- Tab: Order Markets -->
+        <div id="tab-orders-content" class="{% if active_tab != 'orders' %}hidden{% endif %}">
+            <div class="p-6 bg-green-50 border-b border-green-100">
+                <p class="text-sm text-green-700">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    <strong>Source:</strong> Orders only. Uses shipping address PINCODE to derive State + District metrics. This data is always accurate regardless of lead location quality.
+                </p>
+            </div>
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">State</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Orders</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Revenue</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">COD %</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">RTO %</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Repeat Rate</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Category</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for stat in order_stats %}
+                    <tr class="table-row transition-colors">
+                        <td class="px-6 py-4">
+                            <p class="text-base font-semibold text-gray-900">{{ stat.state }}</p>
+                        </td>
+                        <td class="px-6 py-4 text-base text-gray-900 font-medium">{{ stat.orders_count }}</td>
+                        <td class="px-6 py-4 text-base font-semibold text-green-600">₹{{ stat.revenue|floatformat:0 }}</td>
+                        <td class="px-6 py-4 text-base text-gray-900">{{ stat.cod_share|floatformat:0 }}%</td>
+                        <td class="px-6 py-4">
+                            <span class="{% if stat.rto_rate >= 20 %}text-red-600 font-bold{% else %}text-gray-900{% endif %}">
+                                {{ stat.rto_rate|floatformat:1 }}%
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-base text-gray-900">{{ stat.repeat_rate|floatformat:1 }}%</td>
+                        <td class="px-6 py-4">
+                            {% if stat.market_category == 'hot' %}
+                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">HOT</span>
+                            {% elif stat.market_category == 'new' %}
+                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700">NEW</span>
+                            {% elif stat.market_category == 'high_rto' %}
+                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700">HIGH RTO</span>
+                            {% else %}
+                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                            No order data available. Click "Refresh Data" to compute statistics.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Tab: Lead Markets -->
+        <div id="tab-leads-content" class="{% if active_tab != 'leads' %}hidden{% endif %}">
+            <div class="p-6 bg-blue-50 border-b border-blue-100">
+                <p class="text-sm text-blue-700">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    <strong>Source:</strong> Leads only. Shows ONLY leads with enriched location (pincode mapped to state/district). Leads with unknown location are excluded.
+                </p>
+            </div>
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">State</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Leads</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">WIN / LOSS</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Converted</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Conversion Rate</th>
+                        <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Category</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for stat in lead_stats %}
+                    <tr class="table-row transition-colors">
+                        <td class="px-6 py-4">
+                            <p class="text-base font-semibold text-gray-900">{{ stat.state }}</p>
+                        </td>
+                        <td class="px-6 py-4 text-base text-gray-900 font-medium">{{ stat.leads_count }}</td>
+                        <td class="px-6 py-4">
+                            <span class="text-green-600 font-medium">{{ stat.win_count }}</span> / 
+                            <span class="text-red-600 font-medium">{{ stat.loss_count }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-base text-purple-600 font-medium">{{ stat.converted_count }}</td>
+                        <td class="px-6 py-4">
+                            <span class="{% if stat.conversion_rate >= 30 %}text-green-600{% elif stat.conversion_rate >= 15 %}text-yellow-600{% else %}text-red-600{% endif %} font-medium">
+                                {{ stat.conversion_rate|floatformat:1 }}%
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if stat.market_category == 'hot' %}
+                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">HOT</span>
+                            {% elif stat.market_category == 'cold' %}
+                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">COLD</span>
+                            {% else %}
+                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                            No enriched lead data available. Leads with unknown location are excluded from this view.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </div>
     
@@ -94,7 +254,7 @@
                 {% endfor %}
             </div>
             {% else %}
-            <p class="text-gray-500 text-center py-6">No data available</p>
+            <p class="text-gray-500 text-center py-6">No hot markets yet</p>
             {% endif %}
         </div>
         
@@ -119,101 +279,94 @@
                 {% endfor %}
             </div>
             {% else %}
-            <p class="text-gray-500 text-center py-6">No data available</p>
+            <p class="text-gray-500 text-center py-6">No cold zones identified</p>
             {% endif %}
         </div>
         
-        <!-- New Markets -->
-        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="new-markets-preview">
+        <!-- Loss Markets (Abandoned) -->
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="loss-markets-preview">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-bold text-gray-900 flex items-center">
-                    <i class="fas fa-star text-yellow-500 mr-2"></i>New Markets
+                    <i class="fas fa-cart-arrow-down text-orange-500 mr-2"></i>Loss Markets
                 </h3>
+                <a href="{% url 'marketing:abandoned_insights' %}" class="text-sm font-medium text-primary-500 hover:text-primary-600">View All</a>
             </div>
-            {% if new_markets %}
+            {% if loss_markets %}
             <div class="space-y-3">
-                {% for market in new_markets %}
+                {% for market in loss_markets %}
                 <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
                     <div>
                         <p class="text-base font-semibold text-gray-900">{{ market.state }}</p>
-                        <p class="text-sm text-gray-500">Since {{ market.first_order_date|date:"d M Y" }}</p>
+                        <p class="text-sm text-gray-500">{{ market.loss_count }} LOSS leads</p>
                     </div>
-                    <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-semibold">NEW</span>
                 </div>
                 {% endfor %}
             </div>
             {% else %}
-            <p class="text-gray-500 text-center py-6">No new markets</p>
+            <p class="text-gray-500 text-center py-6">No loss market data</p>
             {% endif %}
         </div>
     </div>
     
-    <!-- State-wise Table -->
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" data-testid="stats-table">
-        <div class="p-6 border-b border-gray-100">
-            <h3 class="text-lg font-bold text-gray-900">State-wise Performance</h3>
+    <!-- Abandoned Metrics Summary -->
+    {% if abandoned_metrics %}
+    <div class="bg-orange-50 rounded-2xl p-6 border border-orange-200" data-testid="abandoned-summary">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-lg font-bold text-orange-800 flex items-center">
+                    <i class="fas fa-cart-arrow-down mr-2"></i>Abandoned Checkout Performance
+                </h3>
+                <p class="text-sm text-orange-700 mt-1">Shopify abandoned checkouts recovery metrics</p>
+            </div>
+            <a href="{% url 'marketing:abandoned_insights' %}" class="px-4 py-2 bg-orange-600 text-white rounded-xl font-medium hover:bg-orange-700 transition-colors">
+                View Details <i class="fas fa-arrow-right ml-2"></i>
+            </a>
         </div>
-        <table class="w-full">
-            <thead class="bg-gray-50 border-b border-gray-200">
-                <tr>
-                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">State</th>
-                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Leads</th>
-                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">WIN/LOSS</th>
-                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Conv. Rate</th>
-                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Orders</th>
-                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Revenue</th>
-                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">COD %</th>
-                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Category</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-                {% for stat in stats %}
-                <tr class="table-row transition-colors">
-                    <td class="px-6 py-4">
-                        <p class="text-base font-semibold text-gray-900">{{ stat.state }}</p>
-                    </td>
-                    <td class="px-6 py-4 text-base text-gray-900">{{ stat.leads_count }}</td>
-                    <td class="px-6 py-4">
-                        <span class="text-green-600 font-medium">{{ stat.win_count }}</span> / 
-                        <span class="text-red-600 font-medium">{{ stat.loss_count }}</span>
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="{% if stat.conversion_rate >= 50 %}text-green-600{% elif stat.conversion_rate >= 20 %}text-yellow-600{% else %}text-red-600{% endif %} font-medium">
-                            {{ stat.conversion_rate|floatformat:1 }}%
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-base text-gray-900">{{ stat.orders_count }}</td>
-                    <td class="px-6 py-4 text-base font-semibold text-green-600">₹{{ stat.revenue|floatformat:0 }}</td>
-                    <td class="px-6 py-4 text-base text-gray-900">{{ stat.cod_share|floatformat:0 }}%</td>
-                    <td class="px-6 py-4">
-                        {% if stat.market_category == 'hot' %}
-                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">HOT</span>
-                        {% elif stat.market_category == 'cold' %}
-                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">COLD</span>
-                        {% elif stat.market_category == 'new' %}
-                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700">NEW</span>
-                        {% elif stat.market_category == 'high_rto' %}
-                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-700">HIGH RTO</span>
-                        {% else %}
-                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700">-</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="8" class="px-6 py-12 text-center text-gray-500">
-                        No data available. Click "Refresh Data" to compute market statistics.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="grid grid-cols-4 gap-6 mt-4">
+            <div class="bg-white rounded-xl p-4">
+                <p class="text-sm text-gray-500">Abandoned</p>
+                <p class="text-2xl font-bold text-gray-900">{{ abandoned_metrics.abandoned_count }}</p>
+            </div>
+            <div class="bg-white rounded-xl p-4">
+                <p class="text-sm text-gray-500">Cart Value</p>
+                <p class="text-2xl font-bold text-gray-900">₹{{ abandoned_metrics.abandoned_value|floatformat:0 }}</p>
+            </div>
+            <div class="bg-white rounded-xl p-4">
+                <p class="text-sm text-gray-500">Converted</p>
+                <p class="text-2xl font-bold text-green-600">{{ abandoned_metrics.converted_count }}</p>
+            </div>
+            <div class="bg-white rounded-xl p-4">
+                <p class="text-sm text-gray-500">Recovery Rate</p>
+                <p class="text-2xl font-bold text-green-600">{{ abandoned_metrics.conversion_rate|floatformat:1 }}%</p>
+            </div>
+        </div>
     </div>
+    {% endif %}
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+function switchTab(tab) {
+    // Update URL
+    const url = new URL(window.location);
+    url.searchParams.set('tab', tab);
+    window.history.pushState({}, '', url);
+    
+    // Toggle tab content
+    document.getElementById('tab-orders-content').classList.toggle('hidden', tab !== 'orders');
+    document.getElementById('tab-leads-content').classList.toggle('hidden', tab !== 'leads');
+    
+    // Update tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        const isActive = btn.getAttribute('data-testid') === `tab-${tab}`;
+        btn.classList.toggle('border-primary-500', isActive);
+        btn.classList.toggle('text-primary-600', isActive);
+        btn.classList.toggle('border-transparent', !isActive);
+        btn.classList.toggle('text-gray-500', !isActive);
+    });
+}
+
 async function refreshInsights() {
     const btn = document.querySelector('[data-testid="refresh-insights-btn"]');
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Computing...';
