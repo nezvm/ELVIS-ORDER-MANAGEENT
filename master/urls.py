@@ -7,6 +7,14 @@ app_name = "master"
 urlpatterns = [
     path("get_item_details/", views.get_item_details, name="get_item_details"),
     path('get_customer_details/', views.get_customer_details, name='get_customer_details'),
+    
+    # Quick Order Entry
+    path("orders/quick-entry/", views.QuickOrderEntryView.as_view(), name="quick_order_entry"),
+    path("orders/quick-entry/save/", views.quick_order_save, name="quick_order_save"),
+    path("api/check-utr/", views.check_utr, name="check_utr"),
+    path("api/search-products/", views.search_products, name="search_products"),
+    path("api/lookup-pincode/", views.lookup_pincode, name="lookup_pincode"),
+    
     #account
     path("accounts/", views.AccountListView.as_view(), name="account_list"),
     path("account/<str:pk>/", views.AccountDetailView.as_view(), name="account_detail"),
