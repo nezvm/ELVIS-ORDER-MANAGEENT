@@ -1,0 +1,165 @@
+{% extends 'app/base.html' %}
+{% load static i18n crispy_forms_tags %}
+{% block title %}{{object}}: {{app_settings.site_title}}{% endblock %}
+
+{% block content %}
+
+<div class="side-app main-container detail_page">
+
+  <!--Page header-->
+  <div class="page-header d-flex">
+    <div class="page-rightheader ms-md-auto">
+      <div class="btn-list">
+
+        <a href="javascript:void(0);" onclick="window.print();" class="btn btn-sm btn-white" title="Print"> <i
+            class="feather feather-printer"></i> </a>
+
+        <a href="{{object.get_update_url}}" class="btn btn-sm btn-white d-inline-flex align-items-center"
+          data-bs-placement="top" data-bs-toggle="tooltip" title="Edit"> <i
+            class="text-primary feather feather-edit-3"></i> </a>
+
+        <a href="{{object.get_delete_url}}" class="btn btn-sm btn-white d-inline-flex align-items-center"
+          data-bs-placement="top" data-bs-toggle="tooltip" title="Delete"> <i
+            class="text-danger feather feather-trash-2"></i> </a>
+
+      </div>
+    </div>
+  </div>
+  <!--End Page header-->
+
+  <!-- Row-->
+  <div class="row">
+
+    <div class="col-md-12">
+      {% if object %}
+      <div class="card content_card">
+        <div class="card-header">
+          <div class="card-title d-flex align-items-center w-100">
+            <h5 class="mb-0">{{object}}</h5>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover info_table mb-0" style="width:100%;">
+              <tbody>
+                {% for name, value in object.get_fields|slice:"5:7" %}
+                {% if value %}
+                <tr>
+                  <td> {{name}} </td>
+                  <td> {{ value }} </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+                <tr>
+                    <td>Account Created Balance</td>
+                    <td>{{ object.opening_balance}}</td>
+                </tr>
+                <tr>
+                    <td>Opening Balance</td>
+                    <td>{{ object.get_opening }}</td>
+                </tr>
+                <tr>
+                    <td>Today Income</td>
+                    <td>{{ object.get_today_orders }}.00</td>
+                </tr>
+                <tr>
+                  <td>Balance</td>
+                  <td>{{ object.get_balance }}</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+      <div class="row">
+        <div class="table-responsive p-5 card ">
+          {% include 'app/partials/date_filter.html' %}
+          <table class="table table-hover table-striped datatable-custom mb-0" style="width:100%;">
+            <thead>
+              <tr>
+                <th class="wd-15p">Sl No</th>
+                <th class="wd-15p">Date</th>
+                <th class="wd-15p">Order No</th>
+                <th class="wd-15p">Channel</th>
+                <th class="wd-15p">Order By</th>
+                <th class="wd-15p">COD Charge</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for order in orders %}
+              <tr>
+                <td> {{forloop.counter}} </td>
+                <td> {{order.created}} </td>
+                <td> <a href="{{order.get_absolute_url}}">{{order.order_no}} </a> </td>
+                <td> {{order.channel}} </td>
+                <td> {{order.order_by}} </td>
+                <td class="cod"> {{order.cod_charge}} </td>
+                <td class="amt"> {{order.total_amount}} </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr>
+                  <td colspan="5" class="text-center"><b class="tm_f14">Total</b></td>
+                  <td><b id="total_cod"></b></td>
+                  <td><b id="total_amt"></b></td>
+              </tr>
+          </tfoot>
+          </table>
+          
+        </div>
+      </div>
+      {% else %}
+      <div class="card content_card">
+        <div class="card-body">
+          <p class="text-center">There is nothing here</p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+  <!-- End Row-->
+
+</div>
+{% include 'app/partials/data_table.html' %}
+{% endblock content %}
+
+{% block js_plugins %}
+<script>
+    $('#div_id_account').hide();
+    var date = '{{date}}'
+    if (date == 'custom'){
+      $('#div_id_date__lte, #div_id_date__gte').show();
+    }
+    else{
+      $('#div_id_date__lte, #div_id_date__gte').hide();
+    }
+    $('#id_date').on('change', function () {
+              let data = $(this).val();
+              if(data == 'custom'){
+                  $('#div_id_date__lte, #div_id_date__gte').show();
+              }
+              else{
+                  $('#div_id_date__lte, #div_id_date__gte').hide();
+              }
+          });
+          
+  </script>
+  <script>
+    var total = 0;
+    var cod = 0;
+    $(".amt").each(function() {
+          let value = parseFloat($(this).text()) || 0;
+          total += value;
+      });
+      $(".cod").each(function() {
+          let value = parseFloat($(this).text()) || 0;
+          cod += value;
+      });
+    $("#total_amt").text(total.toFixed(2));
+    $("#total_cod").text(cod.toFixed(2));
+  </script>
+{% endblock js_plugins %}

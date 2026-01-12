@@ -1,0 +1,133 @@
+{% load static i18n  humanize%}
+<div class="row">
+    <div class="col-lg-3 col-md-3 col-sm-4 col-6">
+        <a href="{% url 'master:order_list' %}?type=WhatsApp">
+            <div class="card border-radius {% if type %} {% if not is_whatsapp %} bg-gray2 {% endif %} {% endif %}">
+                <div class="card-body p-3 text-black">
+                    <div class="w-100 d-flex justify-content-between align-items-center">
+                        <h6 class="me-3 mb-0"><i class="fa fa-whatsapp text-success fa-2x"></i></h6>
+                        <h5 class="font-weight-bold m-0">WhatsApp</h5>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small class="mb-0 text-muted  mt-3   ">Total : {{whatsapp_count|intcomma}}</small>
+                        <h3 class="mb-0 mt-1 text-primary text-end ">{{whatsapp_count_today}}</h3>
+                    </div>
+                    
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-lg-3 col-md-3 col-sm-4 col-6">
+        <a href="{% url 'master:order_list' %}?type=WhatsApp_COD">
+            <div class="card border-radius {% if type %}  {% if not is_cod %} bg-gray2 {% endif %} {% endif %}">
+                <div class="card-body p-3 text-black">
+                    <div class="w-100 d-flex justify-content-between align-items-center">
+                        <h6 class="me-3 mb-0"><i class="fa fa-google-wallet text-success fa-2x"></i></h6>
+                        <h5 class="font-weight-bold m-0">COD</h5>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small class="mb-0 text-muted  mt-3   ">Total : {{whatsapp_cod_count|intcomma}}</small>
+                        <h3 class="mb-0 mt-1 text-primary text-end ">{{whatsapp_cod_count_today}}</h3>
+                    </div>
+
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-lg-3 col-md-3 col-sm-4 col-6 ">
+        <a href="{% url 'master:order_list' %}?type=Swiggy">
+            <div class="card border-radius  {% if type %} {% if not is_swiggy %} bg-gray2 {% endif %} {% endif %}">
+                <div class="card-body p-3 text-black">
+                    <div class="w-100 d-flex justify-content-between align-items-center">
+                        <h6 class="me-3 mb-0"><img src="{% static 'app/images/icon/swiggy_colorr.png'%}" style="width: 27px;" alt=""></h6>
+                        <h5 class="font-weight-bold m-0">Swiggy</h5>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small class="mb-0 text-muted  mt-3   ">Total : {{swiggy_count|intcomma}}</small>
+                        <h3 class="mb-0 mt-1 text-primary text-end ">{{swiggy_count_today}}</h3>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-lg-3 col-md-3 col-sm-4 col-6 ">
+        <a href="{% url 'master:order_list' %}?type=Kumar">
+            <div class="card border-radius {% if type %}  {% if not is_kumar %} bg-gray2 {% endif %} {% endif %} ">
+                <div class="card-body p-3 text-black">
+                    <div class="w-100 d-flex justify-content-between align-items-center">
+                        <h6 class="me-3 mb-0"><i class="fa fa-user  text-secendtry  fa-2x"></i></h6>
+                        <h5 class="font-weight-bold m-0">Kumar</h5>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small class="mb-0 text-muted  mt-3   ">Total : {{kumar_count|intcomma}}</small>
+                        <h3 class="mb-0 mt-1 text-primary text-end ">{{kumar_count_today}}</h3>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-lg-3 col-md-3 col-sm-4 col-6 ">
+        <a href="{% url 'master:order_list' %}?type=Wholesale">
+            <div class="card border-radius  {% if type %}  {% if not is_wholesale %} bg-gray2{% endif %} {% endif %}">
+                <div class="card-body p-3 text-black">
+                    <div class="w-100 d-flex justify-content-between align-items-center">
+                        <h6 class="me-3 mb-0"><i class="fa fa-users text-secendtry fa-2x"></i></h6>
+                        <h5 class="font-weight-bold m-0">Wholesale</h5>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small class="mb-0 text-muted  mt-3   ">Total : {{wholesale_count|intcomma}}</small>
+                        <h3 class="mb-0 mt-1 text-primary text-end ">{{wholesale_count_today}}</h3>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-lg-3 col-md-3 col-sm-4 col-6 ">
+        <a href="{% url 'master:order_list' %}?type=Promo">
+            <div class="card border-radius  {% if type %}  {% if not is_promo %} bg-gray2 {% endif %} {% endif %}">
+                <div class="card-body p-3 text-black">
+                    <div class="w-100 d-flex justify-content-between align-items-center">
+                        <h6 class="me-3 mb-0"><i class="fa fa-bullhorn text-secendtry fa-2x"></i></h6>
+                        <h5 class="font-weight-bold m-0">Promo</h5>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small class="mb-0 text-muted  mt-3   ">Total : {{promo_count|intcomma}}</small>
+                        <h3 class="mb-0 mt-1 text-primary text-end ">{{promo_count_today}}</h3>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-lg-3 col-md-3 col-sm-4 col-6 ">
+        <a href="{% url 'master:order_list' %}?type=Counter">
+            <div class="card border-radius  {% if type %}  {% if not is_counter %} bg-gray2 {% endif %} {% endif %}">
+                <div class="card-body p-3 text-black">
+                    <div class="w-100 d-flex justify-content-between align-items-center">
+                        <h6 class="me-3 mb-0"><i class="fa fa-id-card-o text-secendtry fa-2x"></i></h6>
+                        <h5 class="font-weight-bold m-0">Counter</h5>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small class="mb-0 text-muted  mt-3   ">Total : {{counter_count|intcomma}}</small>
+                        <h3 class="mb-0 mt-1 text-primary text-end ">{{counter_count_today}}</h3>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-lg-3 col-md-3 col-sm-4 col-6 ">
+        <a href="{% url 'master:order_list' %}?type=Return_or_Replace">
+            <div class="card border-radius  {% if type %}  {% if not is_return %} bg-gray2 {% endif %} {% endif %}">
+                <div class="card-body p-3 text-black">
+                    <div class="w-100 d-flex justify-content-between align-items-center">
+                        <h6 class="me-3 mb-0"><i class="fa fa-refresh text-secendtry fa-2x"></i></h6>
+                        <h5 class="font-weight-bold m-0">Return</h5>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small class="mb-0 text-muted  mt-3   ">Total : {{return_or_replace_count|intcomma}}</small>
+                        <h3 class="mb-0 mt-1 text-primary text-end ">{{return_or_replace_count_today}}</h3>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>

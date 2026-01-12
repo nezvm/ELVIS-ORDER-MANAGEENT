@@ -1,0 +1,13 @@
+{% if request.user.usertype == 'Superadmin' or request.user.is_superuser %}
+    {% include 'app/sidebar/management.html' %}
+
+{% elif request.user.usertype == 'sales' %}
+    {% include 'app/sidebar/sales.html' %}
+
+{% elif request.user.usertype == 'Admin' %}
+    {% include 'app/sidebar/Admin.html' %}
+
+{% elif request.user.usertype == 'Staff' %}
+    {% include 'app/sidebar/Staff.html' %}
+
+{% endif %}

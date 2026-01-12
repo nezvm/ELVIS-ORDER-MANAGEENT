@@ -1,0 +1,23 @@
+{% load i18n crispy_forms_tags %}
+<div class="card-header">
+    <div class="card-title d-flex align-items-center w-100">
+      <div class="card-body p-0">
+        <form  method="get" class="form-horizontal-3">
+            <div class="row">
+              {{form|crispy}}
+                <div class="col-md-6 col-lg-1">
+                    <div class="d-grid   mt-5">
+                        <button class="btn btn-secondary  d-grid" type="submit" title="Reset" id="reset-filter-search">Reset</button>
+                        
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-2">
+                    <div class="d-grid   mt-5">
+                        <button class="btn btn-primary  d-grid" type="submit">Filter</button> 
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    </div>
+</div>

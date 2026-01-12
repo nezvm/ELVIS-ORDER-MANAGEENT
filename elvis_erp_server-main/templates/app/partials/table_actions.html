@@ -1,0 +1,11 @@
+<div class="dropdown">
+    <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown">
+        Action
+     </button>
+    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+        <li><a class="dropdown-item" href="{{record.get_absolute_url}}">View</a></li>
+        {% if can_edit %}
+        <li><a class="dropdown-item" href="{{ record.get_update_url }}">Edit</a></li>
+        {% endif %}
+    </ul>
+</div>

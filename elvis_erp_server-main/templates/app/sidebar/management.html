@@ -1,0 +1,103 @@
+{% load static extras i18n %}
+<!--app-sidebar-->
+<div class="sticky">
+    <aside class="app-sidebar">
+        <div class="app-sidebar__logo">
+            <a class="header-brand" href="/">
+                <img src="{{app_settings.logo}}" class="header-brand-img desktop-lgo" alt="">
+                <img src="{{app_settings.logo}}" class="header-brand-img dark-logo" alt="">
+                <img src="{{app_settings.favicon}}" class="header-brand-img mobile-logo" alt="">
+                <img src="{{app_settings.favicon}}" class="header-brand-img darkmobile-logo" alt="">
+            </a>
+        </div>
+        <div class="app-sidebar3">
+            <div class="main-menu">
+               
+
+                <ul class="side-menu">
+
+                    <li class="slide">
+                        <a class="side-menu__item {% if is_dashboard %} active {% endif %}" data-bs-toggle="slide" href="{% url 'core:home' %}">
+                            <i class="feather feather-airplay sidemenu_icon"></i>
+                            <span class="side-menu__label">Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item {% if is_report %} active {% endif %}" data-bs-toggle="slide" href="{% url 'core:report' %}">
+                            <i class="feather feather-airplay sidemenu_icon"></i>
+                            <span class="side-menu__label">Report</span>
+                        </a>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item {% if is_product %} active {% endif %}" data-bs-toggle="slide" href="{% url 'master:product_list' %}">
+                            <i class="fa fa-cubes sidemenu_icon"></i>
+                            <span class="side-menu__label">Products</span>
+                        </a>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item {% if is_productprice %} active {% endif %}" data-bs-toggle="slide" href="{% url 'master:productprice_list' %}">
+                            <i class="fa fa-fire sidemenu_icon"></i>
+                            <span class="side-menu__label">Product Prices</span>
+                        </a>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item {% if is_customer %} active {% endif %}" data-bs-toggle="slide" href="{% url 'master:customer_list' %}">
+                            <i class="fa fa-users sidemenu_icon"></i>
+                            <span class="side-menu__label">Customers</span>
+                        </a>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item {% if is_orders %} active {% endif %}" data-bs-toggle="slide" href="{% url 'master:order_list' %}">
+                            <i class="fa fa-cart-plus sidemenu_icon"></i>
+                            <span class="side-menu__label">Orders</span>
+                        </a>
+                    </li>
+                    <li class="slide">
+                        <a class="side-menu__item {% if is_account %} active {% endif %}" data-bs-toggle="slide" href="{% url 'master:account_list' %}">
+                            <i class="fa fa-bank sidemenu_icon"></i>
+                            <span class="side-menu__label">Accounts</span>
+                        </a>
+                    </li>
+                    <li class="slide has-sub {% if is_master %}active is-expanded {% endif %}">
+                        <a class="side-menu__item {% if is_master %}active {% endif %}" data-bs-toggle="slide" href="javascript:void(0);">
+                            <i class="fa fa fa-cogs sidemenu_icon"></i>
+                                <span class="side-menu__label">Masters</span>
+                            <i class="angle fa fa-angle-right"></i>
+                        </a>
+                       
+                        <ul class="slide-menu " >
+                            <li><a href="{% url 'master:channel_list' %}" class="slide-item  {% if is_channel %}active is-expanded {% endif %}">Channels</a></li>  
+                            <!-- <li><a href="{% url 'master:account_list' %}" class="slide-item  {% if is_account %}active is-expanded {% endif %}">Accounts</a></li>   -->
+                            {% if user.is_superuser %}
+                            <li><a href="{% url 'accounts:user_list' %}" class="slide-item  {% if is_user %}active is-expanded {% endif %}">Users</a></li>  
+                            {% endif %}
+                        </ul>
+                    </li>
+                    <!-- <li class="slide has-sub {% if is_order %}active is-expanded {% endif %}">
+                        <a class="side-menu__item {% if is_order %}active {% endif %}" data-bs-toggle="slide" href="javascript:void(0);">
+                            <i class="fa fa-cart-plus sidemenu_icon"></i>
+                                <span class="side-menu__label">Orders List</span>
+                            <i class="angle fa fa-angle-right"></i>
+                        </a>
+
+                        <ul class="slide-menu " >
+                            <li><a href="{% url 'master:order_list' %}?type=WhatsApp" class="slide-item  {% if is_whatsapp %}active is-expanded {% endif %}">Whatsapp Orders</a></li>  
+                            <li><a href="{% url 'master:order_list' %}?type=WhatsApp_COD" class="slide-item  {% if is_cod %}active is-expanded {% endif %}">COD Orders</a></li>  
+                            <li><a href="{% url 'master:order_list' %}?type=Swiggy" class="slide-item  {% if is_swiggy %}active is-expanded {% endif %}">Swiggy Orders</a></li>  
+                            <li><a href="{% url 'master:order_list' %}?type=Kumar" class="slide-item  {% if is_kumar %}active is-expanded {% endif %}">Kumar Orders</a></li>  
+                            <li><a href="{% url 'master:order_list' %}?type=Wholesale" class="slide-item  {% if is_wholesale %}active is-expanded {% endif %}">Wholesale Orders</a></li>  
+                            <li><a href="{% url 'master:order_list' %}?type=Promo" class="slide-item  {% if is_promo %}active is-expanded {% endif %}">Promo Orders</a></li>  
+                        </ul>
+                    </li> -->
+
+                </ul>
+
+                <div class="slide-right" id="slide-right">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="#7b8191" width="24" height="24" viewBox="0 0 24 24">
+                        <path d="M10.707 17.707 16.414 12l-5.707-5.707-1.414 1.414L13.586 12l-4.293 4.293z" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </aside>
+</div>

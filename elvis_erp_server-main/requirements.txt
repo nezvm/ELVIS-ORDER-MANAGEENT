@@ -1,0 +1,15 @@
+django-admin-interface
+django-colorfield
+easy-thumbnails
+django-tinymce
+django-import-export
+django-crispy-forms
+crispy-bootstrap5
+django-tables2
+django-filter
+django-registration-redux
+django-extensions
+django_compressor
+python-decouple
+django==4.2.9
+django-user-sessions

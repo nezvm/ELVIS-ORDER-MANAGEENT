@@ -1,0 +1,336 @@
+{% extends 'app/base.html' %}
+{% load static i18n crispy_forms_tags django_tables2 extras  humanize%}
+{% block title %}Home: {{app_settings.site_title}}{% endblock %}
+
+{% block content %}
+
+<div class="side-app main-container">
+
+    <div class="page-header d-xl-flex">
+        <div class="page-leftheader">
+            <div class="page-title">{% translate "Report" %}</div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-xl-4 col-lg-4 col-md-12"> 
+            <div class="card custom-card bg-gradient-teal "> 
+                <div class="card-body"> 
+                    <div class="row"> 
+                        <div class="col-8"> 
+                            <div class="mt-0 text-start"> 
+                                <span class="fs-14 fw-medium text-white"> <b>Total Revenue</b></span> 
+                                <h3 class="mb-0 mt-1 mb-2 text-white "><b>{{total_sale|intcomma}}</b></h3> 
+                            </div> 
+                        </div>
+                        <div class="col-4"> <div class="icon1 bg-white my-auto  float-end"> <i class="fe fe-dollar-sign text-success"></i> </div> </div>
+                        
+                    </div> 
+                </div> 
+            </div> 
+        </div>
+        
+        <div class="col-xl-4 col-lg-4 col-md-12"> 
+            <div class="card custom-card bg-gradient-primary "> 
+                <div class="card-body"> 
+                    <div class="row"> 
+                        <div class="col-8"> 
+                            <div class="mt-0 text-start"> 
+                                <span class="fs-14 fw-medium text-white"> <b>Total Orders</b></span> 
+                                <h3 class="mb-0 mt-1 mb-2 text-white "><b>{{total_order}}</b></h3> 
+                                
+                            </div> 
+                        </div>
+                        <div class="col-4"> <div class="icon1 bg-white my-auto  float-end"> <i class="fe  fe-shopping-bag text-primary"></i> </div> </div>
+                    </div> 
+                </div> 
+            </div> 
+        </div>
+        <div class="col-xl-4 col-lg-4 col-md-12"> 
+            <div class="card custom-card bg-gradient-warning "> 
+                <div class="card-body"> 
+                    <div class="row"> 
+                        <div class="col-8"> 
+                            <div class="mt-0 text-start"> 
+                                <span class="fs-14 fw-medium text-white"> <b>CUSTOMERS</b></span> 
+                                <h3 class="mb-0 mt-1 mb-2 text-white "><b>{{total_customer}}</b></h3> 
+                                
+                            </div> 
+                        </div>
+                        <div class="col-4"> <div class="icon1 bg-white my-auto  float-end"> <i class="fe fe-users text-warning"></i> </div> </div>
+                    </div>
+                    
+                </div> 
+            </div> 
+        </div>
+    </div>
+        <div class="row">
+            <div class="col-lg-3 col-md-3 col-sm-4 col-6">
+                <a href="{% url 'core:channel_report' %}?type=WhatsApp">
+                    <div class="card custom-card border-radius {% if type %} {% if not is_whatsapp %} bg-gray2 {% endif %} {% endif %}">
+                        <div class="card-body p-3 text-black">
+                            <div class="w-100 d-flex justify-content-between align-items-center">
+                                <h6 class="me-3 mb-0"><i class="fa fa-whatsapp text-success fa-2x"></i></h6>
+                                <h5 class="font-weight-bold m-0">WhatsApp</h5>
+                            </div>
+                            <h3 class="mb-0 mt-1 text-primary text-end ">{{whatsapp_count}}</h3>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-lg-3 col-md-3 col-sm-4 col-6">
+                <a href="{% url 'core:channel_report' %}?type=WhatsApp_COD">
+                    <div class="card border-radius {% if type %}  {% if not is_cod %} bg-gray2 {% endif %} {% endif %}">
+                        <div class="card-body p-3 text-black">
+                            <div class="w-100 d-flex justify-content-between align-items-center">
+                                <h6 class="me-3 mb-0"><i class="fa fa-google-wallet text-success fa-2x"></i></h6>
+                                <h5 class="font-weight-bold m-0">COD</h5>
+                            </div>
+                            
+                                <h3 class="mb-0 mt-1 text-primary text-end ">{{whatsapp_cod_count}}</h3>
+        
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-lg-3 col-md-3 col-sm-4 col-6 ">
+                <a href="{% url 'core:channel_report'  %}?type=Swiggy">
+                    <div class="card border-radius  {% if type %} {% if not is_swiggy %} bg-gray2 {% endif %} {% endif %}">
+                        <div class="card-body p-3 text-black">
+                            <div class="w-100 d-flex justify-content-between align-items-center">
+                                <h6 class="me-3 mb-0"><img src="{% static 'app/images/icon/swiggy_colorr.png'%}" style="width: 27px;" alt=""></h6>
+                                <h5 class="font-weight-bold m-0">Swiggy</h5>
+                            </div>
+                            <h3 class="mb-0 mt-1 text-primary text-end ">{{swiggy_count}}</h3>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-lg-3 col-md-3 col-sm-4 col-6 ">
+                <a href="{% url 'core:channel_report'  %}?type=Kumar">
+                    <div class="card border-radius {% if type %}  {% if not is_kumar %} bg-gray2 {% endif %} {% endif %} ">
+                        <div class="card-body p-3 text-black">
+                            <div class="w-100 d-flex justify-content-between align-items-center">
+                                <h6 class="me-3 mb-0"><i class="fa fa-user  text-secendtry  fa-2x"></i></h6>
+                                <h5 class="font-weight-bold m-0">Kumar</h5>
+                            </div>
+                            
+                            <h3 class="mb-0 mt-1 text-primary text-end ">{{kumar_count}}</h3>
+                            
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-lg-3 col-md-3 col-sm-4 col-6 ">
+                <a href="{% url 'core:channel_report'  %}?type=Wholesale">
+                    <div class="card border-radius  {% if type %}  {% if not is_wholesale %} bg-gray2{% endif %} {% endif %}">
+                        <div class="card-body p-3 text-black">
+                            <div class="w-100 d-flex justify-content-between align-items-center">
+                                <h6 class="me-3 mb-0"><i class="fa fa-users text-secendtry fa-2x"></i></h6>
+                                <h5 class="font-weight-bold m-0">Wholesale</h5>
+                            </div>
+                            
+                                <h3 class="mb-0 mt-1 text-primary text-end ">{{wholesale_count}}</h3>
+                            
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-lg-3 col-md-3 col-sm-4 col-6 ">
+                <a href="{% url 'core:channel_report'  %}?type=Promo">
+                    <div class="card border-radius  {% if type %}  {% if not is_promo %} bg-gray2 {% endif %} {% endif %}">
+                        <div class="card-body p-3 text-black">
+                            <div class="w-100 d-flex justify-content-between align-items-center">
+                                <h6 class="me-3 mb-0"><i class="fa fa-bullhorn text-secendtry fa-2x"></i></h6>
+                                <h5 class="font-weight-bold m-0">Promo</h5>
+                            </div>
+                           
+                                <h3 class="mb-0 mt-1 text-primary text-end ">{{promo_count}}</h3>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-lg-3 col-md-3 col-sm-4 col-6 ">
+                <a href="{% url 'core:channel_report'  %}?type=Counter">
+                    <div class="card border-radius  {% if type %}  {% if not is_counter %} bg-gray2 {% endif %} {% endif %}">
+                        <div class="card-body p-3 text-black">
+                            <div class="w-100 d-flex justify-content-between align-items-center">
+                                <h6 class="me-3 mb-0"><i class="fa fa-id-card-o text-secendtry fa-2x"></i></h6>
+                                <h5 class="font-weight-bold m-0">Counter</h5>
+                            </div>
+                            
+                                <h3 class="mb-0 mt-1 text-primary text-end ">{{counter_count}}</h3>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-lg-3 col-md-3 col-sm-4 col-6 ">
+                <a href="{% url 'core:channel_report'  %}?type=Return_or_Replace">
+                    <div class="card border-radius  {% if type %}  {% if not is_return %} bg-gray2 {% endif %} {% endif %}">
+                        <div class="card-body p-3 text-black">
+                            <div class="w-100 d-flex justify-content-between align-items-center">
+                                <h6 class="me-3 mb-0"><i class="fa fa-refresh text-secendtry fa-2x"></i></h6>
+                                <h5 class="font-weight-bold m-0">Return</h5>
+                            </div>
+                            
+                                <h3 class="mb-0 mt-1 text-primary text-end ">{{return_or_replace_count}}</h3>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <div class="row">
+            <div class=" col-md-6">
+                <div class="card">
+                    <div class="" id="product_chart"></div>
+                </div>
+            </div>
+            <div class=" col-md-6">
+                <div class="card">
+                    <div class="" id="order_by_report"></div>
+                </div>
+            </div>
+        </div>
+       <div class="row">
+            <div class=" col-md-12">
+                <div class="card">
+                    <div class="" id="top_cities"></div>
+                </div>
+            </div>
+       </div>
+    </div>
+</div>
+
+{% include 'app/partials/data_table.html' %}
+{% include 'app/partials/apexchart.html' %}
+{% include 'app/partials/help.html' %}
+{% endblock content %}
+
+{% block js_plugins %}
+<script>
+
+var options = {
+          series: {{product_data}},
+          chart: {
+          width: 600,
+          height: 800,
+          type: 'donut',
+        },
+        labels: [
+        'FACE CREAM-SMALL-35 GRAMS', 
+        'FACE CREAM (35) + POWDER-50', 
+        'FACE CREAM-BIG-70', 
+        'FACE CREAM (70) + POWDER-123', 
+        'FACE CREAM (70) +FACE CREAM (35)-105', 
+        'FACE POWDER-50'
+    ],
+        plotOptions: {
+          pie: {
+            startAngle: -90,
+            endAngle: 270
+          }
+        },
+        dataLabels: {
+          enabled: false
+        },
+        fill: {
+          type: 'gradient',
+        },
+        legend: {
+          formatter: function(val, opts) {
+            return val + " - " + opts.w.globals.series[opts.seriesIndex]
+          }
+        },
+        title: {
+          text: 'Product Based Order' 
+        },
+        responsive: [{
+          breakpoint: 480,
+          options: {
+            chart: {
+              width: 200,
+            },
+            legend: {
+              position: 'top'
+            }
+          }
+        }]
+        };
+
+        var chart = new ApexCharts(document.querySelector("#product_chart"), options);
+        chart.render();
+</script>
+<script>
+    var options = {
+        series: [{
+            name: 'Total Orders', 
+            data: {{ city_counts|safe }}  // Order counts instead of city counts
+        }],
+        chart: {
+            type: 'bar',
+            height: 430
+        },
+        title: {
+            text: 'Top 10 Order Cities'  // Updated title
+        },
+        plotOptions: {
+            bar: {
+                horizontal: true,
+                dataLabels: {
+                    position: 'top',
+                },
+            }
+        },
+        dataLabels: {
+            enabled: true,
+            offsetX: -6,
+            style: {
+                fontSize: '12px',
+                colors: ['#fff']
+            }
+        },
+        stroke: {
+            show: true,
+            width: 1,
+            colors: ['#fff']
+        },
+        tooltip: {
+            shared: true,
+            intersect: false
+        },
+        xaxis: {
+            categories: {{ city_names|safe }},  // City names from Django context
+        },
+    };
+
+    var chart = new ApexCharts(document.querySelector("#top_cities"), options);
+    chart.render();
+</script>
+<script>
+     var options = {
+          series: {{user_count|safe}},
+          chart: {
+          width: 480,
+          type: 'pie',
+        },
+        title: {
+          text: 'Order By Count' 
+        },
+        labels: {{user_list|safe}},
+        responsive: [{
+          breakpoint: 480,
+          options: {
+            chart: {
+              width: 200
+            },
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }]
+        };
+
+        var chart = new ApexCharts(document.querySelector("#order_by_report"), options);
+        chart.render();
+</script>
+{% endblock %}
+

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Print Page and iFrame Content</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        /* Additional styles can be added here */
+    </style>
+</head>
+<body>
+    <h1>Main Page Content</h1>
+    <p>This is some text on the main page.</p>
+    <iframe id="iframeToPrint" src="content-to-print.html" style="width:600px; height:400px;"></iframe>
+    <button onclick="printDocument()">Print Document</button>
+
+    <script>
+        function printDocument() {
+            var iframe = document.getElementById('iframeToPrint');
+            var iframeContent = '';
+
+            try {
+                // Try to get iframe content, might fail if different origin
+                iframeContent = iframe.contentWindow.document.documentElement.outerHTML;
+            } catch (error) {
+                console.error('Error accessing iframe content: ', error);
+            }
+
+            var printWindow = window.open('', '_blank', 'width=800,height=600');
+            printWindow.document.open();
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Print Preview</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; }
+                            /* Ensure additional styles are included or linked here */
+                        </style>
+                    </head>
+                    <body>
+                        ${document.body.innerHTML}
+                        <hr>
+                        ${iframeContent}
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.focus();
+
+            // Use setTimeout to allow content to load; consider more robust event handling
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 500);
+        }
+    </script>
+</body>
+</html>
