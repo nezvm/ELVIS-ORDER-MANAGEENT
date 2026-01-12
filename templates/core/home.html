@@ -1,309 +1,244 @@
-{% extends 'app/base.html' %}
-{% load static i18n crispy_forms_tags django_tables2 extras  humanize%}
-{% block title %}Home: {{app_settings.site_title}}{% endblock %}
+{% extends 'ui/base.html' %}
+{% load static humanize %}
 
-{% block content %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
 
-<div class="side-app main-container">
-
-    <div class="page-header d-xl-flex">
-        <div class="page-leftheader">
-            <div class="page-title">{% translate "Main Dashboard" %}</div>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-xl-4 col-lg-4 col-md-12"> 
-            <div class="card custom-card bg-gradient-teal "> 
-                <div class="card-body"> 
-                    <div class="row"> 
-                        <div class="col-8"> 
-                            <div class="mt-0 text-start"> 
-                                <span class="fs-14 fw-medium text-white"> <b>Total Revenue</b></span> 
-                                <h3 class="mb-0 mt-1 mb-2 text-white "><b>{{total_sale|intcomma}}</b></h3> 
-                            </div> 
-                        </div>
-                        <div class="col-4"> <div class="icon1 bg-white my-auto  float-end"> <i class="fe fe-dollar-sign text-success"></i> </div> </div>
-                        
-                    </div> 
-                </div> 
-            </div> 
-        </div>
-        
-        <div class="col-xl-4 col-lg-4 col-md-12"> 
-            <div class="card custom-card bg-gradient-primary "> 
-                <div class="card-body"> 
-                    <div class="row"> 
-                        <div class="col-8"> 
-                            <div class="mt-0 text-start"> 
-                                <span class="fs-14 fw-medium text-white"> <b>Total Orders</b></span> 
-                                <h3 class="mb-0 mt-1 mb-2 text-white "><b>{{orders}}</b></h3> 
-                                
-                            </div> 
-                        </div>
-                        <div class="col-4"> <div class="icon1 bg-white my-auto  float-end"> <i class="fe  fe-shopping-bag text-primary"></i> </div> </div>
-                    </div> 
-                </div> 
-            </div> 
-        </div>
-        <div class="col-xl-4 col-lg-4 col-md-12"> 
-            <div class="card custom-card bg-gradient-warning "> 
-                <div class="card-body"> 
-                    <div class="row"> 
-                        <div class="col-8"> 
-                            <div class="mt-0 text-start"> 
-                                <span class="fs-14 fw-medium text-white"> <b>CUSTOMERS</b></span> 
-                                <h3 class="mb-0 mt-1 mb-2 text-white "><b>{{customers}}</b></h3> 
-                                
-                            </div> 
-                        </div>
-                        <div class="col-4"> <div class="icon1 bg-white my-auto  float-end"> <i class="fe fe-users text-warning"></i> </div> </div>
-                    </div>
-                    
-                </div> 
-            </div> 
-        </div>
-        
-        {% include 'app/partials/channels.html' %}
-        <div class="col-md-12">
-            <div class="card custom-card  ">
-                <div id="REVENUE_BY_CHANNEL"></div>
-            </div>
-        </div>
-        <div class="col-md-12">
-            <div class="card custom-card  ">
-                <div id="ORDER_BY_time"></div>
-            </div>
-        </div>
-        <div class="col-md-12">
-          <div class="card custom-card  ">
-              <div id="Weekly_chart"></div>
-          </div>
-        </div>
-    </div>
-</div>
-
-{% include 'app/partials/data_table.html' %}
-{% include 'app/partials/apexchart.html' %}
-{% include 'app/partials/help.html' %}
-{% endblock content %}
-
-{% block js_plugins %}
-<script>
-    var options = {
-        series: [{
-            name: "Revenue",  // Updated series name
-            type: 'column',
-            data: {{revenue_by_channel}}
-        },{
-          name: 'Order',
-          type: 'line',
-          data: {{order_by_channels}}
-        }],
-            chart: {
-            height: 350,
-            type: 'line',
-        },
-        stroke: {
-          width: [0, 4]
-        },
-        title: {
-            text: "Channel Sources",
-            // align: "center",
-            // style: {
-            //     fontSize: '16px',
-            //     fontWeight: 'bold'
-            // }
-        },dataLabels: {
-          enabled: true,
-          enabledOnSeries: [1]
-        },
-        
-        labels:  ['WhatsApp', 'COD', 'Swiggy', 'Kumar', 'Wholesale', 'Promo', 'Counter', 'Return/Replace'],
-        yaxis: [{
-          title: {
-            text: 'Revenue By Channels',
-          },
-        
-        }, {
-          opposite: true,
-          title: {
-            text: 'Order By Channels'
-          }
-        }]
-    };
-
-    var chart = new ApexCharts(document.querySelector("#REVENUE_BY_CHANNEL"), options);
-    chart.render();
-</script>
-<script>
-    var options = {
-          series: [{
-            name: "Today",
-            data: {{today_order_counts}}
-          },
-          {
-            name: "Yesterday",
-            data:  {{yesterday_order_counts}}
-          }
-        ],
-          chart: {
-          height: 350,
-          type: 'line',
-          zoom: {
-            enabled: false
-          },
-        },
-        dataLabels: {
-          enabled: false
-        },
-        stroke: {
-          width: [5, 7],
-          curve: 'straight',
-          dashArray: [0,5]
-        },
-        title: {
-          text: 'Average Session Duration',
-          align: 'left'
-        },
-        legend: {
-          tooltipHoverFormatter: function(val, opts) {
-            return val + ' - <strong>' + opts.w.globals.series[opts.seriesIndex][opts.dataPointIndex] + '</strong>'
-          }
-        },
-        markers: {
-          size: 0,
-          hover: {
-            sizeOffset: 6
-          }
-        },
-        xaxis: {
-          categories: ['8:00AM', '9:00AM', '10:00AM','11:00PM', '12:00PM', '01:00PM', '02:00PM', '03:00PM', '04:00PM', '05:00PM', '06:00PM', '07:00PM', '08:00PM', '09:00PM', '10:00PM', '11:00PM'
-          ],
-        },
-        tooltip: {
-          y: [
-            {
-              title: {
-                formatter: function (val) {
-                  return val + " per Order"
-                }
-              }
-            },
-            {
-              title: {
-                formatter: function (val) {
-                  return val + " per Order"
-                }
-              }
-            },
-            {
-              title: {
-                formatter: function (val) {
-                  return val;
-                }
-              }
-            }
-          ]
-        },
-        grid: {
-          borderColor: '#f1f1f1',
-        }
-        };
-
-        var chart = new ApexCharts(document.querySelector("#ORDER_BY_time"), options);
-        chart.render();
-</script>
-<script>
-  const last7Days = [...Array(12)].map((_, i) => {
-    const d = new Date();
-    d.setUTCDate(d.getUTCDate() - i); // Get today and last 6 days
-    return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }).split('T')[0] + ' GMT'; // Format as 'YYYY-MM-DD GMT'
-}).reverse(); // Reverse to maintain chronological order
-
-  var options = {
-          series: [{
-          name: 'WhatsApp',
-          data: {{WhatsApp_data}}
-        }, {
-          name: 'COD',
-          data: {{WhatsApp_COD_data}}
-        }, {
-          name: 'Swiggy',
-          data: {{Swiggy_data}}
-        }, {
-          name: 'Kumar',
-          data: {{Kumar_data}}
-        },
-        {
-          name: 'Wholesale',
-          data: {{Wholesale_data}}
-        },
-        {
-          name: 'Promo',
-          data: {{Promo_data}}
-        },
-        {
-          name: 'Counter',
-          data: {{Counter_data}}
-        },
-        {
-          name: 'Return/Replace',
-          data: {{Return_or_Replace_data}}
-        }
-      ],
-          chart: {
-          type: 'bar',
-          height: 350,
-          stacked: true,
-          toolbar: {
-            show: true
-          },
-          zoom: {
-            enabled: true
-          }
-        },
-        responsive: [{
-          breakpoint: 480,
-          options: {
-            legend: {
-              position: 'bottom',
-              offsetX: -10,
-              offsetY: 0
-            }
-          }
-        }],
-        plotOptions: {
-          bar: {
-            horizontal: false,
-            borderRadius: 10,
-            borderRadiusApplication: 'end', // 'around', 'end'
-            borderRadiusWhenStacked: 'last', // 'all', 'last'
-            dataLabels: {
-              total: {
-                enabled: true,
-                style: {
-                  fontSize: '13px',
-                  fontWeight: 900
-                }
-              }
-            }
-          },
-        },
-        xaxis: {
-          type: 'datetime',
-          categories: last7Days,
-        },
-        legend: {
-          position: 'right',
-          offsetY: 40
-        },
-        fill: {
-          opacity: 1
-        }
-        };
-
-        var chart = new ApexCharts(document.querySelector("#Weekly_chart"), options);
-        chart.render();
-</script>
+{% block page_subtitle %}
+<span class="ml-4 text-sm text-gray-500">Welcome back, {{ request.user.username }}</span>
 {% endblock %}
 
+{% block content %}
+<div class="space-y-6" data-testid="dashboard-page">
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-4 gap-6">
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="stat-revenue">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Revenue</p>
+                    <p class="text-4xl font-bold text-green-600 mt-2">₹{{ total_sale|floatformat:0|default:0|intcomma }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-rupee-sign text-2xl text-green-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="stat-orders">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Orders</p>
+                    <p class="text-4xl font-bold text-gray-900 mt-2">{{ orders|default:0|intcomma }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <i class="fas fa-shopping-cart text-2xl text-blue-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="stat-customers">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Customers</p>
+                    <p class="text-4xl font-bold text-gray-900 mt-2">{{ customers|default:0|intcomma }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center">
+                    <i class="fas fa-users text-2xl text-purple-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="stat-products">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Products</p>
+                    <p class="text-4xl font-bold text-gray-900 mt-2">{{ products|default:0|intcomma }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-orange-100 flex items-center justify-center">
+                    <i class="fas fa-box text-2xl text-orange-600"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Channel Performance -->
+    <div class="grid grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="channel-performance">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Revenue by Channel</h3>
+            <canvas id="revenueByChannel" height="250"></canvas>
+        </div>
+        
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="orders-trend">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Orders Trend (Today vs Yesterday)</h3>
+            <canvas id="ordersTrend" height="250"></canvas>
+        </div>
+    </div>
+    
+    <!-- Channel Cards -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Channel Overview</h3>
+        <div class="grid grid-cols-4 gap-4">
+            {% for channel in channel_stats %}
+            <div class="p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer" data-testid="channel-{{ channel.name|slugify }}">
+                <div class="flex items-center justify-between">
+                    <div class="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
+                        <i class="fas fa-{{ channel.icon|default:'store' }} text-primary-500"></i>
+                    </div>
+                    <span class="text-xs font-semibold {% if channel.growth > 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                        {% if channel.growth > 0 %}+{% endif %}{{ channel.growth|floatformat:0 }}%
+                    </span>
+                </div>
+                <p class="text-lg font-bold text-gray-900 mt-3">{{ channel.name }}</p>
+                <p class="text-sm text-gray-500">{{ channel.orders }} orders</p>
+                <p class="text-base font-semibold text-green-600">₹{{ channel.revenue|floatformat:0|intcomma }}</p>
+            </div>
+            {% empty %}
+            <div class="col-span-4 text-center py-8 text-gray-500">
+                No channel data available
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Weekly Chart -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Weekly Performance</h3>
+        <canvas id="weeklyChart" height="150"></canvas>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-4 gap-6">
+        <a href="{% url 'master:order_create' %}" class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md hover:border-primary-500 transition-all group" data-testid="quick-new-order">
+            <div class="flex items-center">
+                <div class="w-12 h-12 rounded-xl bg-primary-100 flex items-center justify-center group-hover:bg-primary-500 transition-colors">
+                    <i class="fas fa-plus text-xl text-primary-500 group-hover:text-white transition-colors"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-base font-semibold text-gray-900">New Order</p>
+                    <p class="text-sm text-gray-500">Create order</p>
+                </div>
+            </div>
+        </a>
+        
+        <a href="{% url 'master:customer_create' %}" class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md hover:border-green-500 transition-all group" data-testid="quick-new-customer">
+            <div class="flex items-center">
+                <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center group-hover:bg-green-500 transition-colors">
+                    <i class="fas fa-user-plus text-xl text-green-500 group-hover:text-white transition-colors"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-base font-semibold text-gray-900">New Customer</p>
+                    <p class="text-sm text-gray-500">Add customer</p>
+                </div>
+            </div>
+        </a>
+        
+        <a href="{% url 'logistics:panel' %}" class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md hover:border-blue-500 transition-all group" data-testid="quick-logistics">
+            <div class="flex items-center">
+                <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center group-hover:bg-blue-500 transition-colors">
+                    <i class="fas fa-truck text-xl text-blue-500 group-hover:text-white transition-colors"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-base font-semibold text-gray-900">Logistics</p>
+                    <p class="text-sm text-gray-500">Manage shipping</p>
+                </div>
+            </div>
+        </a>
+        
+        <a href="{% url 'marketing:lead_list' %}" class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md hover:border-purple-500 transition-all group" data-testid="quick-leads">
+            <div class="flex items-center">
+                <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center group-hover:bg-purple-500 transition-colors">
+                    <i class="fas fa-address-book text-xl text-purple-500 group-hover:text-white transition-colors"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-base font-semibold text-gray-900">Marketing</p>
+                    <p class="text-sm text-gray-500">Manage leads</p>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Revenue by Channel Chart
+const revenueCtx = document.getElementById('revenueByChannel');
+if (revenueCtx) {
+    new Chart(revenueCtx, {
+        type: 'bar',
+        data: {
+            labels: ['WhatsApp', 'COD', 'Swiggy', 'Kumar', 'Wholesale', 'Promo', 'Counter', 'Return'],
+            datasets: [{
+                label: 'Revenue',
+                data: {{ revenue_by_channel|default:"[0,0,0,0,0,0,0,0]"|safe }},
+                backgroundColor: '#AE1F25',
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+}
+
+// Orders Trend Chart
+const trendCtx = document.getElementById('ordersTrend');
+if (trendCtx) {
+    new Chart(trendCtx, {
+        type: 'line',
+        data: {
+            labels: ['8AM', '9AM', '10AM', '11AM', '12PM', '1PM', '2PM', '3PM', '4PM', '5PM', '6PM', '7PM', '8PM', '9PM', '10PM', '11PM'],
+            datasets: [{
+                label: 'Today',
+                data: {{ today_order_counts|default:"[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]"|safe }},
+                borderColor: '#AE1F25',
+                tension: 0.3,
+                fill: false
+            }, {
+                label: 'Yesterday',
+                data: {{ yesterday_order_counts|default:"[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]"|safe }},
+                borderColor: '#94a3b8',
+                borderDash: [5, 5],
+                tension: 0.3,
+                fill: false
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+}
+
+// Weekly Chart
+const weeklyCtx = document.getElementById('weeklyChart');
+if (weeklyCtx) {
+    new Chart(weeklyCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ weekly_labels|default:"[]"|safe }},
+            datasets: [{
+                label: 'WhatsApp',
+                data: {{ WhatsApp_data|default:"[0,0,0,0,0,0,0,0,0,0,0,0]"|safe }},
+                backgroundColor: '#22c55e'
+            }, {
+                label: 'COD',
+                data: {{ WhatsApp_COD_data|default:"[0,0,0,0,0,0,0,0,0,0,0,0]"|safe }},
+                backgroundColor: '#3b82f6'
+            }, {
+                label: 'Swiggy',
+                data: {{ Swiggy_data|default:"[0,0,0,0,0,0,0,0,0,0,0,0]"|safe }},
+                backgroundColor: '#f97316'
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } },
+            plugins: { legend: { position: 'right' } }
+        }
+    });
+}
+</script>
+{% endblock %}
