@@ -1,0 +1,101 @@
+{% extends 'ui/base.html' %}
+{% load static humanize %}
+
+{% block title %}Shipments{% endblock %}
+{% block page_title %}Shipments{% endblock %}
+
+{% block content %}
+<div class="space-y-6" data-testid="shipments-page">
+    <!-- Filters -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <form method="GET" class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="relative">
+                    <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search AWB..." class="w-64 pl-12 pr-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+                
+                <select name="status" onchange="this.form.submit()" class="px-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <option value="">All Status</option>
+                    <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="picked_up" {% if request.GET.status == 'picked_up' %}selected{% endif %}>Picked Up</option>
+                    <option value="in_transit" {% if request.GET.status == 'in_transit' %}selected{% endif %}>In Transit</option>
+                    <option value="out_for_delivery" {% if request.GET.status == 'out_for_delivery' %}selected{% endif %}>Out for Delivery</option>
+                    <option value="delivered" {% if request.GET.status == 'delivered' %}selected{% endif %}>Delivered</option>
+                    <option value="rto" {% if request.GET.status == 'rto' %}selected{% endif %}>RTO</option>
+                </select>
+                
+                <select name="carrier" onchange="this.form.submit()" class="px-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <option value="">All Carriers</option>
+                    {% for carrier in carriers %}
+                    <option value="{{ carrier.id }}" {% if request.GET.carrier == carrier.id|stringformat:"s" %}selected{% endif %}>{{ carrier.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <a href="{% url 'logistics:panel' %}" class="px-5 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Panel
+            </a>
+        </form>
+    </div>
+    
+    <!-- Shipments Table -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">AWB</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Order</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Carrier</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Destination</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Created</th>
+                    <th class="px-6 py-4 text-right text-sm font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for shipment in shipments %}
+                <tr class="table-row transition-colors hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                        <p class="text-base font-semibold text-gray-900">{{ shipment.awb_number|default:"Pending" }}</p>
+                    </td>
+                    <td class="px-6 py-4">
+                        <a href="{% url 'master:order_detail' shipment.order.id %}" class="text-base font-medium text-primary-500 hover:underline">
+                            #{{ shipment.order.order_no }}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4">
+                        <p class="text-base text-gray-900">{{ shipment.carrier.name }}</p>
+                    </td>
+                    <td class="px-6 py-4">
+                        <p class="text-base text-gray-900">{{ shipment.order.customer.city|default:"-" }}</p>
+                        <p class="text-sm text-gray-500">{{ shipment.order.customer.pincode }}</p>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if shipment.status == 'delivered' %}
+                        <span class="px-3 py-1.5 rounded-full text-sm font-semibold bg-green-100 text-green-700">Delivered</span>
+                        {% elif shipment.status == 'in_transit' %}
+                        <span class="px-3 py-1.5 rounded-full text-sm font-semibold bg-blue-100 text-blue-700">In Transit</span>
+                        {% elif shipment.status == 'rto' %}
+                        <span class="px-3 py-1.5 rounded-full text-sm font-semibold bg-red-100 text-red-700">RTO</span>
+                        {% else %}
+                        <span class="px-3 py-1.5 rounded-full text-sm font-semibold bg-gray-100 text-gray-700">{{ shipment.status|title }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{{ shipment.created|date:"d M Y" }}</td>
+                    <td class="px-6 py-4 text-right">
+                        <a href="{% url 'logistics:shipment_detail' shipment.id %}" class="p-2 text-gray-500 hover:text-primary-500 hover:bg-gray-100 rounded-lg transition-colors">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-6 py-12 text-center text-gray-500">No shipments found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
