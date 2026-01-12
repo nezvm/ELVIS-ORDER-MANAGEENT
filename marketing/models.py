@@ -590,3 +590,163 @@ class GeoMarketStats(BaseModel):
         if self.pincode:
             location += f" > {self.pincode}"
         return location
+
+
+# Pincode Master for location enrichment
+class PincodeMaster(BaseModel):
+    """Pincode to State/District mapping for location enrichment."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    pincode = models.CharField(max_length=10, unique=True, db_index=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    district = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+    country = models.CharField(max_length=100, default='India')
+    
+    class Meta:
+        verbose_name = "Pincode Master"
+        verbose_name_plural = "Pincode Master"
+    
+    def __str__(self):
+        return f"{self.pincode} - {self.district}, {self.state}"
+
+
+# Separate Order Market Stats (from shipping address)
+class OrderMarketStats(BaseModel):
+    """Order-based geographic statistics (from shipping pincode)."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Location (derived from order shipping address)
+    state = models.CharField(max_length=100, db_index=True)
+    district = models.CharField(max_length=100, blank=True, null=True, db_index=True)
+    pincode = models.CharField(max_length=10, blank=True, null=True, db_index=True)
+    
+    # Period
+    period_type = models.CharField(max_length=20, choices=[
+        ('daily', 'Daily'), ('weekly', 'Weekly'), ('monthly', 'Monthly'), ('all_time', 'All Time')
+    ])
+    period_date = models.DateField(db_index=True)
+    
+    # Order Metrics
+    orders_count = models.IntegerField(default=0)
+    revenue = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    cod_orders = models.IntegerField(default=0)
+    prepaid_orders = models.IntegerField(default=0)
+    cod_share = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    
+    # Delivery Metrics
+    delivered_count = models.IntegerField(default=0)
+    rto_count = models.IntegerField(default=0)
+    rto_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    
+    # Customer Metrics
+    unique_customers = models.IntegerField(default=0)
+    repeat_customers = models.IntegerField(default=0)
+    repeat_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    new_customers = models.IntegerField(default=0)
+    
+    # First Order Date
+    first_order_date = models.DateField(null=True, blank=True)
+    
+    # Market Tags
+    market_category = models.CharField(max_length=50, blank=True, null=True, choices=[
+        ('hot', 'Hot Market'),
+        ('new', 'New Market'),
+        ('growing', 'Growing Market'),
+        ('high_rto', 'High RTO Market'),
+    ])
+    
+    class Meta:
+        verbose_name = "Order Market Stats"
+        verbose_name_plural = "Order Market Stats"
+        unique_together = ['state', 'district', 'pincode', 'period_type', 'period_date']
+        ordering = ['-revenue']
+    
+    def __str__(self):
+        location = f"{self.state}"
+        if self.district:
+            location += f" > {self.district}"
+        if self.pincode:
+            location += f" > {self.pincode}"
+        return location
+
+
+# Separate Lead Market Stats (enriched leads only)
+class LeadMarketStats(BaseModel):
+    """Lead-based geographic statistics (enriched locations only)."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Location (only from leads with location_status != 'unknown')
+    state = models.CharField(max_length=100, db_index=True)
+    district = models.CharField(max_length=100, blank=True, null=True, db_index=True)
+    pincode = models.CharField(max_length=10, blank=True, null=True, db_index=True)
+    
+    # Period
+    period_type = models.CharField(max_length=20, choices=[
+        ('daily', 'Daily'), ('weekly', 'Weekly'), ('monthly', 'Monthly'), ('all_time', 'All Time')
+    ])
+    period_date = models.DateField(db_index=True)
+    
+    # Lead Metrics
+    leads_count = models.IntegerField(default=0)
+    win_count = models.IntegerField(default=0)
+    loss_count = models.IntegerField(default=0)
+    converted_count = models.IntegerField(default=0)
+    conversion_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    
+    # Market Tags
+    market_category = models.CharField(max_length=50, blank=True, null=True, choices=[
+        ('hot', 'Hot Market'),
+        ('cold', 'Cold/Loss Market'),
+        ('new', 'New Market'),
+    ])
+    
+    class Meta:
+        verbose_name = "Lead Market Stats"
+        verbose_name_plural = "Lead Market Stats"
+        unique_together = ['state', 'district', 'pincode', 'period_type', 'period_date']
+        ordering = ['-leads_count']
+    
+    def __str__(self):
+        location = f"{self.state}"
+        if self.district:
+            location += f" > {self.district}"
+        if self.pincode:
+            location += f" > {self.pincode}"
+        return location
+
+
+# Abandoned Metrics Stats
+class AbandonedMetrics(BaseModel):
+    """Aggregated abandoned checkout metrics."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Period
+    period_type = models.CharField(max_length=20, choices=[
+        ('daily', 'Daily'), ('weekly', 'Weekly'), ('monthly', 'Monthly'), ('all_time', 'All Time')
+    ])
+    period_date = models.DateField(db_index=True)
+    
+    # State (optional for geo breakdown)
+    state = models.CharField(max_length=100, blank=True, null=True, db_index=True)
+    
+    # Abandoned Metrics
+    abandoned_count = models.IntegerField(default=0)
+    abandoned_value = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    converted_count = models.IntegerField(default=0)
+    conversion_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    conversion_revenue = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    avg_conversion_days = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    
+    # Top Products (JSON array of {product_name, count, value})
+    top_abandoned_products = models.JSONField(default=list)
+    
+    class Meta:
+        verbose_name = "Abandoned Metrics"
+        verbose_name_plural = "Abandoned Metrics"
+        unique_together = ['period_type', 'period_date', 'state']
+    
+    def __str__(self):
+        if self.state:
+            return f"Abandoned Metrics - {self.state} ({self.period_date})"
+        return f"Abandoned Metrics - All ({self.period_date})"
+
