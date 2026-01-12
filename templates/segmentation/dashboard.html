@@ -1,0 +1,171 @@
+{% extends 'modern_base.html' %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="h3">{{ title }}</h1>
+    <button class="btn btn-primary" onclick="computeProfiles()">
+        <i class="fas fa-sync me-2"></i>Recompute All Profiles
+    </button>
+</div>
+
+<!-- Stats Row -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value text-primary">{{ total_customers }}</div>
+            <div class="stat-label">Total Customers</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value text-success">₹{{ total_revenue|floatformat:0 }}</div>
+            <div class="stat-label">Total Lifetime Revenue</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value">₹{{ avg_lifetime_value|floatformat:0 }}</div>
+            <div class="stat-label">Avg Lifetime Value</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value text-info">{{ segments|length }}</div>
+            <div class="stat-label">Active Segments</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Value Tier Distribution -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">Value Tier Distribution</div>
+            <div class="card-body">
+                <canvas id="valueTierChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Lifecycle Distribution -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">Lifecycle Stage Distribution</div>
+            <div class="card-body">
+                <canvas id="lifecycleChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Order Behavior -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">Order Behavior Segments</div>
+            <div class="card-body">
+                <canvas id="behaviorChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Segments List -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between">
+                Customer Segments
+                <a href="{% url 'segmentation:segment_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for segment in segments|slice:":8" %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas {{ segment.icon }}" style="color: {{ segment.color }}"></i>
+                            <strong class="ms-2">{{ segment.name }}</strong>
+                            <br>
+                            <small class="text-muted">{{ segment.get_segment_type_display }}</small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-primary">{{ segment.customer_count }} customers</span>
+                            <br>
+                            <small>₹{{ segment.total_revenue|floatformat:0 }}</small>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-muted">No segments created yet</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Value Tier Chart
+const valueTierData = {{ value_distribution|safe }};
+if (Object.keys(valueTierData).length > 0) {
+    new Chart(document.getElementById('valueTierChart'), {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(valueTierData).map(k => k || 'Unknown'),
+            datasets: [{
+                data: Object.values(valueTierData),
+                backgroundColor: ['#10b981', '#3b82f6', '#f59e0b']
+            }]
+        },
+        options: { plugins: { legend: { position: 'bottom' } } }
+    });
+}
+
+// Lifecycle Chart
+const lifecycleData = {{ lifecycle_distribution|safe }};
+if (Object.keys(lifecycleData).length > 0) {
+    new Chart(document.getElementById('lifecycleChart'), {
+        type: 'bar',
+        data: {
+            labels: Object.keys(lifecycleData).map(k => k || 'Unknown'),
+            datasets: [{
+                label: 'Customers',
+                data: Object.values(lifecycleData),
+                backgroundColor: '#3b82f6'
+            }]
+        },
+        options: { plugins: { legend: { display: false } } }
+    });
+}
+
+// Behavior Chart
+const behaviorData = {{ behavior_distribution|safe }};
+if (Object.keys(behaviorData).length > 0) {
+    new Chart(document.getElementById('behaviorChart'), {
+        type: 'pie',
+        data: {
+            labels: Object.keys(behaviorData).map(k => k || 'Unknown'),
+            datasets: [{
+                data: Object.values(behaviorData),
+                backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899']
+            }]
+        },
+        options: { plugins: { legend: { position: 'bottom' } } }
+    });
+}
+
+function computeProfiles() {
+    if (!confirm('This will recompute all customer profiles. Continue?')) return;
+    
+    fetch('{% url "segmentation:compute_profiles" %}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        alert(data.message || 'Profiles computed');
+        location.reload();
+    })
+    .catch(e => alert('Error: ' + e));
+}
+</script>
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends 'modern_base.html' %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="h3">{{ title }}</h1>
+    <a href="{{ object.get_update_url }}" class="btn btn-outline-primary">
+        <i class="fas fa-edit me-2"></i>Edit
+    </a>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-value text-primary">{{ total_shipments }}</div>
+            <div class="stat-label">Total Shipments</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-value text-success">{{ delivered_shipments }}</div>
+            <div class="stat-label">Delivered</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-value text-warning">{{ pending_shipments }}</div>
+            <div class="stat-label">Pending</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Carrier Details</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-5">Name</dt>
+                    <dd class="col-7">{{ object.name }}</dd>
+                    <dt class="col-5">Code</dt>
+                    <dd class="col-7"><code>{{ object.code }}</code></dd>
+                    <dt class="col-5">Website</dt>
+                    <dd class="col-7">{{ object.website|default:'-' }}</dd>
+                    <dt class="col-5">Status</dt>
+                    <dd class="col-7">
+                        <span class="badge {% if object.status == 'active' %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ object.get_status_display }}
+                        </span>
+                    </dd>
+                    <dt class="col-5">Supports COD</dt>
+                    <dd class="col-7">
+                        {% if object.supports_cod %}<span class="badge bg-success">Yes</span>
+                        {% else %}<span class="badge bg-secondary">No</span>{% endif %}
+                    </dd>
+                    <dt class="col-5">Supports Prepaid</dt>
+                    <dd class="col-7">
+                        {% if object.supports_prepaid %}<span class="badge bg-success">Yes</span>
+                        {% else %}<span class="badge bg-secondary">No</span>{% endif %}
+                    </dd>
+                    <dt class="col-5">Priority</dt>
+                    <dd class="col-7">{{ object.priority }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Performance Metrics</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-5">Success Rate</dt>
+                    <dd class="col-7">
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar bg-success" style="width: {{ object.success_rate }}%">
+                                {{ object.success_rate }}%
+                            </div>
+                        </div>
+                    </dd>
+                    <dt class="col-5">SLA Adherence</dt>
+                    <dd class="col-7">
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar bg-info" style="width: {{ object.sla_adherence_rate }}%">
+                                {{ object.sla_adherence_rate }}%
+                            </div>
+                        </div>
+                    </dd>
+                    <dt class="col-5">Avg Delivery Days</dt>
+                    <dd class="col-7">{{ object.avg_delivery_days }} days</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if credentials %}
+<div class="card mt-4">
+    <div class="card-header">API Credentials</div>
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>Environment</th>
+                    <th>API Key</th>
+                    <th>Base URL</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cred in credentials %}
+                <tr>
+                    <td>
+                        <span class="badge {% if cred.environment == 'production' %}bg-danger{% else %}bg-warning{% endif %}">
+                            {{ cred.get_environment_display }}
+                        </span>
+                    </td>
+                    <td><code>{{ cred.api_key|default:'Not set'|slice:":20" }}...</code></td>
+                    <td>{{ cred.base_url|default:'-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

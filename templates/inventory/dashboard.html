@@ -1,0 +1,137 @@
+{% extends 'modern_base.html' %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="h3">{{ title }}</h1>
+</div>
+
+<!-- Stats Row -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value text-primary">{{ total_products }}</div>
+            <div class="stat-label">Total Products</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value text-success">{{ total_warehouses }}</div>
+            <div class="stat-label">Warehouses</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value text-danger">{{ out_of_stock }}</div>
+            <div class="stat-label">Out of Stock</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value text-warning">{{ low_stock }}</div>
+            <div class="stat-label">Low Stock</div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="stat-card">
+            <div class="stat-value">₹{{ total_stock_value|floatformat:0 }}</div>
+            <div class="stat-label">Total Stock Value</div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stat-card">
+            <div class="stat-value text-info">{{ pending_alerts }}</div>
+            <div class="stat-label">Pending Alerts</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Movements -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between">
+                Recent Stock Movements
+                <a href="{% url 'inventory:movement_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Warehouse</th>
+                                <th>Type</th>
+                                <th>Qty</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for movement in recent_movements %}
+                            <tr>
+                                <td>{{ movement.product.product_name }}</td>
+                                <td>{{ movement.warehouse.code }}</td>
+                                <td>
+                                    <span class="badge {% if movement.quantity > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ movement.get_movement_type_display }}
+                                    </span>
+                                </td>
+                                <td>{% if movement.quantity > 0 %}+{% endif %}{{ movement.quantity }}</td>
+                                <td>{{ movement.created|date:"d/m H:i" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="5" class="text-center py-3 text-muted">No recent movements</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Warehouses -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">Warehouses</div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for warehouse in warehouses %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <div>
+                            <strong>{{ warehouse.name }}</strong>
+                            {% if warehouse.is_primary %}<span class="badge bg-primary ms-1">Primary</span>{% endif %}
+                            <br>
+                            <small class="text-muted">{{ warehouse.city }}, {{ warehouse.state }}</small>
+                        </div>
+                        <div class="text-end">
+                            <strong>₹{{ warehouse.stock_value|floatformat:0|default:0 }}</strong>
+                            <br>
+                            <small class="text-muted">Stock Value</small>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-muted">No warehouses configured</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">Quick Actions</div>
+            <div class="card-body">
+                <a href="{% url 'inventory:movement_create' %}" class="btn btn-primary w-100 mb-2">
+                    <i class="fas fa-plus me-2"></i>Add Stock Movement
+                </a>
+                <a href="{% url 'inventory:warehouse_create' %}" class="btn btn-outline-primary w-100 mb-2">
+                    <i class="fas fa-building me-2"></i>Add Warehouse
+                </a>
+                <a href="{% url 'inventory:alert_list' %}" class="btn btn-outline-warning w-100">
+                    <i class="fas fa-bell me-2"></i>View Alerts ({{ pending_alerts }})
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
