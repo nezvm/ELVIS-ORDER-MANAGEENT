@@ -19,13 +19,53 @@
         <div class="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
             <h3 class="text-lg font-bold text-gray-900 mb-6">Campaign Details</h3>
             <div class="space-y-6">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">Campaign Name *</label>
-                    {{ form.name }}
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Campaign Name *</label>
+                        {{ form.name }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Campaign Type *</label>
+                        {{ form.campaign_type }}
+                        <p class="text-xs text-gray-400 mt-1">Select "Abandoned Recovery" for Shopify cart recovery</p>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
                     {{ form.description }}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Abandoned Recovery Settings -->
+        <div id="recovery-settings" class="bg-orange-50 rounded-2xl p-8 border border-orange-200 hidden">
+            <h3 class="text-lg font-bold text-orange-800 mb-6">
+                <i class="fas fa-cart-arrow-down mr-2"></i>Abandoned Recovery Settings
+            </h3>
+            <div class="space-y-6">
+                <div class="bg-white rounded-xl p-4">
+                    <p class="text-sm text-orange-700">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <strong>Abandoned Recovery campaigns</strong> automatically target leads from Shopify abandoned checkouts where status is LOSS.
+                        The template should include <code>{{recover_url}}</code> variable for the checkout recovery link.
+                    </p>
+                </div>
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-orange-800 mb-2">Follow-up Schedule (hours)</label>
+                        <p class="text-sm text-orange-700 mb-2">Messages will be sent at T+1h, T+24h, T+72h</p>
+                        <div class="flex items-center space-x-2">
+                            <span class="px-3 py-2 bg-white rounded-lg border border-orange-200 text-sm">+1 hour</span>
+                            <span class="px-3 py-2 bg-white rounded-lg border border-orange-200 text-sm">+24 hours</span>
+                            <span class="px-3 py-2 bg-white rounded-lg border border-orange-200 text-sm">+3 days</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="flex items-center cursor-pointer mt-6">
+                            {{ form.stop_on_conversion }}
+                            <span class="ml-3 text-base text-orange-800 font-medium">Stop followups when lead converts</span>
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>
