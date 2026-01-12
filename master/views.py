@@ -745,13 +745,14 @@ class QuickOrderEntryView(View):
         return business_date, start, end
     
     def get(self, request):
+        from datetime import date
         channels = Channel.objects.filter(is_active=True).order_by('id')
         accounts = Account.objects.filter(is_active=True)
         users = User.objects.filter(is_active=True)
         products = Product.objects.filter(is_active=True)
         
         # Get today's stats for each channel
-        business_date, start, end = self.get_business_day_range()
+        today = date.today()
         
         channel_data = []
         for channel in channels:
@@ -763,7 +764,7 @@ class QuickOrderEntryView(View):
             channel_data.append({
                 'id': channel.id,
                 'channel_type': channel.channel_type,
-                'prefix': channel.prefix,
+                'prefix': getattr(channel, 'prefix', ''),
                 'today_count': orders.count(),
                 'today_amount': orders.aggregate(total=Sum('total_amount'))['total'] or 0
             })
