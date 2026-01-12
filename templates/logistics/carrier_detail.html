@@ -1,125 +1,163 @@
-{% extends 'modern_base.html' %}
+{% extends 'ui/base.html' %}
+{% load static humanize %}
+
+{% block title %}{{ carrier.name }}{% endblock %}
+{% block page_title %}{{ carrier.name }}{% endblock %}
+
+{% block page_subtitle %}
+<span class="ml-4 px-3 py-1 rounded-full text-sm font-semibold {% if carrier.is_active %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+    {% if carrier.is_active %}Active{% else %}Inactive{% endif %}
+</span>
+{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1 class="h3">{{ title }}</h1>
-    <a href="{{ object.get_update_url }}" class="btn btn-outline-primary">
-        <i class="fas fa-edit me-2"></i>Edit
-    </a>
-</div>
-
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="stat-card">
-            <div class="stat-value text-primary">{{ total_shipments }}</div>
-            <div class="stat-label">Total Shipments</div>
-        </div>
+<div class="space-y-6" data-testid="carrier-detail">
+    <!-- Breadcrumb -->
+    <div class="flex items-center text-sm text-gray-500">
+        <a href="{% url 'logistics:carrier_list' %}" class="hover:text-primary-500">Carriers</a>
+        <i class="fas fa-chevron-right mx-2 text-xs"></i>
+        <span class="text-gray-900 font-medium">{{ carrier.name }}</span>
     </div>
-    <div class="col-md-4">
-        <div class="stat-card">
-            <div class="stat-value text-success">{{ delivered_shipments }}</div>
-            <div class="stat-label">Delivered</div>
+    
+    <!-- Carrier Info Card -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div class="flex items-start justify-between">
+            <div class="flex items-center">
+                <div class="w-16 h-16 rounded-xl {% if carrier.is_active %}bg-primary-100{% else %}bg-gray-100{% endif %} flex items-center justify-center">
+                    <i class="fas fa-truck text-3xl {% if carrier.is_active %}text-primary-500{% else %}text-gray-400{% endif %}"></i>
+                </div>
+                <div class="ml-5">
+                    <h2 class="text-2xl font-bold text-gray-900">{{ carrier.name }}</h2>
+                    <p class="text-base text-gray-500">{{ carrier.carrier_type|default:'Standard' }} Carrier</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'logistics:carrier_update' carrier.id %}" class="px-5 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                    <i class="fas fa-edit mr-2"></i>Edit
+                </a>
+            </div>
         </div>
-    </div>
-    <div class="col-md-4">
-        <div class="stat-card">
-            <div class="stat-value text-warning">{{ pending_shipments }}</div>
-            <div class="stat-label">Pending</div>
+        
+        <!-- Carrier Details Grid -->
+        <div class="grid grid-cols-4 gap-6 mt-8">
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">API Key</p>
+                <p class="text-base font-semibold text-gray-900 mt-1 truncate">{{ carrier.api_key|slice:":8" }}***</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Total Shipments</p>
+                <p class="text-lg font-semibold text-gray-900 mt-1">{{ carrier.shipment_count|default:0 }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Avg Delivery Time</p>
+                <p class="text-lg font-semibold text-gray-900 mt-1">{{ carrier.avg_delivery_days|default:'-' }} days</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Success Rate</p>
+                <p class="text-lg font-semibold {% if carrier.success_rate >= 95 %}text-green-600{% elif carrier.success_rate >= 90 %}text-yellow-600{% else %}text-red-600{% endif %} mt-1">
+                    {{ carrier.success_rate|default:0|floatformat:1 }}%
+                </p>
+            </div>
         </div>
+        
+        {% if carrier.tracking_url_template %}
+        <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+            <p class="text-sm text-blue-700">
+                <i class="fas fa-link mr-2"></i>
+                <span class="font-semibold">Tracking URL:</span> {{ carrier.tracking_url_template }}
+            </p>
+        </div>
+        {% endif %}
     </div>
-</div>
-
-<div class="row">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">Carrier Details</div>
-            <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-5">Name</dt>
-                    <dd class="col-7">{{ object.name }}</dd>
-                    <dt class="col-5">Code</dt>
-                    <dd class="col-7"><code>{{ object.code }}</code></dd>
-                    <dt class="col-5">Website</dt>
-                    <dd class="col-7">{{ object.website|default:'-' }}</dd>
-                    <dt class="col-5">Status</dt>
-                    <dd class="col-7">
-                        <span class="badge {% if object.status == 'active' %}bg-success{% else %}bg-secondary{% endif %}">
-                            {{ object.get_status_display }}
-                        </span>
-                    </dd>
-                    <dt class="col-5">Supports COD</dt>
-                    <dd class="col-7">
-                        {% if object.supports_cod %}<span class="badge bg-success">Yes</span>
-                        {% else %}<span class="badge bg-secondary">No</span>{% endif %}
-                    </dd>
-                    <dt class="col-5">Supports Prepaid</dt>
-                    <dd class="col-7">
-                        {% if object.supports_prepaid %}<span class="badge bg-success">Yes</span>
-                        {% else %}<span class="badge bg-secondary">No</span>{% endif %}
-                    </dd>
-                    <dt class="col-5">Priority</dt>
-                    <dd class="col-7">{{ object.priority }}</dd>
-                </dl>
+    
+    <!-- Performance Stats -->
+    <div class="grid grid-cols-3 gap-6">
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Delivered</p>
+                    <p class="text-4xl font-bold text-green-600 mt-2">{{ carrier.delivered_count|default:0 }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-check-circle text-2xl text-green-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">In Transit</p>
+                    <p class="text-4xl font-bold text-blue-600 mt-2">{{ carrier.in_transit_count|default:0 }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <i class="fas fa-shipping-fast text-2xl text-blue-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">RTO</p>
+                    <p class="text-4xl font-bold text-red-600 mt-2">{{ carrier.rto_count|default:0 }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-red-100 flex items-center justify-center">
+                    <i class="fas fa-undo text-2xl text-red-600"></i>
+                </div>
             </div>
         </div>
     </div>
     
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">Performance Metrics</div>
-            <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-5">Success Rate</dt>
-                    <dd class="col-7">
-                        <div class="progress" style="height: 20px;">
-                            <div class="progress-bar bg-success" style="width: {{ object.success_rate }}%">
-                                {{ object.success_rate }}%
-                            </div>
-                        </div>
-                    </dd>
-                    <dt class="col-5">SLA Adherence</dt>
-                    <dd class="col-7">
-                        <div class="progress" style="height: 20px;">
-                            <div class="progress-bar bg-info" style="width: {{ object.sla_adherence_rate }}%">
-                                {{ object.sla_adherence_rate }}%
-                            </div>
-                        </div>
-                    </dd>
-                    <dt class="col-5">Avg Delivery Days</dt>
-                    <dd class="col-7">{{ object.avg_delivery_days }} days</dd>
-                </dl>
-            </div>
+    <!-- Recent Shipments -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" data-testid="carrier-shipments">
+        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-lg font-bold text-gray-900">Recent Shipments</h3>
+            <a href="{% url 'logistics:shipment_list' %}?carrier={{ carrier.id }}" class="text-primary-500 hover:text-primary-600 font-medium text-sm">
+                View All <i class="fas fa-arrow-right ml-1"></i>
+            </a>
         </div>
-    </div>
-</div>
-
-{% if credentials %}
-<div class="card mt-4">
-    <div class="card-header">API Credentials</div>
-    <div class="card-body p-0">
-        <table class="table mb-0">
-            <thead>
+        
+        {% if recent_shipments %}
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
                 <tr>
-                    <th>Environment</th>
-                    <th>API Key</th>
-                    <th>Base URL</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">AWB</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Order</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Destination</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Created</th>
                 </tr>
             </thead>
-            <tbody>
-                {% for cred in credentials %}
-                <tr>
-                    <td>
-                        <span class="badge {% if cred.environment == 'production' %}bg-danger{% else %}bg-warning{% endif %}">
-                            {{ cred.get_environment_display }}
+            <tbody class="divide-y divide-gray-100">
+                {% for shipment in recent_shipments %}
+                <tr class="table-row transition-colors hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                        <a href="{% url 'logistics:shipment_detail' shipment.id %}" class="text-primary-500 font-semibold hover:underline">
+                            {{ shipment.awb_number }}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4 text-base text-gray-900">#{{ shipment.order.order_number }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{{ shipment.destination_city }}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold 
+                            {% if shipment.status == 'DELIVERED' %}bg-green-100 text-green-700
+                            {% elif shipment.status == 'RTO' %}bg-red-100 text-red-700
+                            {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                            {{ shipment.status }}
                         </span>
                     </td>
-                    <td><code>{{ cred.api_key|default:'Not set'|slice:":20" }}...</code></td>
-                    <td>{{ cred.base_url|default:'-' }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{{ shipment.created_at|date:"d M Y" }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        {% else %}
+        <div class="p-12 text-center text-gray-500">
+            <i class="fas fa-shipping-fast text-4xl text-gray-300 mb-4"></i>
+            <p class="text-lg font-medium">No shipments with this carrier yet</p>
+        </div>
+        {% endif %}
     </div>
 </div>
-{% endif %}
 {% endblock %}

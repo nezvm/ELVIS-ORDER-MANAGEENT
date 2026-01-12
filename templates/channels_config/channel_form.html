@@ -1,38 +1,96 @@
-{% extends 'modern_base.html' %}
+{% extends 'ui/base.html' %}
+{% load static crispy_forms_tags %}
+
+{% block title %}{% if object %}Edit {{ object.name }}{% else %}New Channel{% endif %}{% endblock %}
+{% block page_title %}{% if object %}Edit Channel{% else %}New Channel{% endif %}{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1 class="h3">{{ title }}</h1>
-</div>
-
-<div class="card">
-    <div class="card-body">
-        <form method="post" enctype="multipart/form-data">
+<div class="space-y-6" data-testid="channel-form">
+    <!-- Breadcrumb -->
+    <div class="flex items-center text-sm text-gray-500">
+        <a href="{% url 'channels_config:channel_list' %}" class="hover:text-primary-500">Channels</a>
+        <i class="fas fa-chevron-right mx-2 text-xs"></i>
+        <span class="text-gray-900 font-medium">{% if object %}Edit{% else %}New Channel{% endif %}</span>
+    </div>
+    
+    <!-- Form Card -->
+    <div class="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm max-w-2xl">
+        <form method="post" class="space-y-6">
             {% csrf_token %}
-            {% for field in form %}
-            <div class="mb-3">
-                <label for="{{ field.id_for_label }}" class="form-label">
-                    {{ field.label }}
-                    {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
-                </label>
-                {% if field.field.widget.input_type == 'checkbox' %}
-                <div class="form-check">
-                    {{ field }}
+            
+            <div class="space-y-5">
+                <!-- Name -->
+                <div>
+                    <label for="id_name" class="block text-sm font-semibold text-gray-700 mb-2">Channel Name</label>
+                    <input type="text" name="name" id="id_name" value="{{ form.name.value|default:'' }}" 
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                        placeholder="e.g., Instagram Paid" required>
+                    {% if form.name.errors %}
+                    <p class="mt-1 text-sm text-red-500">{{ form.name.errors.0 }}</p>
+                    {% endif %}
                 </div>
-                {% else %}
-                {{ field }}
-                {% endif %}
-                {% if field.help_text %}
-                <small class="form-text text-muted">{{ field.help_text }}</small>
-                {% endif %}
-                {% if field.errors %}
-                <div class="invalid-feedback d-block">{{ field.errors }}</div>
-                {% endif %}
+                
+                <!-- Channel Type -->
+                <div>
+                    <label for="id_channel_type" class="block text-sm font-semibold text-gray-700 mb-2">Channel Type</label>
+                    <select name="channel_type" id="id_channel_type" 
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all bg-white">
+                        {% for value, label in form.channel_type.field.choices %}
+                        <option value="{{ value }}" {% if form.channel_type.value == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    {% if form.channel_type.errors %}
+                    <p class="mt-1 text-sm text-red-500">{{ form.channel_type.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <!-- Icon -->
+                <div>
+                    <label for="id_icon" class="block text-sm font-semibold text-gray-700 mb-2">Icon (FontAwesome)</label>
+                    <input type="text" name="icon" id="id_icon" value="{{ form.icon.value|default:'store' }}" 
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                        placeholder="e.g., store, shopping-bag, globe">
+                    <p class="mt-1 text-sm text-gray-500">FontAwesome icon name without 'fa-' prefix</p>
+                </div>
+                
+                <!-- Description -->
+                <div>
+                    <label for="id_description" class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                    <textarea name="description" id="id_description" rows="3"
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                        placeholder="Optional description of the channel">{{ form.description.value|default:'' }}</textarea>
+                </div>
+                
+                <!-- Toggles -->
+                <div class="grid grid-cols-2 gap-4">
+                    <label class="flex items-center p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                        <input type="checkbox" name="requires_utr" id="id_requires_utr" {% if form.requires_utr.value %}checked{% endif %}
+                            class="w-5 h-5 text-primary-500 border-gray-300 rounded focus:ring-primary-500">
+                        <span class="ml-3">
+                            <span class="block text-sm font-semibold text-gray-900">Requires UTR</span>
+                            <span class="block text-xs text-gray-500">Require UTR for payment verification</span>
+                        </span>
+                    </label>
+                    
+                    <label class="flex items-center p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                        <input type="checkbox" name="is_active" id="id_is_active" {% if form.is_active.value %}checked{% endif %}
+                            class="w-5 h-5 text-primary-500 border-gray-300 rounded focus:ring-primary-500">
+                        <span class="ml-3">
+                            <span class="block text-sm font-semibold text-gray-900">Active</span>
+                            <span class="block text-xs text-gray-500">Enable this channel</span>
+                        </span>
+                    </label>
+                </div>
             </div>
-            {% endfor %}
-            <div class="d-flex justify-content-between">
-                <a href="javascript:history.back()" class="btn btn-outline-secondary">Cancel</a>
-                <button type="submit" class="btn btn-primary">Save</button>
+            
+            <!-- Actions -->
+            <div class="flex items-center justify-end space-x-4 pt-6 border-t border-gray-100">
+                <a href="{% url 'channels_config:channel_list' %}" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                    Cancel
+                </a>
+                <button type="submit" data-testid="save-channel-btn" class="px-6 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
+                    <i class="fas fa-save mr-2"></i>{% if object %}Update{% else %}Create{% endif %} Channel
+                </button>
             </div>
         </form>
     </div>

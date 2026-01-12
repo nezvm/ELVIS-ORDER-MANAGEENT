@@ -1,375 +1,171 @@
-{% extends 'app/base.html' %} {% load static i18n crispy_forms_tags %} 
-{% block title %}{{title}}: {{app_settings.site_title}}{% endblock %} 
+{% extends 'ui/base.html' %}
+{% load static i18n crispy_forms_tags %}
 
-{% block extra_css %} 
-<style>
-.bg-gray2 {
-  /* background-color: #f5f5f5; */
-  background: aliceblue;
-}
-.hid_row .form-control{
-  background-color: #f1f1f1;
-}
-</style>
-{% endblock extra_css %} 
-
-{% block javascript %} 
-{{form.media}} 
-{% endblock javascript %} 
+{% block title %}{% if object %}Edit Order{% else %}New Order{% endif %}{% endblock %}
+{% block page_title %}{% if object %}Edit Order #{{ object.order_number }}{% else %}Create New Order{% endif %}{% endblock %}
 
 {% block content %}
-
-<div class="side-app main-container  mt-5">
-  <div class="page-header d-xl-flex">
-    <div class="page-leftheader">
-        <div class="page-title">{{title}}</div>
+<div class="space-y-6" data-testid="order-form">
+    <!-- Breadcrumb -->
+    <div class="flex items-center text-sm text-gray-500">
+        <a href="{% url 'master:order_list' %}" class="hover:text-primary-500">Orders</a>
+        <i class="fas fa-chevron-right mx-2 text-xs"></i>
+        <span class="text-gray-900 font-medium">{% if object %}Edit{% else %}New Order{% endif %}</span>
     </div>
-</div>
-  <div class="row">
-    <div class="col-lg-12 col-xl-12 col-md-12 col-sm-12">
-      <div class="">
+    
+    <!-- Form Card -->
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
         
-        <div class="card-body">
-          <div class="row">
-            <div class="col-lg-12 col-md-12">
-              <form
-                class="form-horizontal-3"
-                method="post"
-                autocomplete="off"
-                enctype="multipart/form-data"
-                action=""
-              >
-                {% csrf_token %}
-                 {% if not is_update %}
-                {% include 'app/partials/channels.html' %}
-                {% endif %}
-                <div class="row">
-                {{form.phone_no|as_crispy_field}}
-                {{form.customer_name|as_crispy_field}}
-                {{form.pincode|as_crispy_field}}
-                {{form.address|as_crispy_field}}
-                {{form.city|as_crispy_field}}
-                {{form.state|as_crispy_field}}
-                {{form.country|as_crispy_field}}
-                {{form.alternate_phone_no|as_crispy_field}}
-                {{form.utr|as_crispy_field}}
-                {{form.account|as_crispy_field}}
-                {{form.order_by|as_crispy_field}}
-               <div class="mb-3 col-lg-4 col-md-4 col-sm-6 col-12 d-flex justify-content-center">
-                <button type="button" class="btn btn-primary mt-5 btn-add w-50">Add Address</button>
-               </div>
-                </div>
-                <div class=" hid_row p-3">
-                  <div class="card m-0">
-                    <div class="card-title m-0 text-center p-3 border-bottom">
-                      <h5 class="mb-0">Secondery Address</h5>
-                    </div>
-                    <div class="card-body p-3 row">
-                    {{form.name_2|as_crispy_field}}
-                    {{form.pincode_2|as_crispy_field}}
-                    {{form.address_2|as_crispy_field}}
-                    {{form.city_2|as_crispy_field}}
-                    {{form.state_2|as_crispy_field}}
-                    {{form.country_2|as_crispy_field}}
-                    </div>
-                  </div>
-
+        <!-- Customer & Channel Section -->
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-6">Order Details</h3>
+            
+            <div class="grid grid-cols-2 gap-6">
+                <!-- Customer -->
+                <div>
+                    <label for="id_customer" class="block text-sm font-semibold text-gray-700 mb-2">Customer</label>
+                    <select name="customer" id="id_customer" 
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all bg-white">
+                        <option value="">Select Customer</option>
+                        {% for customer in customers %}
+                        <option value="{{ customer.id }}" {% if form.customer.value == customer.id %}selected{% endif %}>{{ customer.name }} ({{ customer.phone }})</option>
+                        {% endfor %}
+                    </select>
+                    {% if form.customer.errors %}
+                    <p class="mt-1 text-sm text-red-500">{{ form.customer.errors.0 }}</p>
+                    {% endif %}
                 </div>
                 
-                {{ form.errors }}
-                {{ order_item_formset.management_form }}
-                <table class="table table-bordered my-4">
-                  <thead>
-                    <tr>
-                      <th style="width: 50%;">Item</th>
-                      <th style="width: 20%;">Price</th>
-                      <th style="width: 10%;">Quantity</th>
-                      <th style="width: 20%;">Amount(&#8377;)</th>
-                      <th ></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for form in order_item_formset.forms %}
-                    <tr class="order_item_formset_row">
-                      {% for hidden in form.hidden_fields %}
-                      {{ hidden }}
-                      {% endfor %}
-                      <td class="p-0">
-                          {{ form.product }}
-                          {{ form.product.errors }}
-                      </td>
-                      
-                      <td class="p-0">
-                          {{ form.price }}
-                          {{ form.price.errors }}
-                      </td>
-                     
-                      <td class="p-0">
-                        <span class="w-70">{{ form.quantity }}</span>
-                        <span class="d-none item-unit"></span>
-                        {{ form.quantity.errors }}
-                      </td>
-                        
-                      </td>
-                      <td class="p-0">
-                          {{ form.amount }}
-                          {{ form.amount.errors }}
-                      </td>
-                      <td style="vertical-align: middle;" class="p-0 text-center">{{ form.DELETE }}</td>
-                  </tr>
-                    {% endfor %}
-                    {% if type == 'WhatsApp_COD' %}
-                    
-                  </tbody>
-                  <tfoot class="">
-                    <tr>
-                      <td colspan="3" class="text-end">Cod Charge</td>
-                      <td  class="text-start ">{{form.cod_charge}}</td>
-                    </tr>
-                    {% endif %}
-                    <tr class="subtotal bg-primary">
-                      <td colspan="3" class="text-end font-weight-bold fs-6">Subtotal</td>
-                      <td colspan="2">₹ <span class="amount-total font-weight-bold fs-6">{{ form.total_amount|as_crispy_field }}</span></td>
-                    </tr>
-                  </tfoot>
-                </table>
-                {{ form.total_amount|as_crispy_field }}
-                <div class="row my-2">
-                  <div class="mb-3">
-                    <div class="form-group">
-                      <button type="submit" class="btn btn-primary me-2">
-                        {% translate "Save" %}
-                      </button>
-                      <button
-                        type="button"
-                        onclick="history.back()"
-                        class="border btn btn-outline-info"
-                      >
-                        {% translate "Cancel" %}
-                      </button>
-                    </div>
-                  </div>
+                <!-- Channel -->
+                <div>
+                    <label for="id_channel" class="block text-sm font-semibold text-gray-700 mb-2">Sales Channel</label>
+                    <select name="channel" id="id_channel" 
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all bg-white">
+                        {% for channel in channels %}
+                        <option value="{{ channel.id }}" {% if form.channel.value == channel.id %}selected{% endif %}>{{ channel.name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-              </form>
+                
+                <!-- Order Date -->
+                <div>
+                    <label for="id_order_date" class="block text-sm font-semibold text-gray-700 mb-2">Order Date</label>
+                    <input type="date" name="order_date" id="id_order_date" value="{{ form.order_date.value|date:'Y-m-d' }}" 
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all">
+                </div>
+                
+                <!-- Status -->
+                <div>
+                    <label for="id_status" class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                    <select name="status" id="id_status" 
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all bg-white">
+                        {% for value, label in form.status.field.choices %}
+                        <option value="{{ value }}" {% if form.status.value == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
-    </div>
-  </div>
+        
+        <!-- Shipping Address Section -->
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-6">Shipping Address</h3>
+            
+            <div class="grid grid-cols-2 gap-6">
+                <div class="col-span-2">
+                    <label for="id_shipping_address" class="block text-sm font-semibold text-gray-700 mb-2">Address Line</label>
+                    <input type="text" name="shipping_address" id="id_shipping_address" value="{{ form.shipping_address.value|default:'' }}" 
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                        placeholder="Street address, apartment, etc.">
+                </div>
+                
+                <div>
+                    <label for="id_shipping_city" class="block text-sm font-semibold text-gray-700 mb-2">City</label>
+                    <input type="text" name="shipping_city" id="id_shipping_city" value="{{ form.shipping_city.value|default:'' }}" 
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all">
+                </div>
+                
+                <div>
+                    <label for="id_shipping_state" class="block text-sm font-semibold text-gray-700 mb-2">State</label>
+                    <input type="text" name="shipping_state" id="id_shipping_state" value="{{ form.shipping_state.value|default:'' }}" 
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all">
+                </div>
+                
+                <div>
+                    <label for="id_shipping_pincode" class="block text-sm font-semibold text-gray-700 mb-2">Pincode</label>
+                    <input type="text" name="shipping_pincode" id="id_shipping_pincode" value="{{ form.shipping_pincode.value|default:'' }}" 
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                        maxlength="6">
+                </div>
+                
+                <div>
+                    <label for="id_shipping_phone" class="block text-sm font-semibold text-gray-700 mb-2">Contact Phone</label>
+                    <input type="tel" name="shipping_phone" id="id_shipping_phone" value="{{ form.shipping_phone.value|default:'' }}" 
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                        maxlength="10">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Payment Section -->
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-6">Payment Information</h3>
+            
+            <div class="grid grid-cols-3 gap-6">
+                <div>
+                    <label for="id_payment_mode" class="block text-sm font-semibold text-gray-700 mb-2">Payment Mode</label>
+                    <select name="payment_mode" id="id_payment_mode" 
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all bg-white">
+                        {% for value, label in form.payment_mode.field.choices %}
+                        <option value="{{ value }}" {% if form.payment_mode.value == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="id_total_amount" class="block text-sm font-semibold text-gray-700 mb-2">Total Amount (₹)</label>
+                    <input type="number" name="total_amount" id="id_total_amount" value="{{ form.total_amount.value|default:'0' }}" 
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                        step="0.01" min="0">
+                </div>
+                
+                <div id="utr_field">
+                    <label for="id_utr_number" class="block text-sm font-semibold text-gray-700 mb-2">UTR Number</label>
+                    <input type="text" name="utr_number" id="id_utr_number" value="{{ form.utr_number.value|default:'' }}" 
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                        placeholder="Bank UTR reference">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notes Section -->
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-6">Additional Notes</h3>
+            <textarea name="notes" id="id_notes" rows="3"
+                class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                placeholder="Any additional notes about this order">{{ form.notes.value|default:'' }}</textarea>
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex items-center justify-end space-x-4">
+            <a href="{% url 'master:order_list' %}" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                Cancel
+            </a>
+            <button type="submit" data-testid="save-order-btn" class="px-6 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
+                <i class="fas fa-save mr-2"></i>{% if object %}Update{% else %}Create{% endif %} Order
+            </button>
+        </div>
+    </form>
 </div>
+{% endblock %}
 
-{% endblock content %}
-{% block js_plugins %}
-
-<script src="{% static 'app/js/formset/formset.js' %}"></script>
-<script>$('#id_order_item_formset-0-product').attr('required', true);</script>
+{% block extra_js %}
 <script>
-  $('.hid_row, #div_id_total_amount').hide();
-  $('.btn-add').click(function () {
-    $('.hid_row').toggle();
-  });
-  $(document).ready(function () {
-    $('#div_id_utr').hide();
-    var type = '{{type}}'
-    if (type == 'WhatsApp') {
-        $('#div_id_utr').show();
-        $('#id_utr').attr('required', true);
-        $("#id_utr")
-          .siblings("label")
-          .append('<span class="asteriskField">*</span>');
-    }
-   
-    // Initialize formset for sale items
-    $('.order_item_formset_row').formset({
-        addText: '<span>Add Item</span>',
-        deleteText: '<i class="fa-solid fa-xmark"></i>',
-        prefix: '{{ order_item_formset.prefix }}',
-        formCssClass: 'order_item_formset_row',
-        added: function (row) {
-            // Trigger subtotal update or any other initialization needed for the new row
-            UpdateSubTotal();
-            row.find('.item-select').select2({
-                minimumResultsForSearch: "",
-                placeholder: "Search",
-                width: "100%",
-                allowClear: true
-            });
-        },
-        removed: function (row) {
-            UpdateSubTotal();
-        }
-    });
-
-
-    // Delegate event handling to document for dynamically added elements
-    $(document).on('change', '#id_cod_charge', function () {
-      UpdateSubTotal();
-    });
-    $(document).on('change', '.item-select, .quantity-input, .unit-price-input', function () {
-      var row = $(this).closest('.order_item_formset_row');
-
-      var requestData = {
-          itemId: row.find('.item-select').val(),
-          quantity: row.find('.quantity-input').val(),
-          price: row.find('.unit-price-input').val(),
-          type: type
-      };
-      
-      fetchAndUpdateItemDetails(requestData, row);
-    });
-
-  function updateSaleItemFormSetRow(row, data) {
-      row.find('.unit-price-input').val(data.price);
-      row.find('.quantity-input').val(data.quantity);
-      row.find('.line_total-input').val(data.line_total);
-      UpdateSubTotal();
-  }
-
-  function fetchAndUpdateItemDetails(requestData, row) {
-      $.ajax({
-          url: "{% url 'master:get_item_details' %}",
-          method: 'GET',
-          data: requestData,
-          success: function(data) {
-              updateSaleItemFormSetRow(row, data);
-          },
-          error: function(xhr, status, error) {
-              console.error('AJAX Error:', error);
-          }
-      });
-  }
-    // Initial update subtotal call to calculate values on page load
-    UpdateSubTotal();
-    function UpdateSubTotal() {
-    var amountTotal = 0;
-    var cod = $('#id_cod_charge').val() || 0;
-    amountTotal += parseFloat(cod);
-    // Calculate totals from   each sale item row
-    $('.order_item_formset_row').each(function () {
-        var row = $(this);
-        var quantity = parseFloat(row.find('.quantity-input').val()) || 0;
-        var unit_price = parseFloat(row.find('.unit-price-input').val()) || 0;
-        var line_total = parseFloat(row.find('.line_total-input').val()) || 0;
-
-        amountTotal += (unit_price * quantity); 
-    });
-    
-    // Update the DOM elements with the calculated values
-    $('.amount-total').text(amountTotal.toFixed(2));
-    $('#id_total_amount').val(amountTotal.toFixed(2));
-}
+// Show/hide UTR field based on channel requirements
+document.getElementById('id_channel').addEventListener('change', function() {
+    // Logic to show/hide UTR field based on channel
+    // This would need AJAX to fetch channel requirements
 });
 </script>
-<script>
-  function validatePhoneInput(inputField) {
-        let input = inputField.val().replace(/\D/g, ''); // Remove non-numeric characters
-        input = input.substring(0, 10); // Limit to 10 digits
-        inputField.val(input); // Update input field
-    }
-
-    function validateOnSubmit(event) {
-        let phoneNo = $("#id_phone_no").val();
-        let altPhoneNo = $("#id_alternate_phone_no").val();
-
-        if (phoneNo.length !== 10) {
-            alert("Phone number must be exactly 10 digits.");
-            event.preventDefault();
-        }
-
-        if (altPhoneNo.length > 0 && altPhoneNo.length !== 10) {
-            alert("Alternate phone number must be exactly 10 digits.");
-            event.preventDefault();
-        }
-    }
-
-    $("#id_phone_no, #id_alternate_phone_no").on("input", function () {
-        validatePhoneInput($(this));
-    });
-
-    $("form").on("submit", function (event) {
-        validateOnSubmit(event);
-    });
-
-  </script>
-  
-  
-<script>
-  $('.btn-add').hide(); 
-  $('#id_phone_no').change(function () {
-    var phoneNumber = $(this).val();
-    $.ajax({
-      url: "{% url 'master:get_customer_details' %}",
-      method: 'GET',
-      data: {
-        'phone_number': phoneNumber
-      },
-      success: function (data) {
-        console.log(data)
-        if(data.is_true){
-          $('#id_customer_name').val(data.customer_name);
-          $('#id_alternate_phone_no').val(data.alternate_phone_no);
-          $('#id_pincode').val(data.pincode);
-          $('#id_address').val(data.address);
-          $('#id_city').val(data.city);
-          $('#id_state').val(data.state);
-          $('#id_country').val(data.country);
-          $('.btn-add').show(); 
-        }
-         
-      }
-    })
-  })
-</script>
-
-
-<script>
-    $(document).ready(function () {
-        $('#id_pincode').on('change', function () {
-            var pincode = $(this).val();
-            if (pincode.length === 6) {  // Assuming Indian Pincode (6-digit)
-                $.ajax({
-                    url: `https://api.postalpincode.in/pincode/${pincode}`,
-                    type: "GET",
-                    success: function (response) {
-                        if (response[0].Status === "Success") {
-                            var data = response[0].PostOffice[0];
-                            $('#id_city').val(data.District);
-                            $('#id_state').val(data.State);
-                            $('#id_country').val(data.Country);
-                        } else {
-                            alert("Invalid Pincode! Please enter a valid one.");
-                        }
-                    },
-                    error: function () {
-                        alert("Error fetching details. Try again.");
-                    }
-                });
-            }
-        });
-        $('#id_pincode_2').on('change', function () {
-            var pincode = $(this).val();
-            if (pincode.length === 6) {  // Assuming Indian Pincode (6-digit)
-                $.ajax({
-                    url: `https://api.postalpincode.in/pincode/${pincode}`,
-                    type: "GET",
-                    success: function (response) {
-                        if (response[0].Status === "Success") {
-                            var data = response[0].PostOffice[0];
-                            $('#id_city_2').val(data.District);
-                            $('#id_state_2').val(data.State);
-                            $('#id_country_2').val(data.Country);
-                        } else {
-                            alert("Invalid Pincode! Please enter a valid one.");
-                        }
-                    },
-                    error: function () {
-                        alert("Error fetching details. Try again.");
-                    }
-                });
-            }
-        });
-    });
-</script>
-
-{% endblock js_plugins %}
+{% endblock %}

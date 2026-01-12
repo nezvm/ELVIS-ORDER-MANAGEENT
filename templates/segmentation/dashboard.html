@@ -1,101 +1,132 @@
-{% extends 'modern_base.html' %}
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}Customer Segmentation{% endblock %}
+{% block page_title %}Customer Segmentation{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1 class="h3">{{ title }}</h1>
-    <button class="btn btn-primary" onclick="computeProfiles()">
-        <i class="fas fa-sync me-2"></i>Recompute All Profiles
-    </button>
-</div>
-
-<!-- Stats Row -->
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="stat-card">
-            <div class="stat-value text-primary">{{ total_customers }}</div>
-            <div class="stat-label">Total Customers</div>
-        </div>
+<div class="space-y-6" data-testid="segmentation-dashboard">
+    <!-- Actions Bar -->
+    <div class="flex items-center justify-between">
+        <p class="text-gray-500">Analyze customer segments and value distributions</p>
+        <button onclick="computeProfiles()" data-testid="recompute-btn" class="px-5 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
+            <i class="fas fa-sync mr-2"></i>Recompute Profiles
+        </button>
     </div>
-    <div class="col-md-3">
-        <div class="stat-card">
-            <div class="stat-value text-success">₹{{ total_revenue|floatformat:0 }}</div>
-            <div class="stat-label">Total Lifetime Revenue</div>
+    
+    <!-- Stats Row -->
+    <div class="grid grid-cols-4 gap-6">
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Customers</p>
+                    <p class="text-4xl font-bold text-gray-900 mt-2">{{ total_customers|default:0 }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <i class="fas fa-users text-2xl text-blue-600"></i>
+                </div>
+            </div>
         </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-card">
-            <div class="stat-value">₹{{ avg_lifetime_value|floatformat:0 }}</div>
-            <div class="stat-label">Avg Lifetime Value</div>
+        
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Revenue</p>
+                    <p class="text-4xl font-bold text-green-600 mt-2">₹{{ total_revenue|floatformat:0|default:0 }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-rupee-sign text-2xl text-green-600"></i>
+                </div>
+            </div>
         </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-card">
-            <div class="stat-value text-info">{{ segments|length }}</div>
-            <div class="stat-label">Active Segments</div>
+        
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Avg Lifetime Value</p>
+                    <p class="text-4xl font-bold text-gray-900 mt-2">₹{{ avg_lifetime_value|floatformat:0|default:0 }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center">
+                    <i class="fas fa-chart-line text-2xl text-purple-600"></i>
+                </div>
+            </div>
         </div>
-    </div>
-</div>
-
-<div class="row">
-    <!-- Value Tier Distribution -->
-    <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header">Value Tier Distribution</div>
-            <div class="card-body">
-                <canvas id="valueTierChart"></canvas>
+        
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Active Segments</p>
+                    <p class="text-4xl font-bold text-primary-500 mt-2">{{ segments|length|default:0 }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-primary-100 flex items-center justify-center">
+                    <i class="fas fa-layer-group text-2xl text-primary-500"></i>
+                </div>
             </div>
         </div>
     </div>
     
-    <!-- Lifecycle Distribution -->
-    <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header">Lifecycle Stage Distribution</div>
-            <div class="card-body">
+    <!-- Charts Row -->
+    <div class="grid grid-cols-2 gap-6">
+        <!-- Value Tier Distribution -->
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Value Tier Distribution</h3>
+            <div class="h-64">
+                <canvas id="valueTierChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Lifecycle Distribution -->
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Lifecycle Stage Distribution</h3>
+            <div class="h-64">
                 <canvas id="lifecycleChart"></canvas>
             </div>
         </div>
     </div>
-</div>
-
-<div class="row">
-    <!-- Order Behavior -->
-    <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header">Order Behavior Segments</div>
-            <div class="card-body">
+    
+    <div class="grid grid-cols-2 gap-6">
+        <!-- Order Behavior -->
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Order Behavior Segments</h3>
+            <div class="h-64">
                 <canvas id="behaviorChart"></canvas>
             </div>
         </div>
-    </div>
-    
-    <!-- Segments List -->
-    <div class="col-md-6 mb-4">
-        <div class="card h-100">
-            <div class="card-header d-flex justify-content-between">
-                Customer Segments
-                <a href="{% url 'segmentation:segment_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+        
+        <!-- Segments List -->
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" data-testid="segments-list">
+            <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-gray-900">Customer Segments</h3>
+                <a href="{% url 'segmentation:segment_list' %}" class="text-primary-500 hover:text-primary-600 font-medium text-sm">
+                    View All <i class="fas fa-arrow-right ml-1"></i>
+                </a>
             </div>
-            <div class="card-body p-0">
-                <ul class="list-group list-group-flush">
-                    {% for segment in segments|slice:":8" %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
+            
+            <div class="divide-y divide-gray-100 max-h-64 overflow-y-auto">
+                {% for segment in segments|slice:":8" %}
+                <div class="p-4 hover:bg-gray-50 transition-colors flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background-color: {{ segment.color }}20">
                             <i class="fas {{ segment.icon }}" style="color: {{ segment.color }}"></i>
-                            <strong class="ms-2">{{ segment.name }}</strong>
-                            <br>
-                            <small class="text-muted">{{ segment.get_segment_type_display }}</small>
                         </div>
-                        <div class="text-end">
-                            <span class="badge bg-primary">{{ segment.customer_count }} customers</span>
-                            <br>
-                            <small>₹{{ segment.total_revenue|floatformat:0 }}</small>
+                        <div class="ml-3">
+                            <p class="text-base font-semibold text-gray-900">{{ segment.name }}</p>
+                            <p class="text-sm text-gray-500">{{ segment.get_segment_type_display }}</p>
                         </div>
-                    </li>
-                    {% empty %}
-                    <li class="list-group-item text-muted">No segments created yet</li>
-                    {% endfor %}
-                </ul>
+                    </div>
+                    <div class="text-right">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-primary-100 text-primary-700">
+                            {{ segment.customer_count }} customers
+                        </span>
+                        <p class="text-sm text-gray-500 mt-1">₹{{ segment.total_revenue|floatformat:0 }}</p>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="p-6 text-center text-gray-500">
+                    <i class="fas fa-layer-group text-3xl text-gray-300 mb-3"></i>
+                    <p>No segments created yet</p>
+                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
@@ -105,7 +136,7 @@
 {% block extra_js %}
 <script>
 // Value Tier Chart
-const valueTierData = {{ value_distribution|safe }};
+const valueTierData = {{ value_distribution|safe|default:"{}" }};
 if (Object.keys(valueTierData).length > 0) {
     new Chart(document.getElementById('valueTierChart'), {
         type: 'doughnut',
@@ -113,15 +144,19 @@ if (Object.keys(valueTierData).length > 0) {
             labels: Object.keys(valueTierData).map(k => k || 'Unknown'),
             datasets: [{
                 data: Object.values(valueTierData),
-                backgroundColor: ['#10b981', '#3b82f6', '#f59e0b']
+                backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6']
             }]
         },
-        options: { plugins: { legend: { position: 'bottom' } } }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+        }
     });
 }
 
 // Lifecycle Chart
-const lifecycleData = {{ lifecycle_distribution|safe }};
+const lifecycleData = {{ lifecycle_distribution|safe|default:"{}" }};
 if (Object.keys(lifecycleData).length > 0) {
     new Chart(document.getElementById('lifecycleChart'), {
         type: 'bar',
@@ -130,15 +165,21 @@ if (Object.keys(lifecycleData).length > 0) {
             datasets: [{
                 label: 'Customers',
                 data: Object.values(lifecycleData),
-                backgroundColor: '#3b82f6'
+                backgroundColor: '#3b82f6',
+                borderRadius: 8
             }]
         },
-        options: { plugins: { legend: { display: false } } }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
     });
 }
 
 // Behavior Chart
-const behaviorData = {{ behavior_distribution|safe }};
+const behaviorData = {{ behavior_distribution|safe|default:"{}" }};
 if (Object.keys(behaviorData).length > 0) {
     new Chart(document.getElementById('behaviorChart'), {
         type: 'pie',
@@ -149,7 +190,11 @@ if (Object.keys(behaviorData).length > 0) {
                 backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899']
             }]
         },
-        options: { plugins: { legend: { position: 'bottom' } } }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom' } }
+        }
     });
 }
 
@@ -158,14 +203,14 @@ function computeProfiles() {
     
     fetch('{% url "segmentation:compute_profiles" %}', {
         method: 'POST',
-        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+        headers: { 'X-CSRFToken': csrftoken }
     })
     .then(r => r.json())
     .then(data => {
-        alert(data.message || 'Profiles computed');
-        location.reload();
+        showToast(data.message || 'Profiles computed', 'success');
+        setTimeout(() => location.reload(), 1000);
     })
-    .catch(e => alert('Error: ' + e));
+    .catch(e => showToast('Error: ' + e, 'error'));
 }
 </script>
 {% endblock %}

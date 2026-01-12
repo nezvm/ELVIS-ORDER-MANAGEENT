@@ -1,336 +1,141 @@
-{% extends 'app/base.html' %}
-{% load static i18n crispy_forms_tags django_tables2 extras  humanize%}
-{% block title %}Home: {{app_settings.site_title}}{% endblock %}
+{% extends 'ui/base.html' %}
+{% load static humanize %}
+
+{% block title %}{{ report_title|default:'Report' }}{% endblock %}
+{% block page_title %}{{ report_title|default:'Report' }}{% endblock %}
 
 {% block content %}
-
-<div class="side-app main-container">
-
-    <div class="page-header d-xl-flex">
-        <div class="page-leftheader">
-            <div class="page-title">{% translate "Report" %}</div>
+<div class="space-y-6" data-testid="report-page">
+    <!-- Report Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <p class="text-gray-500">{{ report_description|default:'Generated report data' }}</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="window.print()" class="px-5 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                <i class="fas fa-print mr-2"></i>Print
+            </button>
+            <button onclick="exportCSV()" class="px-5 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
+                <i class="fas fa-download mr-2"></i>Export CSV
+            </button>
         </div>
     </div>
-    <div class="row">
-        <div class="col-xl-4 col-lg-4 col-md-12"> 
-            <div class="card custom-card bg-gradient-teal "> 
-                <div class="card-body"> 
-                    <div class="row"> 
-                        <div class="col-8"> 
-                            <div class="mt-0 text-start"> 
-                                <span class="fs-14 fw-medium text-white"> <b>Total Revenue</b></span> 
-                                <h3 class="mb-0 mt-1 mb-2 text-white "><b>{{total_sale|intcomma}}</b></h3> 
-                            </div> 
-                        </div>
-                        <div class="col-4"> <div class="icon1 bg-white my-auto  float-end"> <i class="fe fe-dollar-sign text-success"></i> </div> </div>
-                        
-                    </div> 
-                </div> 
-            </div> 
-        </div>
-        
-        <div class="col-xl-4 col-lg-4 col-md-12"> 
-            <div class="card custom-card bg-gradient-primary "> 
-                <div class="card-body"> 
-                    <div class="row"> 
-                        <div class="col-8"> 
-                            <div class="mt-0 text-start"> 
-                                <span class="fs-14 fw-medium text-white"> <b>Total Orders</b></span> 
-                                <h3 class="mb-0 mt-1 mb-2 text-white "><b>{{total_order}}</b></h3> 
-                                
-                            </div> 
-                        </div>
-                        <div class="col-4"> <div class="icon1 bg-white my-auto  float-end"> <i class="fe  fe-shopping-bag text-primary"></i> </div> </div>
-                    </div> 
-                </div> 
-            </div> 
-        </div>
-        <div class="col-xl-4 col-lg-4 col-md-12"> 
-            <div class="card custom-card bg-gradient-warning "> 
-                <div class="card-body"> 
-                    <div class="row"> 
-                        <div class="col-8"> 
-                            <div class="mt-0 text-start"> 
-                                <span class="fs-14 fw-medium text-white"> <b>CUSTOMERS</b></span> 
-                                <h3 class="mb-0 mt-1 mb-2 text-white "><b>{{total_customer}}</b></h3> 
-                                
-                            </div> 
-                        </div>
-                        <div class="col-4"> <div class="icon1 bg-white my-auto  float-end"> <i class="fe fe-users text-warning"></i> </div> </div>
-                    </div>
-                    
-                </div> 
-            </div> 
-        </div>
+    
+    <!-- Filters -->
+    {% if show_filters %}
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <form method="get" class="flex items-end space-x-4">
+            <div class="flex-1">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Date Range</label>
+                <div class="flex items-center space-x-2">
+                    <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" 
+                        class="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all">
+                    <span class="text-gray-500">to</span>
+                    <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" 
+                        class="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all">
+                </div>
+            </div>
+            <button type="submit" class="px-6 py-3 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600 transition-colors">
+                Apply Filters
+            </button>
+        </form>
     </div>
-        <div class="row">
-            <div class="col-lg-3 col-md-3 col-sm-4 col-6">
-                <a href="{% url 'core:channel_report' %}?type=WhatsApp">
-                    <div class="card custom-card border-radius {% if type %} {% if not is_whatsapp %} bg-gray2 {% endif %} {% endif %}">
-                        <div class="card-body p-3 text-black">
-                            <div class="w-100 d-flex justify-content-between align-items-center">
-                                <h6 class="me-3 mb-0"><i class="fa fa-whatsapp text-success fa-2x"></i></h6>
-                                <h5 class="font-weight-bold m-0">WhatsApp</h5>
-                            </div>
-                            <h3 class="mb-0 mt-1 text-primary text-end ">{{whatsapp_count}}</h3>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-lg-3 col-md-3 col-sm-4 col-6">
-                <a href="{% url 'core:channel_report' %}?type=WhatsApp_COD">
-                    <div class="card border-radius {% if type %}  {% if not is_cod %} bg-gray2 {% endif %} {% endif %}">
-                        <div class="card-body p-3 text-black">
-                            <div class="w-100 d-flex justify-content-between align-items-center">
-                                <h6 class="me-3 mb-0"><i class="fa fa-google-wallet text-success fa-2x"></i></h6>
-                                <h5 class="font-weight-bold m-0">COD</h5>
-                            </div>
-                            
-                                <h3 class="mb-0 mt-1 text-primary text-end ">{{whatsapp_cod_count}}</h3>
+    {% endif %}
+    
+    <!-- Summary Stats -->
+    {% if summary_stats %}
+    <div class="grid grid-cols-4 gap-6">
+        {% for stat in summary_stats %}
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">{{ stat.label }}</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ stat.value }}</p>
+            {% if stat.change %}
+            <p class="text-sm mt-1 {% if stat.change > 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                {% if stat.change > 0 %}+{% endif %}{{ stat.change }}% vs previous
+            </p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <!-- Report Table -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" data-testid="report-table">
+        {% if report_data %}
+        <div class="overflow-x-auto">
+            <table class="w-full" id="reportTable">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        {% for header in headers %}
+                        <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">{{ header }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for row in report_data %}
+                    <tr class="table-row transition-colors hover:bg-gray-50">
+                        {% for cell in row %}
+                        <td class="px-6 py-4 text-base text-gray-900">{{ cell }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         
-                        </div>
-                    </div>
+        <!-- Pagination -->
+        {% if page_obj %}
+        <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+            <p class="text-sm text-gray-500">
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} results
+            </p>
+            <div class="flex items-center space-x-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors">
+                    Previous
                 </a>
-            </div>
-            <div class="col-lg-3 col-md-3 col-sm-4 col-6 ">
-                <a href="{% url 'core:channel_report'  %}?type=Swiggy">
-                    <div class="card border-radius  {% if type %} {% if not is_swiggy %} bg-gray2 {% endif %} {% endif %}">
-                        <div class="card-body p-3 text-black">
-                            <div class="w-100 d-flex justify-content-between align-items-center">
-                                <h6 class="me-3 mb-0"><img src="{% static 'app/images/icon/swiggy_colorr.png'%}" style="width: 27px;" alt=""></h6>
-                                <h5 class="font-weight-bold m-0">Swiggy</h5>
-                            </div>
-                            <h3 class="mb-0 mt-1 text-primary text-end ">{{swiggy_count}}</h3>
-                        </div>
-                    </div>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors">
+                    Next
                 </a>
-            </div>
-            <div class="col-lg-3 col-md-3 col-sm-4 col-6 ">
-                <a href="{% url 'core:channel_report'  %}?type=Kumar">
-                    <div class="card border-radius {% if type %}  {% if not is_kumar %} bg-gray2 {% endif %} {% endif %} ">
-                        <div class="card-body p-3 text-black">
-                            <div class="w-100 d-flex justify-content-between align-items-center">
-                                <h6 class="me-3 mb-0"><i class="fa fa-user  text-secendtry  fa-2x"></i></h6>
-                                <h5 class="font-weight-bold m-0">Kumar</h5>
-                            </div>
-                            
-                            <h3 class="mb-0 mt-1 text-primary text-end ">{{kumar_count}}</h3>
-                            
-                        </div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-lg-3 col-md-3 col-sm-4 col-6 ">
-                <a href="{% url 'core:channel_report'  %}?type=Wholesale">
-                    <div class="card border-radius  {% if type %}  {% if not is_wholesale %} bg-gray2{% endif %} {% endif %}">
-                        <div class="card-body p-3 text-black">
-                            <div class="w-100 d-flex justify-content-between align-items-center">
-                                <h6 class="me-3 mb-0"><i class="fa fa-users text-secendtry fa-2x"></i></h6>
-                                <h5 class="font-weight-bold m-0">Wholesale</h5>
-                            </div>
-                            
-                                <h3 class="mb-0 mt-1 text-primary text-end ">{{wholesale_count}}</h3>
-                            
-                        </div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-lg-3 col-md-3 col-sm-4 col-6 ">
-                <a href="{% url 'core:channel_report'  %}?type=Promo">
-                    <div class="card border-radius  {% if type %}  {% if not is_promo %} bg-gray2 {% endif %} {% endif %}">
-                        <div class="card-body p-3 text-black">
-                            <div class="w-100 d-flex justify-content-between align-items-center">
-                                <h6 class="me-3 mb-0"><i class="fa fa-bullhorn text-secendtry fa-2x"></i></h6>
-                                <h5 class="font-weight-bold m-0">Promo</h5>
-                            </div>
-                           
-                                <h3 class="mb-0 mt-1 text-primary text-end ">{{promo_count}}</h3>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-lg-3 col-md-3 col-sm-4 col-6 ">
-                <a href="{% url 'core:channel_report'  %}?type=Counter">
-                    <div class="card border-radius  {% if type %}  {% if not is_counter %} bg-gray2 {% endif %} {% endif %}">
-                        <div class="card-body p-3 text-black">
-                            <div class="w-100 d-flex justify-content-between align-items-center">
-                                <h6 class="me-3 mb-0"><i class="fa fa-id-card-o text-secendtry fa-2x"></i></h6>
-                                <h5 class="font-weight-bold m-0">Counter</h5>
-                            </div>
-                            
-                                <h3 class="mb-0 mt-1 text-primary text-end ">{{counter_count}}</h3>
-                        </div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-lg-3 col-md-3 col-sm-4 col-6 ">
-                <a href="{% url 'core:channel_report'  %}?type=Return_or_Replace">
-                    <div class="card border-radius  {% if type %}  {% if not is_return %} bg-gray2 {% endif %} {% endif %}">
-                        <div class="card-body p-3 text-black">
-                            <div class="w-100 d-flex justify-content-between align-items-center">
-                                <h6 class="me-3 mb-0"><i class="fa fa-refresh text-secendtry fa-2x"></i></h6>
-                                <h5 class="font-weight-bold m-0">Return</h5>
-                            </div>
-                            
-                                <h3 class="mb-0 mt-1 text-primary text-end ">{{return_or_replace_count}}</h3>
-                        </div>
-                    </div>
-                </a>
+                {% endif %}
             </div>
         </div>
-        <div class="row">
-            <div class=" col-md-6">
-                <div class="card">
-                    <div class="" id="product_chart"></div>
-                </div>
-            </div>
-            <div class=" col-md-6">
-                <div class="card">
-                    <div class="" id="order_by_report"></div>
-                </div>
-            </div>
+        {% endif %}
+        {% else %}
+        <div class="p-12 text-center text-gray-500">
+            <i class="fas fa-chart-bar text-5xl text-gray-300 mb-4"></i>
+            <p class="text-lg font-medium">No data available</p>
+            <p class="text-sm mt-1">Try adjusting your filters</p>
         </div>
-       <div class="row">
-            <div class=" col-md-12">
-                <div class="card">
-                    <div class="" id="top_cities"></div>
-                </div>
-            </div>
-       </div>
+        {% endif %}
     </div>
 </div>
-
-{% include 'app/partials/data_table.html' %}
-{% include 'app/partials/apexchart.html' %}
-{% include 'app/partials/help.html' %}
-{% endblock content %}
-
-{% block js_plugins %}
-<script>
-
-var options = {
-          series: {{product_data}},
-          chart: {
-          width: 600,
-          height: 800,
-          type: 'donut',
-        },
-        labels: [
-        'FACE CREAM-SMALL-35 GRAMS', 
-        'FACE CREAM (35) + POWDER-50', 
-        'FACE CREAM-BIG-70', 
-        'FACE CREAM (70) + POWDER-123', 
-        'FACE CREAM (70) +FACE CREAM (35)-105', 
-        'FACE POWDER-50'
-    ],
-        plotOptions: {
-          pie: {
-            startAngle: -90,
-            endAngle: 270
-          }
-        },
-        dataLabels: {
-          enabled: false
-        },
-        fill: {
-          type: 'gradient',
-        },
-        legend: {
-          formatter: function(val, opts) {
-            return val + " - " + opts.w.globals.series[opts.seriesIndex]
-          }
-        },
-        title: {
-          text: 'Product Based Order' 
-        },
-        responsive: [{
-          breakpoint: 480,
-          options: {
-            chart: {
-              width: 200,
-            },
-            legend: {
-              position: 'top'
-            }
-          }
-        }]
-        };
-
-        var chart = new ApexCharts(document.querySelector("#product_chart"), options);
-        chart.render();
-</script>
-<script>
-    var options = {
-        series: [{
-            name: 'Total Orders', 
-            data: {{ city_counts|safe }}  // Order counts instead of city counts
-        }],
-        chart: {
-            type: 'bar',
-            height: 430
-        },
-        title: {
-            text: 'Top 10 Order Cities'  // Updated title
-        },
-        plotOptions: {
-            bar: {
-                horizontal: true,
-                dataLabels: {
-                    position: 'top',
-                },
-            }
-        },
-        dataLabels: {
-            enabled: true,
-            offsetX: -6,
-            style: {
-                fontSize: '12px',
-                colors: ['#fff']
-            }
-        },
-        stroke: {
-            show: true,
-            width: 1,
-            colors: ['#fff']
-        },
-        tooltip: {
-            shared: true,
-            intersect: false
-        },
-        xaxis: {
-            categories: {{ city_names|safe }},  // City names from Django context
-        },
-    };
-
-    var chart = new ApexCharts(document.querySelector("#top_cities"), options);
-    chart.render();
-</script>
-<script>
-     var options = {
-          series: {{user_count|safe}},
-          chart: {
-          width: 480,
-          type: 'pie',
-        },
-        title: {
-          text: 'Order By Count' 
-        },
-        labels: {{user_list|safe}},
-        responsive: [{
-          breakpoint: 480,
-          options: {
-            chart: {
-              width: 200
-            },
-            legend: {
-              position: 'bottom'
-            }
-          }
-        }]
-        };
-
-        var chart = new ApexCharts(document.querySelector("#order_by_report"), options);
-        chart.render();
-</script>
 {% endblock %}
 
+{% block extra_js %}
+<script>
+function exportCSV() {
+    const table = document.getElementById('reportTable');
+    if (!table) return;
+    
+    let csv = [];
+    const rows = table.querySelectorAll('tr');
+    
+    rows.forEach(row => {
+        const cols = row.querySelectorAll('td, th');
+        const rowData = [];
+        cols.forEach(col => rowData.push('"' + col.innerText.replace(/"/g, '""') + '"'));
+        csv.push(rowData.join(','));
+    });
+    
+    const csvContent = csv.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = '{{ report_title|default:"report" }}_{{ "now"|date:"Y-m-d" }}.csv';
+    link.click();
+}
+</script>
+{% endblock %}

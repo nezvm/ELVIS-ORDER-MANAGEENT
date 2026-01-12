@@ -1,120 +1,179 @@
-{% extends 'modern_base.html' %}
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}{{ channel.name }}{% endblock %}
+{% block page_title %}{{ channel.name }}{% endblock %}
+
+{% block page_subtitle %}
+<span class="ml-4 px-3 py-1 rounded-full text-sm font-semibold {% if channel.is_active %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+    {% if channel.is_active %}Active{% else %}Inactive{% endif %}
+</span>
+{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1 class="h3">{{ title }}</h1>
-    <div>
-        <a href="{{ object.get_update_url }}" class="btn btn-outline-primary me-2">
-            <i class="fas fa-edit me-2"></i>Edit
-        </a>
+<div class="space-y-6" data-testid="channel-detail">
+    <!-- Breadcrumb -->
+    <div class="flex items-center text-sm text-gray-500">
+        <a href="{% url 'channels_config:channel_list' %}" class="hover:text-primary-500">Channels</a>
+        <i class="fas fa-chevron-right mx-2 text-xs"></i>
+        <span class="text-gray-900 font-medium">{{ channel.name }}</span>
     </div>
-</div>
-
-<div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">Channel Details</div>
-            <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-5">Name</dt>
-                    <dd class="col-7">{{ object.name }}</dd>
-                    <dt class="col-5">Code</dt>
-                    <dd class="col-7"><code>{{ object.code }}</code></dd>
-                    <dt class="col-5">Prefix</dt>
-                    <dd class="col-7">{{ object.prefix }}</dd>
-                    <dt class="col-5">COD Channel</dt>
-                    <dd class="col-7">
-                        {% if object.is_cod_channel %}
-                        <span class="badge bg-success">Yes</span>
-                        {% else %}
-                        <span class="badge bg-secondary">No</span>
-                        {% endif %}
-                    </dd>
-                    <dt class="col-5">Requires UTR</dt>
-                    <dd class="col-7">
-                        {% if object.requires_utr %}
-                        <span class="badge bg-warning">Yes</span>
-                        {% else %}
-                        <span class="badge bg-secondary">No</span>
-                        {% endif %}
-                    </dd>
-                    <dt class="col-5">Sort Order</dt>
-                    <dd class="col-7">{{ object.sort_order }}</dd>
-                </dl>
+    
+    <!-- Channel Info Card -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div class="flex items-start justify-between">
+            <div class="flex items-center">
+                <div class="w-16 h-16 rounded-xl {% if channel.is_active %}bg-primary-100{% else %}bg-gray-100{% endif %} flex items-center justify-center">
+                    <i class="fas fa-{{ channel.icon|default:'store' }} text-3xl {% if channel.is_active %}text-primary-500{% else %}text-gray-400{% endif %}"></i>
+                </div>
+                <div class="ml-5">
+                    <h2 class="text-2xl font-bold text-gray-900">{{ channel.name }}</h2>
+                    <p class="text-base text-gray-500">{{ channel.channel_type }}</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'channels_config:channel_update' channel.id %}" class="px-5 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                    <i class="fas fa-edit mr-2"></i>Edit
+                </a>
+                <button onclick="confirmDelete()" class="px-5 py-3 bg-red-100 text-red-600 rounded-xl font-medium hover:bg-red-200 transition-colors">
+                    <i class="fas fa-trash mr-2"></i>Delete
+                </button>
             </div>
         </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">Appearance</div>
-            <div class="card-body">
-                <p><i class="fas {{ object.icon }} fa-2x" style="color: {{ object.color }}"></i></p>
-                <p><strong>Icon:</strong> {{ object.icon }}</p>
-                <p><strong>Color:</strong> <span style="background: {{ object.color }}; padding: 2px 10px; border-radius: 3px;">{{ object.color }}</span></p>
-                {% if object.description %}
-                <p><strong>Description:</strong> {{ object.description }}</p>
-                {% endif %}
+        
+        <!-- Channel Details Grid -->
+        <div class="grid grid-cols-3 gap-6 mt-8">
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Channel Type</p>
+                <p class="text-lg font-semibold text-gray-900 mt-1">{{ channel.channel_type }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Requires UTR</p>
+                <p class="text-lg font-semibold text-gray-900 mt-1">{% if channel.requires_utr %}Yes{% else %}No{% endif %}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Status</p>
+                <p class="text-lg font-semibold mt-1 {% if channel.is_active %}text-green-600{% else %}text-gray-500{% endif %}">
+                    {% if channel.is_active %}Active{% else %}Inactive{% endif %}
+                </p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Total Orders</p>
+                <p class="text-lg font-semibold text-gray-900 mt-1">{{ channel.order_count|default:0 }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Created</p>
+                <p class="text-lg font-semibold text-gray-900 mt-1">{{ channel.created_at|date:"d M Y" }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">Last Updated</p>
+                <p class="text-lg font-semibold text-gray-900 mt-1">{{ channel.updated_at|date:"d M Y" }}</p>
             </div>
         </div>
-    </div>
-</div>
-
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        Form Fields Configuration
-        <a href="{% url 'channels_config:formfield_create' %}?channel={{ object.id }}" class="btn btn-sm btn-primary">
-            <i class="fas fa-plus me-1"></i>Add Field
-        </a>
-    </div>
-    <div class="card-body">
-        {% if form_fields %}
-        <div class="table-responsive">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Order</th>
-                        <th>Field Name</th>
-                        <th>Label</th>
-                        <th>Type</th>
-                        <th>Required</th>
-                        <th>Visible</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for field in form_fields %}
-                    <tr>
-                        <td>{{ field.sort_order }}</td>
-                        <td><code>{{ field.field_name }}</code></td>
-                        <td>{{ field.label }}</td>
-                        <td>{{ field.get_field_type_display }}</td>
-                        <td>
-                            {% if field.is_required %}
-                            <span class="badge bg-warning">Yes</span>
-                            {% else %}
-                            <span class="badge bg-secondary">No</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if field.is_visible %}
-                            <span class="badge bg-success">Yes</span>
-                            {% else %}
-                            <span class="badge bg-secondary">No</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <a href="{% url 'channels_config:formfield_update' pk=field.pk %}" class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        
+        {% if channel.description %}
+        <div class="mt-6 p-4 bg-gray-50 rounded-xl">
+            <p class="text-sm text-gray-500 uppercase tracking-wide font-medium mb-2">Description</p>
+            <p class="text-base text-gray-700">{{ channel.description }}</p>
         </div>
+        {% endif %}
+    </div>
+    
+    <!-- Recent Orders -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" data-testid="channel-orders">
+        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-lg font-bold text-gray-900">Recent Orders</h3>
+            <a href="{% url 'master:order_list' %}?channel={{ channel.id }}" class="text-primary-500 hover:text-primary-600 font-medium text-sm">
+                View All <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+        
+        {% if recent_orders %}
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Order ID</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Customer</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Amount</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Date</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for order in recent_orders %}
+                <tr class="table-row transition-colors hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                        <a href="{% url 'master:order_detail' order.id %}" class="text-primary-500 font-semibold hover:underline">
+                            #{{ order.order_number }}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4 text-base text-gray-900">{{ order.customer.name|default:"-" }}</td>
+                    <td class="px-6 py-4 text-base font-semibold text-gray-900">₹{{ order.total_amount|floatformat:0 }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{{ order.created_at|date:"d M Y" }}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold 
+                            {% if order.status == 'DELIVERED' %}bg-green-100 text-green-700
+                            {% elif order.status == 'CANCELLED' %}bg-red-100 text-red-700
+                            {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                            {{ order.status }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
         {% else %}
-        <p class="text-muted mb-0">No form fields configured for this channel.</p>
+        <div class="p-12 text-center text-gray-500">
+            <i class="fas fa-shopping-cart text-4xl text-gray-300 mb-4"></i>
+            <p class="text-lg font-medium">No orders in this channel yet</p>
+        </div>
         {% endif %}
     </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 z-50 modal-backdrop bg-black/50 flex items-center justify-center" onclick="if(event.target===this)closeDeleteModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 transform scale-95 opacity-0 transition-all" id="deleteModalContent">
+        <div class="text-center">
+            <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-exclamation-triangle text-3xl text-red-500"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Delete Channel?</h3>
+            <p class="text-gray-500 mb-6">Are you sure you want to delete "{{ channel.name }}"? This action cannot be undone.</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="closeDeleteModal()" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                Cancel
+            </button>
+            <form action="{% url 'channels_config:channel_delete' channel.id %}" method="post" class="flex-1">
+                {% csrf_token %}
+                <button type="submit" class="w-full py-3 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors">
+                    Delete
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmDelete() {
+    const modal = document.getElementById('deleteModal');
+    const content = document.getElementById('deleteModalContent');
+    modal.classList.add('active');
+    setTimeout(() => {
+        content.classList.remove('scale-95', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+    }, 10);
+}
+
+function closeDeleteModal() {
+    const modal = document.getElementById('deleteModal');
+    const content = document.getElementById('deleteModalContent');
+    content.classList.add('scale-95', 'opacity-0');
+    content.classList.remove('scale-100', 'opacity-100');
+    setTimeout(() => modal.classList.remove('active'), 200);
+}
+</script>
 {% endblock %}
