@@ -1,10 +1,17 @@
-{% extends 'registration/registration_base.html' %}
-{% load static crispy_forms_tags %}
-{% block title %}Logged Out{% endblock %}
+{% extends "registration/registration_base.html" %}
+{% load static i18n %}
+
+{% block title %}Signed Out | Elvis-Manager{% endblock %}
 
 {% block content %}
-<div class="p-4 pt-6 text-center">
-    <h1 class="mb-5 h3 font-weight-bold">Logged out.</h1>
-    <a href="{% url 'auth_login' %}" class="btn btn-outline-info">Login Again</a>
+<div class="text-center" data-testid="logout-page">
+    <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
+        <i class="fas fa-check text-3xl text-green-500"></i>
+    </div>
+    <h2 class="text-2xl font-bold text-gray-900 mb-2">You've been signed out</h2>
+    <p class="text-gray-500 mb-6">Thanks for using Elvis-Manager</p>
+    <a href="{% url 'auth_login' %}" class="inline-block w-full py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors text-center">
+        Sign In Again
+    </a>
 </div>
-{% endblock content %}
+{% endblock %}
