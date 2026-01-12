@@ -754,6 +754,16 @@ class QuickOrderEntryView(View):
         # Get today's stats for each channel
         today = date.today()
         
+        # Calculate business date (IST 8PM-8PM)
+        from datetime import timezone as tz
+        import pytz
+        ist = pytz.timezone('Asia/Kolkata')
+        now = datetime.now(ist)
+        if now.hour >= 20:
+            business_date = today + timedelta(days=1)
+        else:
+            business_date = today
+        
         channel_data = []
         for channel in channels:
             orders = Order.objects.filter(
