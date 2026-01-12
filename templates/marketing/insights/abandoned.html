@@ -1,0 +1,196 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}Abandoned Insights{% endblock %}
+{% block page_title %}Abandoned Insights{% endblock %}
+
+{% block content %}
+<div class="space-y-6" data-testid="abandoned-insights-page">
+    <div class="flex items-center justify-between">
+        <a href="{% url 'marketing:insights' %}" class="flex items-center text-gray-500 hover:text-gray-700 transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Insights
+        </a>
+    </div>
+    
+    <div class="bg-orange-50 border border-orange-200 rounded-2xl p-6">
+        <div class="flex items-start">
+            <i class="fas fa-cart-arrow-down text-orange-500 text-xl mr-4 mt-0.5"></i>
+            <div>
+                <h4 class="text-base font-semibold text-orange-800">Abandoned Checkout Recovery</h4>
+                <p class="text-sm text-orange-700 mt-1">Track Shopify abandoned checkouts, conversion rates, and top abandoned products. Use WhatsApp campaigns to recover lost sales.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Summary Stats -->
+    {% if metrics %}
+    <div class="grid grid-cols-6 gap-4">
+        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm text-center">
+            <p class="text-3xl font-bold text-gray-900">{{ metrics.abandoned_count }}</p>
+            <p class="text-sm text-gray-500 mt-1">Abandoned</p>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm text-center">
+            <p class="text-3xl font-bold text-gray-900">₹{{ metrics.abandoned_value|floatformat:0 }}</p>
+            <p class="text-sm text-gray-500 mt-1">Cart Value</p>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm text-center">
+            <p class="text-3xl font-bold text-green-600">{{ metrics.converted_count }}</p>
+            <p class="text-sm text-gray-500 mt-1">Converted</p>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm text-center">
+            <p class="text-3xl font-bold text-green-600">{{ metrics.conversion_rate|floatformat:1 }}%</p>
+            <p class="text-sm text-gray-500 mt-1">Recovery Rate</p>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm text-center">
+            <p class="text-3xl font-bold text-primary-500">₹{{ metrics.conversion_revenue|floatformat:0 }}</p>
+            <p class="text-sm text-gray-500 mt-1">Recovered Revenue</p>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm text-center">
+            <p class="text-3xl font-bold text-gray-900">{{ metrics.avg_conversion_days|floatformat:1 }}</p>
+            <p class="text-sm text-gray-500 mt-1">Avg Days to Convert</p>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="grid grid-cols-2 gap-6">
+        <!-- Top Abandoned Products -->
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="top-products">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Top Abandoned Products</h3>
+            {% if metrics.top_abandoned_products %}
+            <div class="space-y-3">
+                {% for product in metrics.top_abandoned_products %}
+                <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center mr-3">
+                            <i class="fas fa-box text-orange-500"></i>
+                        </div>
+                        <div>
+                            <p class="text-base font-medium text-gray-900">{{ product.product }}</p>
+                            <p class="text-sm text-gray-500">{{ product.count }} times abandoned</p>
+                        </div>
+                    </div>
+                    <p class="text-base font-semibold text-gray-900">₹{{ product.value|floatformat:0 }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">No product data available</p>
+            {% endif %}
+        </div>
+        
+        <!-- Loss Markets by State -->
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="loss-markets">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Loss Markets (Enriched Leads)</h3>
+            <p class="text-sm text-gray-500 mb-4">States with highest abandoned LOSS leads (only locations with known pincode)</p>
+            {% if loss_markets %}
+            <div class="space-y-3">
+                {% for market in loss_markets %}
+                <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center mr-3">
+                            <i class="fas fa-map-marker-alt text-blue-500"></i>
+                        </div>
+                        <div>
+                            <p class="text-base font-medium text-gray-900">{{ market.state }}</p>
+                            <p class="text-sm text-gray-500">{{ market.leads_count }} total leads</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-base font-bold text-red-600">{{ market.loss_count }} LOSS</p>
+                        <p class="text-sm text-gray-500">{{ market.conversion_rate|floatformat:1 }}% conv.</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">No loss market data. Note: Only enriched leads (with known pincode) are included.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Recent Abandoned Leads -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" data-testid="abandoned-leads">
+        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-lg font-bold text-gray-900">Recent Abandoned Checkouts</h3>
+            <a href="{% url 'marketing:campaign_create' %}" class="px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors text-sm">
+                <i class="fab fa-whatsapp mr-2"></i>Create Recovery Campaign
+            </a>
+        </div>
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Lead</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Cart Value</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Items</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Location</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Abandoned At</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Recovery</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for lead in abandoned_leads %}
+                <tr class="table-row transition-colors">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 font-bold">
+                                {{ lead.name|slice:":1"|upper|default:"?" }}
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-base font-medium text-gray-900">{{ lead.name|default:"Unknown" }}</p>
+                                <p class="text-sm text-gray-500">{{ lead.phone_no|default:lead.email }}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-lg font-bold text-gray-900">₹{{ lead.cart_value|floatformat:0 }}</td>
+                    <td class="px-6 py-4">
+                        {% for item in lead.cart_items_summary|slice:":2" %}
+                        <p class="text-sm text-gray-700">{{ item.title|truncatechars:30 }} x{{ item.quantity }}</p>
+                        {% endfor %}
+                        {% if lead.cart_items_summary|length > 2 %}
+                        <p class="text-xs text-gray-400">+{{ lead.cart_items_summary|length|add:"-2" }} more</p>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if lead.location_status == 'enriched' %}
+                        <p class="text-sm text-gray-900">{{ lead.state|default:"-" }}</p>
+                        <p class="text-xs text-gray-500">{{ lead.pincode }}</p>
+                        {% else %}
+                        <span class="px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Unknown</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if lead.match_status == 'converted' %}
+                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">CONVERTED</span>
+                        {% elif lead.match_status == 'win' %}
+                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700">WIN</span>
+                        {% else %}
+                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">LOSS</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <p class="text-sm text-gray-500">{{ lead.abandoned_at|date:"d M Y"|default:"-" }}</p>
+                        <p class="text-xs text-gray-400">{{ lead.abandoned_at|time:"h:i A"|default:"" }}</p>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if lead.recover_url %}
+                        <a href="{{ lead.recover_url }}" target="_blank" class="text-primary-500 hover:text-primary-600 text-sm">
+                            <i class="fas fa-external-link-alt mr-1"></i>Recovery Link
+                        </a>
+                        {% else %}
+                        <span class="text-gray-400 text-sm">No link</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                        No abandoned checkouts found. Enable Shopify Abandoned Checkout sync in Integrations to start tracking.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
