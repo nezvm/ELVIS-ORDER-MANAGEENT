@@ -138,22 +138,7 @@
 {% block extra_js %}
 <script>
 async function syncGoogle() {
-    try {
-        const response = await fetch('{% url "integrations:google_sync" %}', {
-            method: 'POST',
-            headers: {'X-CSRFToken': csrftoken}
-        });
-        const data = await response.json();
-        
-        if (data.success) {
-            showToast(data.message, 'success');
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showToast(data.error, 'error');
-        }
-    } catch (error) {
-        showToast('Failed to sync', 'error');
-    }
+    showToast('Google sync is not yet configured', 'warning');
 }
 </script>
 {% endblock %}
