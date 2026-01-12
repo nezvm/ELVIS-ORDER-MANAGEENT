@@ -162,9 +162,14 @@
                             </div>
                             <p class="text-lg font-semibold text-gray-700">No orders found</p>
                             <p class="text-gray-500 mt-1">Create your first order to get started</p>
-                            <a href="{% url 'master:order_create' %}" class="mt-4 px-5 py-2.5 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-colors">
-                                <i class="fas fa-plus mr-2"></i>New Order
-                            </a>
+                            <div class="flex items-center space-x-3 mt-4">
+                                <a href="{% url 'master:quick_order_entry' %}" class="px-5 py-2.5 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 transition-colors">
+                                    <i class="fas fa-bolt mr-2"></i>Quick Entry
+                                </a>
+                                <a href="{% url 'master:order_create' %}" class="px-5 py-2.5 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-colors">
+                                    <i class="fas fa-plus mr-2"></i>New Order
+                                </a>
+                            </div>
                         </div>
                     </td>
                 </tr>
