@@ -1,0 +1,37 @@
+{% extends 'modern_base.html' %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="h3">{{ title }}</h1>
+    {% if can_add %}
+    <a href="{{ new_link }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Add New
+    </a>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if filter %}
+        <div class="mb-3">
+            <form method="get" class="row g-3">
+                {{ filter.form.as_p }}
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-outline-primary">Filter</button>
+                    <a href="{{ request.path }}" class="btn btn-outline-secondary">Clear</a>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+        
+        <div class="table-responsive">
+            {% if table %}
+            {% load django_tables2 %}
+            {% render_table table %}
+            {% else %}
+            <p class="text-muted">No data available.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

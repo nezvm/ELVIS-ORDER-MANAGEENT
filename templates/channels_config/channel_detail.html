@@ -1,0 +1,120 @@
+{% extends 'modern_base.html' %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="h3">{{ title }}</h1>
+    <div>
+        <a href="{{ object.get_update_url }}" class="btn btn-outline-primary me-2">
+            <i class="fas fa-edit me-2"></i>Edit
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Channel Details</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-5">Name</dt>
+                    <dd class="col-7">{{ object.name }}</dd>
+                    <dt class="col-5">Code</dt>
+                    <dd class="col-7"><code>{{ object.code }}</code></dd>
+                    <dt class="col-5">Prefix</dt>
+                    <dd class="col-7">{{ object.prefix }}</dd>
+                    <dt class="col-5">COD Channel</dt>
+                    <dd class="col-7">
+                        {% if object.is_cod_channel %}
+                        <span class="badge bg-success">Yes</span>
+                        {% else %}
+                        <span class="badge bg-secondary">No</span>
+                        {% endif %}
+                    </dd>
+                    <dt class="col-5">Requires UTR</dt>
+                    <dd class="col-7">
+                        {% if object.requires_utr %}
+                        <span class="badge bg-warning">Yes</span>
+                        {% else %}
+                        <span class="badge bg-secondary">No</span>
+                        {% endif %}
+                    </dd>
+                    <dt class="col-5">Sort Order</dt>
+                    <dd class="col-7">{{ object.sort_order }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Appearance</div>
+            <div class="card-body">
+                <p><i class="fas {{ object.icon }} fa-2x" style="color: {{ object.color }}"></i></p>
+                <p><strong>Icon:</strong> {{ object.icon }}</p>
+                <p><strong>Color:</strong> <span style="background: {{ object.color }}; padding: 2px 10px; border-radius: 3px;">{{ object.color }}</span></p>
+                {% if object.description %}
+                <p><strong>Description:</strong> {{ object.description }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        Form Fields Configuration
+        <a href="{% url 'channels_config:formfield_create' %}?channel={{ object.id }}" class="btn btn-sm btn-primary">
+            <i class="fas fa-plus me-1"></i>Add Field
+        </a>
+    </div>
+    <div class="card-body">
+        {% if form_fields %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Order</th>
+                        <th>Field Name</th>
+                        <th>Label</th>
+                        <th>Type</th>
+                        <th>Required</th>
+                        <th>Visible</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for field in form_fields %}
+                    <tr>
+                        <td>{{ field.sort_order }}</td>
+                        <td><code>{{ field.field_name }}</code></td>
+                        <td>{{ field.label }}</td>
+                        <td>{{ field.get_field_type_display }}</td>
+                        <td>
+                            {% if field.is_required %}
+                            <span class="badge bg-warning">Yes</span>
+                            {% else %}
+                            <span class="badge bg-secondary">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if field.is_visible %}
+                            <span class="badge bg-success">Yes</span>
+                            {% else %}
+                            <span class="badge bg-secondary">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'channels_config:formfield_update' pk=field.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">No form fields configured for this channel.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

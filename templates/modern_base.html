@@ -1,0 +1,238 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ title|default:'Elvis-Manager' }}{% endblock %} | Elvis-Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'app/styles/main.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --sidebar-bg: #1e293b;
+            --sidebar-text: #94a3b8;
+            --sidebar-active: #3b82f6;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 260px;
+            height: 100vh;
+            background: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        .sidebar-brand {
+            padding: 1.5rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: white;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar-nav { padding: 1rem 0; }
+        .nav-section {
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            margin-top: 0.5rem;
+        }
+        .nav-item {
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .nav-item:hover, .nav-item.active {
+            background: rgba(59, 130, 246, 0.1);
+            color: white;
+            border-left: 3px solid var(--sidebar-active);
+        }
+        .nav-item i { width: 24px; margin-right: 0.75rem; }
+        .main-content {
+            margin-left: 260px;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .card {
+            border: none;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .card-header {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+        }
+        .stat-card {
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .stat-card .stat-label {
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+        .btn-primary { background: var(--primary-color); border-color: var(--primary-color); }
+        .btn-primary:hover { background: #4338ca; border-color: #4338ca; }
+        .table { margin-bottom: 0; }
+        .table th { background: #f8fafc; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
+        .badge-success { background: #10b981; }
+        .badge-warning { background: #f59e0b; }
+        .badge-danger { background: #ef4444; }
+        .badge-info { background: #3b82f6; }
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; height: auto; position: relative; }
+            .main-content { margin-left: 0; }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <i class="fas fa-bolt me-2"></i> Elvis-Manager
+        </div>
+        <div class="sidebar-nav">
+            <!-- Dashboard -->
+            <a href="{% url 'core:index' %}" class="nav-item {% if request.path == '/' %}active{% endif %}">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+            
+            <!-- Orders -->
+            <div class="nav-section">Orders & Sales</div>
+            <a href="{% url 'master:order_list' %}" class="nav-item">
+                <i class="fas fa-shopping-cart"></i> Orders
+            </a>
+            <a href="{% url 'master:customer_list' %}" class="nav-item">
+                <i class="fas fa-users"></i> Customers
+            </a>
+            <a href="{% url 'master:product_list' %}" class="nav-item">
+                <i class="fas fa-box"></i> Products
+            </a>
+            
+            <!-- Logistics -->
+            <div class="nav-section">Logistics</div>
+            <a href="{% url 'logistics:panel' %}" class="nav-item {% if is_logistics and is_panel %}active{% endif %}">
+                <i class="fas fa-truck"></i> Logistics Panel
+            </a>
+            <a href="{% url 'logistics:shipment_list' %}" class="nav-item {% if is_logistics and is_shipment %}active{% endif %}">
+                <i class="fas fa-shipping-fast"></i> Shipments
+            </a>
+            <a href="{% url 'logistics:carrier_list' %}" class="nav-item {% if is_logistics and is_carrier %}active{% endif %}">
+                <i class="fas fa-truck-loading"></i> Carriers
+            </a>
+            <a href="{% url 'logistics:rule_list' %}" class="nav-item {% if is_logistics and is_rule %}active{% endif %}">
+                <i class="fas fa-route"></i> Shipping Rules
+            </a>
+            <a href="{% url 'logistics:ndr_list' %}" class="nav-item {% if is_logistics and is_ndr %}active{% endif %}">
+                <i class="fas fa-exclamation-triangle"></i> NDR Management
+            </a>
+            
+            <!-- Inventory -->
+            <div class="nav-section">Inventory</div>
+            <a href="{% url 'inventory:dashboard' %}" class="nav-item {% if is_inventory and is_dashboard %}active{% endif %}">
+                <i class="fas fa-warehouse"></i> Inventory Dashboard
+            </a>
+            <a href="{% url 'inventory:stock_list' %}" class="nav-item {% if is_inventory and is_stock %}active{% endif %}">
+                <i class="fas fa-cubes"></i> Stock Levels
+            </a>
+            <a href="{% url 'inventory:warehouse_list' %}" class="nav-item {% if is_inventory and is_warehouse %}active{% endif %}">
+                <i class="fas fa-building"></i> Warehouses
+            </a>
+            <a href="{% url 'inventory:movement_list' %}" class="nav-item {% if is_inventory and is_movement %}active{% endif %}">
+                <i class="fas fa-exchange-alt"></i> Stock Movements
+            </a>
+            <a href="{% url 'inventory:alert_list' %}" class="nav-item {% if is_inventory and is_alert %}active{% endif %}">
+                <i class="fas fa-bell"></i> Alerts
+            </a>
+            
+            <!-- Segmentation -->
+            <div class="nav-section">Customer Insights</div>
+            <a href="{% url 'segmentation:dashboard' %}" class="nav-item {% if is_segmentation and is_dashboard %}active{% endif %}">
+                <i class="fas fa-chart-pie"></i> Segmentation
+            </a>
+            <a href="{% url 'segmentation:profile_list' %}" class="nav-item {% if is_segmentation and is_profile %}active{% endif %}">
+                <i class="fas fa-id-card"></i> Customer Profiles
+            </a>
+            <a href="{% url 'segmentation:segment_list' %}" class="nav-item {% if is_segmentation and is_segment %}active{% endif %}">
+                <i class="fas fa-layer-group"></i> Segments
+            </a>
+            <a href="{% url 'segmentation:cohort_analysis' %}" class="nav-item {% if is_segmentation and is_cohort %}active{% endif %}">
+                <i class="fas fa-chart-line"></i> Cohort Analysis
+            </a>
+            
+            <!-- Settings -->
+            <div class="nav-section">Settings</div>
+            <a href="{% url 'channels_config:channel_list' %}" class="nav-item {% if is_channel_config %}active{% endif %}">
+                <i class="fas fa-plug"></i> Channel Config
+            </a>
+            <a href="{% url 'integrations:dashboard' %}" class="nav-item {% if is_integrations %}active{% endif %}">
+                <i class="fas fa-link"></i> Integrations
+            </a>
+            <a href="/api/v1/docs/" class="nav-item">
+                <i class="fas fa-code"></i> API Docs
+            </a>
+            <a href="{% url 'admin:index' %}" class="nav-item">
+                <i class="fas fa-cog"></i> Admin
+            </a>
+            
+            <!-- User -->
+            <div class="nav-section">Account</div>
+            {% if request.user.is_authenticated %}
+            <a href="#" class="nav-item">
+                <i class="fas fa-user"></i> {{ request.user.username }}
+            </a>
+            <a href="{% url 'auth_logout' %}" class="nav-item">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+            {% else %}
+            <a href="{% url 'auth_login' %}" class="nav-item">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </a>
+            {% endif %}
+        </div>
+    </nav>
+    
+    <main class="main-content">
+        {% if messages %}
+        <div class="messages mb-3">
+            {% for message in messages %}
+            <div class="alert alert-{% if message.tags %}{{ message.tags }}{% else %}info{% endif %} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        {% block content %}{% endblock %}
+    </main>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

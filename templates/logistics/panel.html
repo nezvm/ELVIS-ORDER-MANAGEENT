@@ -1,0 +1,223 @@
+{% extends 'modern_base.html' %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="h3">{{ title }}</h1>
+</div>
+
+<!-- Stats Row -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value text-primary">{{ unfulfilled_count }}</div>
+            <div class="stat-label">Unfulfilled Orders</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value text-success">{{ today_shipped }}</div>
+            <div class="stat-label">Shipped Today</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value text-info">{{ today_delivered }}</div>
+            <div class="stat-label">Delivered Today</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-value text-warning">{{ pending_ndrs }}</div>
+            <div class="stat-label">Pending NDRs</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Unfulfilled Orders -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                Unfulfilled Orders
+                <div>
+                    <select id="carrier-select" class="form-select form-select-sm d-inline-block" style="width: auto;">
+                        <option value="">Select Carrier</option>
+                        {% for carrier in carriers %}
+                        <option value="{{ carrier.id }}">{{ carrier.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" class="btn btn-sm btn-primary ms-2" onclick="assignSelected()">
+                        <i class="fas fa-truck me-1"></i>Assign Selected
+                    </button>
+                    <button type="button" class="btn btn-sm btn-success ms-2" onclick="autoAssign()">
+                        <i class="fas fa-magic me-1"></i>Auto-Assign
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="select-all" onclick="toggleAll(this)"></th>
+                                <th>Order #</th>
+                                <th>Customer</th>
+                                <th>Amount</th>
+                                <th>COD</th>
+                                <th>State</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in unfulfilled_orders %}
+                            <tr>
+                                <td><input type="checkbox" class="order-checkbox" value="{{ order.id }}"></td>
+                                <td><a href="{{ order.get_absolute_url }}">{{ order.order_no }}</a></td>
+                                <td>{{ order.customer.customer_name|default:'-' }}</td>
+                                <td>₹{{ order.total_amount }}</td>
+                                <td>
+                                    {% if order.cod_charge > 0 %}
+                                    <span class="badge bg-warning">COD</span>
+                                    {% else %}
+                                    <span class="badge bg-success">Prepaid</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ order.customer.state|default:'-' }}</td>
+                                <td>{{ order.created|date:"d/m/Y" }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="assignSingle('{{ order.id }}')">
+                                        <i class="fas fa-truck"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center py-4 text-muted">No unfulfilled orders</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Carriers Panel -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">Available Carriers</div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for carrier in carriers %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ carrier.name }}</strong>
+                            <br>
+                            <small class="text-muted">
+                                {% if carrier.supports_cod %}<span class="badge bg-info">COD</span>{% endif %}
+                                Priority: {{ carrier.priority }}
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-success">{{ carrier.success_rate }}%</span>
+                            <br>
+                            <small>{{ carrier.avg_delivery_days }}d avg</small>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item text-muted">No carriers configured</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">Quick Actions</div>
+            <div class="card-body">
+                <a href="{% url 'logistics:shipment_list' %}" class="btn btn-outline-primary w-100 mb-2">
+                    <i class="fas fa-list me-2"></i>View All Shipments
+                </a>
+                <a href="{% url 'logistics:ndr_list' %}" class="btn btn-outline-warning w-100 mb-2">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Manage NDRs ({{ pending_ndrs }})
+                </a>
+                <a href="{% url 'logistics:rule_list' %}" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-cog me-2"></i>Configure Rules
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleAll(checkbox) {
+    document.querySelectorAll('.order-checkbox').forEach(cb => cb.checked = checkbox.checked);
+}
+
+function getSelectedOrders() {
+    return Array.from(document.querySelectorAll('.order-checkbox:checked')).map(cb => cb.value);
+}
+
+function assignSelected() {
+    const orderIds = getSelectedOrders();
+    const carrierId = document.getElementById('carrier-select').value;
+    
+    if (orderIds.length === 0) {
+        alert('Please select at least one order');
+        return;
+    }
+    if (!carrierId) {
+        alert('Please select a carrier');
+        return;
+    }
+    
+    assignOrders(orderIds, carrierId, 'manual');
+}
+
+function autoAssign() {
+    const orderIds = getSelectedOrders();
+    
+    if (orderIds.length === 0) {
+        alert('Please select at least one order');
+        return;
+    }
+    
+    assignOrders(orderIds, null, 'rule_based');
+}
+
+function assignSingle(orderId) {
+    const carrierId = document.getElementById('carrier-select').value;
+    const method = carrierId ? 'manual' : 'rule_based';
+    assignOrders([orderId], carrierId, method);
+}
+
+function assignOrders(orderIds, carrierId, method) {
+    fetch('{% url "logistics:assign_carrier" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            order_ids: orderIds,
+            carrier_id: carrierId,
+            method: method
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Successfully assigned ${data.success_count} of ${data.total} orders`);
+            location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+</script>
+{% endblock %}
