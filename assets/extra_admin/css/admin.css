@@ -1,0 +1,33 @@
+#id_permissions {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+}
+
+#id_permissions>div>label {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.field-permissions>div {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+}
+
+#changelist table .field-permissions input[type="checkbox"] {
+    vertical-align: middle;
+}
+
+.field-permissions>div>div {
+    margin: 0 12px 6px 0;
+    border: 1px solid #dbdbdb;
+    padding: 2px 5px;
+    border-radius: 7px;
+
+}
+
+.dynamic-task_set .vLargeTextField {
+    width: 300px;
+    height: 27px;
+}
