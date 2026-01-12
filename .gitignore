@@ -1,80 +1,82 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# IDE and editors
-.idea/
-.vscode/
 
-# Dependencies
-node_modules/
-/node_modules
-/.pnp
-.pnp.js
-.yarn/install-state.gz
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# Translations
+*.mo
+*.pot
 
-# Testing
-/coverage
+# Django stuff:
+*.log
+local_settings.py
 
-# Next.js
-/.next/
-/out/
-next-env.d.ts
-*.tsbuildinfo
+# Flask stuff:
+instance/
+.webassets-cache
 
-# Production builds
-/build
-dist/
-dist
+# Scrapy stuff:
+.scrapy
 
-# Environment files (comprehensive coverage)
+# Sphinx documentation
+docs/build/
 
-*token.json*
-*credentials.json*
+# PyBuilder
+target/
 
-# Logs and debug files
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-dump.rdb
+# Jupyter Notebook
+.ipynb_checkpoints
 
-# System files
-.DS_Store
-*.pem
+# pyenv
+.python-version
 
-# Python
-__pycache__/
-*pyc*
+# celery beat schedule file
+celerybeat-schedule
+
+# SageMath parsed files
+*.sage.py
+
+#Add this line to track the media folder
+media/
+
+# Environments
+# .env
+.venv
+env/
 venv/
-.venv/
+ENV/
+env.bak/
+venv.bak/
 
-# Development tools
-chainlit.md
-.chainlit
-.ipynb_checkpoints/
-.ac
+# Spyder project settings
+.spyderproject
+.spyproject
 
-# Deployment
-.vercel
+# Rope project settings
+.ropeproject
 
-# Data and databases
-agenthub/agents/youtube/db
+# mkdocs documentation
+/site
 
-# Archive files and large assets
-**/*.zip
-**/*.tar.gz
-**/*.tar
-**/*.tgz
-*.pack
-*.deb
-*.dylib
+# mypy
+.mypy_cache/
+.mypy_cache*
 
-# Build caches
-.cache/
+*.isorted
 
-# Mobile development
-android-sdk/ 
+################################
+########### VS CODE ############
+################################
+.vscode
+*.code-workspace
+.history
+.DS_Store
+
+# SQLite database file
+db.sqlite3
+
+# Ignore migration files, but keep the folder and __init__.py
+**/migrations/*
+!**/migrations/
+!**/migrations/__init__.py
+
+# Ignore compiled python files in migrations
+**/migrations/*.pyc
+__pycache__/
