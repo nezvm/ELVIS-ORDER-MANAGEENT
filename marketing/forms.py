@@ -69,11 +69,12 @@ class WhatsAppTemplateForm(forms.ModelForm):
 class CampaignForm(forms.ModelForm):
     class Meta:
         model = Campaign
-        fields = ['name', 'description', 'provider', 'template', 'scheduled_at',
-                  'throttle_rate', 'attribution_window_days']
+        fields = ['name', 'description', 'campaign_type', 'provider', 'template', 'scheduled_at',
+                  'throttle_rate', 'attribution_window_days', 'recovery_followup_hours', 'stop_on_conversion']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500'}),
             'description': forms.Textarea(attrs={'class': 'w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500', 'rows': 2}),
+            'campaign_type': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500'}),
             'provider': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500'}),
             'template': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500'}),
             'scheduled_at': forms.DateTimeInput(attrs={'class': 'w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500', 'type': 'datetime-local'}),
