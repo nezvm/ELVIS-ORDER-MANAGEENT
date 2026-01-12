@@ -80,3 +80,7 @@ db.sqlite3
 # Ignore compiled python files in migrations
 **/migrations/*.pyc
 __pycache__/
+-e 
+# Environment files
+*.env
+*.env.*
