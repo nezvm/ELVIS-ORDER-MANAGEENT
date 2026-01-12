@@ -1,0 +1,72 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}Hot Markets{% endblock %}
+{% block page_title %}Hot Markets{% endblock %}
+
+{% block content %}
+<div class="space-y-6" data-testid="hotspots-page">
+    <div class="flex items-center justify-between">
+        <a href="{% url 'marketing:insights' %}" class="flex items-center text-gray-500 hover:text-gray-700 transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Insights
+        </a>
+    </div>
+    
+    <div class="bg-red-50 border border-red-200 rounded-2xl p-6">
+        <div class="flex items-start">
+            <i class="fas fa-fire text-red-500 text-xl mr-4 mt-0.5"></i>
+            <div>
+                <h4 class="text-base font-semibold text-red-800">Hot Markets</h4>
+                <p class="text-sm text-red-700 mt-1">These are your best performing markets with high order volume and revenue. Focus your marketing efforts here for maximum ROI.</p>
+            </div>
+        </div>
+    </div>
+    
+    {% if markets %}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Location</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Orders</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Revenue</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Leads</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Conversion</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for market in markets %}
+                <tr class="table-row transition-colors">
+                    <td class="px-6 py-5">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
+                                <i class="fas fa-fire text-red-500"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-base font-semibold text-gray-900">{{ market.state }}</p>
+                                {% if market.district %}<p class="text-sm text-gray-500">{{ market.district }}</p>{% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-5 text-xl font-bold text-gray-900">{{ market.orders_count }}</td>
+                    <td class="px-6 py-5 text-xl font-bold text-green-600">₹{{ market.revenue|floatformat:0 }}</td>
+                    <td class="px-6 py-5 text-base text-gray-900">{{ market.leads_count }}</td>
+                    <td class="px-6 py-5">
+                        <span class="text-green-600 font-bold">{{ market.conversion_rate|floatformat:1 }}%</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-2xl p-12 border border-gray-100 shadow-sm text-center">
+        <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-fire text-4xl text-gray-400"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900">No hot markets identified</h3>
+        <p class="text-gray-500 mt-2">Markets with high order volume will appear here</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
