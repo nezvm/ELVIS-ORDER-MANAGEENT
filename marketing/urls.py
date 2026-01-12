@@ -31,6 +31,7 @@ urlpatterns = [
     path('insights/', views.MarketInsightsView.as_view(), name='insights'),
     path('insights/hotspots/', views.HotspotsView.as_view(), name='hotspots'),
     path('insights/cold-zones/', views.ColdZonesView.as_view(), name='cold_zones'),
+    path('insights/abandoned/', views.AbandonedInsightsView.as_view(), name='abandoned_insights'),
     
     # API Endpoints
     path('api/leads/sync/', views.sync_google_leads, name='sync_leads'),
