@@ -1,81 +1,208 @@
-{% extends 'app/base.html' %}
-{% load static i18n crispy_forms_tags %}
-{% block title %}{{object}}: {{app_settings.site_title}}{% endblock %}
+{% extends 'ui/base.html' %}
+{% load static humanize %}
+
+{% block title %}Order #{{ order.order_no }}{% endblock %}
+{% block page_title %}Order #{{ order.order_no }}{% endblock %}
 
 {% block content %}
-
-<div class="side-app main-container detail_page">
-
-  <!--Page header-->
-  <div class="page-header d-flex">
-    <div class="page-rightheader ms-md-auto">
-      <div class="btn-list">
-
-        <a href="javascript:void(0);" onclick="window.print();" class="btn btn-sm btn-white" title="Print"> <i
-            class="feather feather-printer"></i> </a>
-
-        <a href="{{object.get_update_url}}?type={{type}}" class="btn btn-sm btn-white d-inline-flex align-items-center"
-          data-bs-placement="top" data-bs-toggle="tooltip" title="Edit"> <i
-            class="text-primary feather feather-edit-3"></i> </a>
-
-        <a href="{{object.get_delete_url}}?type={{type}}" class="btn btn-sm btn-white d-inline-flex align-items-center"
-          data-bs-placement="top" data-bs-toggle="tooltip" title="Delete"> <i
-            class="text-danger feather feather-trash-2"></i> </a>
-
-      </div>
+<div class="space-y-6" data-testid="order-detail-page">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <a href="{% url 'master:order_list' %}" class="flex items-center text-gray-500 hover:text-gray-700 transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Orders
+        </a>
+        <div class="flex items-center space-x-3">
+            <a href="{% url 'master:order_update' order.id %}" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                <i class="fas fa-edit mr-2"></i>Edit
+            </a>
+            <button onclick="printOrder()" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors">
+                <i class="fas fa-print mr-2"></i>Print
+            </button>
+        </div>
     </div>
-  </div>
-  <!--End Page header-->
-
-  <!-- Row-->
-  <div class="row">
-
-    <div class="col-md-12">
-      {% if object %}
-      <div class="card content_card">
-        <div class="card-header">
-          <div class="card-title d-flex align-items-center w-100">
-            <h5 class="mb-0">{{object}}</h5>
-          </div>
+    
+    <div class="grid grid-cols-3 gap-6">
+        <!-- Main Info -->
+        <div class="col-span-2 space-y-6">
+            <!-- Order Info Card -->
+            <div class="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm" data-testid="order-info">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">Order #{{ order.order_no }}</h2>
+                        <p class="text-base text-gray-500 mt-1">{{ order.created|date:"d M Y, h:i A" }}</p>
+                    </div>
+                    {% if order.status == 'delivered' %}
+                    <span class="px-4 py-2 rounded-xl text-base font-bold bg-green-100 text-green-700">
+                        <i class="fas fa-check-circle mr-2"></i>Delivered
+                    </span>
+                    {% elif order.status == 'shipped' %}
+                    <span class="px-4 py-2 rounded-xl text-base font-bold bg-blue-100 text-blue-700">
+                        <i class="fas fa-truck mr-2"></i>Shipped
+                    </span>
+                    {% elif order.status == 'cancelled' %}
+                    <span class="px-4 py-2 rounded-xl text-base font-bold bg-red-100 text-red-700">
+                        <i class="fas fa-times-circle mr-2"></i>Cancelled
+                    </span>
+                    {% else %}
+                    <span class="px-4 py-2 rounded-xl text-base font-bold bg-yellow-100 text-yellow-700">
+                        <i class="fas fa-clock mr-2"></i>{{ order.status|title }}
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <div class="grid grid-cols-3 gap-6 pt-6 border-t border-gray-100">
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Channel</p>
+                        <p class="text-base font-semibold text-gray-900 mt-1">{{ order.channel.name|default:"-" }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Payment</p>
+                        <p class="text-base font-semibold {% if order.cod_charge > 0 %}text-orange-600{% else %}text-green-600{% endif %} mt-1">
+                            {% if order.cod_charge > 0 %}COD{% else %}Prepaid{% endif %}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-500">Items</p>
+                        <p class="text-base font-semibold text-gray-900 mt-1">{{ order.items.count }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Order Items -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="order-items">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Order Items</h3>
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-sm font-bold text-gray-700">Product</th>
+                            <th class="px-4 py-3 text-left text-sm font-bold text-gray-700">SKU</th>
+                            <th class="px-4 py-3 text-center text-sm font-bold text-gray-700">Qty</th>
+                            <th class="px-4 py-3 text-right text-sm font-bold text-gray-700">Price</th>
+                            <th class="px-4 py-3 text-right text-sm font-bold text-gray-700">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for item in order.items.all %}
+                        <tr>
+                            <td class="px-4 py-4">
+                                <p class="text-base font-medium text-gray-900">{{ item.product.product_name }}</p>
+                            </td>
+                            <td class="px-4 py-4 text-sm text-gray-500">{{ item.product.sku|default:"-" }}</td>
+                            <td class="px-4 py-4 text-center text-base text-gray-900">{{ item.quantity }}</td>
+                            <td class="px-4 py-4 text-right text-base text-gray-900">₹{{ item.rate|floatformat:0|intcomma }}</td>
+                            <td class="px-4 py-4 text-right text-base font-semibold text-gray-900">₹{{ item.amount|floatformat:0|intcomma }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="bg-gray-50">
+                        <tr>
+                            <td colspan="4" class="px-4 py-3 text-right text-sm font-medium text-gray-600">Subtotal</td>
+                            <td class="px-4 py-3 text-right text-base font-semibold text-gray-900">₹{{ order.sub_total|floatformat:0|intcomma }}</td>
+                        </tr>
+                        {% if order.discount > 0 %}
+                        <tr>
+                            <td colspan="4" class="px-4 py-3 text-right text-sm font-medium text-gray-600">Discount</td>
+                            <td class="px-4 py-3 text-right text-base font-semibold text-red-600">-₹{{ order.discount|floatformat:0|intcomma }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if order.shipping_charge > 0 %}
+                        <tr>
+                            <td colspan="4" class="px-4 py-3 text-right text-sm font-medium text-gray-600">Shipping</td>
+                            <td class="px-4 py-3 text-right text-base font-semibold text-gray-900">₹{{ order.shipping_charge|floatformat:0|intcomma }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if order.cod_charge > 0 %}
+                        <tr>
+                            <td colspan="4" class="px-4 py-3 text-right text-sm font-medium text-gray-600">COD Charge</td>
+                            <td class="px-4 py-3 text-right text-base font-semibold text-gray-900">₹{{ order.cod_charge|floatformat:0|intcomma }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr class="border-t-2 border-gray-200">
+                            <td colspan="4" class="px-4 py-4 text-right text-base font-bold text-gray-900">Total</td>
+                            <td class="px-4 py-4 text-right text-xl font-bold text-primary-500">₹{{ order.total_amount|floatformat:0|intcomma }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <!-- Notes -->
+            {% if order.notes %}
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Notes</h3>
+                <p class="text-base text-gray-700">{{ order.notes }}</p>
+            </div>
+            {% endif %}
         </div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover info_table mb-0" style="width:100%;">
-              <tbody>
-                {% for name, value in object.get_fields|slice:"5:" %}
-                {% if value %}
-                <tr>
-                  <td> {{name}} </td>
-                  <td> {{ value }} </td>
-                </tr>
-                {% endif %}
-                {% endfor %}
-                {% for i in object.get_items %}
-                <tr>
-                  <td>Item : {{i.product}} </td>
-                  <td>QTY: {{i.quantity}} </td>
-                  <td>Price: {{i.price}} </td>
-                  <td>Amount: {{i.amount}} </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
+        
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Customer -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="order-customer">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Customer</h3>
+                <div class="flex items-center mb-4">
+                    <div class="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-xl">
+                        {{ order.customer.customer_name|slice:":1"|upper }}
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-base font-semibold text-gray-900">{{ order.customer.customer_name }}</p>
+                        <p class="text-sm text-gray-500">{{ order.customer.phone_no }}</p>
+                    </div>
+                </div>
+                <a href="{% url 'master:customer_detail' order.customer.id %}" class="block w-full text-center py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                    View Customer
+                </a>
+            </div>
+            
+            <!-- Shipping Address -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="order-shipping">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Shipping Address</h3>
+                <div class="space-y-2 text-base text-gray-700">
+                    <p>{{ order.customer.address }}</p>
+                    <p>{{ order.customer.city }}{% if order.customer.district %}, {{ order.customer.district }}{% endif %}</p>
+                    <p>{{ order.customer.state }} - {{ order.customer.pincode }}</p>
+                </div>
+            </div>
+            
+            <!-- Shipment Info -->
+            {% if order.shipment %}
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="order-shipment">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Shipment</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500">Carrier</span>
+                        <span class="text-sm font-medium text-gray-900">{{ order.shipment.carrier.name }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500">AWB</span>
+                        <span class="text-sm font-medium text-gray-900">{{ order.shipment.awb_number|default:"-" }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500">Status</span>
+                        <span class="text-sm font-medium text-gray-900">{{ order.shipment.status }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- UTR (if WhatsApp) -->
+            {% if order.utr %}
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Payment Reference</h3>
+                <div class="p-4 bg-green-50 rounded-xl">
+                    <p class="text-sm text-green-700">UTR Number</p>
+                    <p class="text-lg font-bold text-green-800">{{ order.utr }}</p>
+                </div>
+            </div>
+            {% endif %}
         </div>
-
-      </div>
-      {% else %}
-      <div class="card content_card">
-        <div class="card-body">
-          <p class="text-center">There is nothing here</p>
-        </div>
-      </div>
-      {% endif %}
     </div>
-
-  </div>
-  <!-- End Row-->
-
 </div>
+{% endblock %}
 
-{% endblock content %}
+{% block extra_js %}
+<script>
+function printOrder() {
+    window.print();
+}
+</script>
+{% endblock %}

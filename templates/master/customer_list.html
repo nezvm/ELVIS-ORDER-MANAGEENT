@@ -1,0 +1,134 @@
+{% extends 'ui/base.html' %}
+{% load static humanize %}
+
+{% block title %}Customers{% endblock %}
+{% block page_title %}Customers{% endblock %}
+
+{% block page_subtitle %}
+<span class="ml-4 px-3 py-1 bg-gray-100 rounded-full text-sm font-medium text-gray-600">{{ customer_count|default:0 }} total</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6" data-testid="customers-page">
+    <!-- Filters & Actions -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <form method="GET" class="flex items-center justify-between" data-testid="customers-filter-form">
+            <div class="flex items-center space-x-4">
+                <!-- Search -->
+                <div class="relative">
+                    <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search customers..." class="w-72 pl-12 pr-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:bg-white">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+                
+                <!-- State Filter -->
+                <select name="state" onchange="this.form.submit()" class="px-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <option value="">All States</option>
+                    {% for state in states %}
+                    <option value="{{ state }}" {% if request.GET.state == state %}selected{% endif %}>{{ state }}</option>
+                    {% endfor %}
+                </select>
+                
+                <button type="submit" class="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                    <i class="fas fa-filter mr-2"></i>Filter
+                </button>
+                
+                {% if request.GET.q or request.GET.state %}
+                <a href="{% url 'master:customer_list' %}" class="px-4 py-3 text-gray-500 hover:text-gray-700 font-medium">
+                    <i class="fas fa-times mr-1"></i>Clear
+                </a>
+                {% endif %}
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'master:customer_create' %}" data-testid="add-customer-btn" class="px-5 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors flex items-center">
+                    <i class="fas fa-plus mr-2"></i>New Customer
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Customers Table -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" data-testid="customers-table">
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Customer</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Location</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Orders</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Total Spent</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Last Order</th>
+                    <th class="px-6 py-4 text-right text-sm font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for customer in customers %}
+                <tr class="table-row transition-colors hover:bg-gray-50" data-testid="customer-row-{{ customer.id }}">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-lg">
+                                {{ customer.customer_name|slice:":1"|upper }}
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-base font-semibold text-gray-900">{{ customer.customer_name }}</p>
+                                <p class="text-sm text-gray-500">{{ customer.phone_no }}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <p class="text-base text-gray-900">{{ customer.city|default:"-" }}</p>
+                        <p class="text-sm text-gray-500">{{ customer.state|default:"-" }}</p>
+                    </td>
+                    <td class="px-6 py-4 text-base font-semibold text-gray-900">{{ customer.order_count|default:0 }}</td>
+                    <td class="px-6 py-4 text-base font-bold text-green-600">₹{{ customer.total_spent|floatformat:0|default:0|intcomma }}</td>
+                    <td class="px-6 py-4">
+                        <p class="text-sm text-gray-500">{{ customer.last_order_date|date:"d M Y"|default:"-" }}</p>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <div class="flex items-center justify-end space-x-2">
+                            <a href="{% url 'master:customer_detail' customer.id %}" class="p-2 text-gray-500 hover:text-primary-500 hover:bg-gray-100 rounded-lg transition-colors" title="View">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'master:customer_update' customer.id %}" class="p-2 text-gray-500 hover:text-blue-500 hover:bg-gray-100 rounded-lg transition-colors" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="px-6 py-16 text-center">
+                        <div class="flex flex-col items-center">
+                            <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                                <i class="fas fa-users text-3xl text-gray-400"></i>
+                            </div>
+                            <p class="text-lg font-semibold text-gray-700">No customers found</p>
+                            <p class="text-gray-500 mt-1">Add your first customer to get started</p>
+                            <a href="{% url 'master:customer_create' %}" class="mt-4 px-5 py-2.5 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-colors">
+                                <i class="fas fa-plus mr-2"></i>New Customer
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="flex items-center justify-center space-x-2">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+            <i class="fas fa-chevron-left mr-2"></i>Previous
+        </a>
+        {% endif %}
+        <span class="px-4 py-2 text-gray-600">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+            Next<i class="fas fa-chevron-right ml-2"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

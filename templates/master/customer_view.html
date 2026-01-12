@@ -1,156 +1,153 @@
-{% extends 'app/base.html' %}
-{% load static i18n crispy_forms_tags %}
-{% block title %}{{object}}: {{app_settings.site_title}}{% endblock %}
+{% extends 'ui/base.html' %}
+{% load static humanize %}
+
+{% block title %}{{ customer.customer_name }}{% endblock %}
+{% block page_title %}Customer Details{% endblock %}
 
 {% block content %}
-
-<div class="side-app main-container detail_page">
-
-  <!--Page header-->
-  <div class="page-header d-flex">
-    <div class="page-rightheader ms-md-auto">
-      <div class="btn-list">
-
-        <a href="javascript:void(0);" onclick="window.print();" class="btn btn-sm btn-white" title="Print"> <i
-            class="feather feather-printer"></i> </a>
-
-        <a href="{{object.get_update_url}}" class="btn btn-sm btn-white d-inline-flex align-items-center"
-          data-bs-placement="top" data-bs-toggle="tooltip" title="Edit"> <i
-            class="text-primary feather feather-edit-3"></i> </a>
-
-        <a href="{{object.get_delete_url}}" class="btn btn-sm btn-white d-inline-flex align-items-center"
-          data-bs-placement="top" data-bs-toggle="tooltip" title="Delete"> <i
-            class="text-danger feather feather-trash-2"></i> </a>
-
-      </div>
-    </div>
-  </div>
-  <!--End Page header-->
-
-  <!-- Row-->
-  <div class="row">
-
-    <div class="col-md-12">
-      {% if object %}
-      <div class="card content_card">
-        <div class="card-header">
-          <div class="card-title d-flex align-items-center w-100">
-            <h5 class="mb-0">{{object}}</h5>
-          </div>
+<div class="space-y-6" data-testid="customer-detail-page">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <a href="{% url 'master:customer_list' %}" class="flex items-center text-gray-500 hover:text-gray-700 transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Customers
+        </a>
+        <div class="flex items-center space-x-3">
+            <a href="{% url 'master:customer_update' customer.id %}" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                <i class="fas fa-edit mr-2"></i>Edit
+            </a>
+            <a href="{% url 'master:order_create' %}?customer={{ customer.id }}" class="px-5 py-2.5 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-colors">
+                <i class="fas fa-plus mr-2"></i>New Order
+            </a>
         </div>
-        <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover info_table mb-0" style="width:100%;">
-              <tbody>
-                {% for name, value in object.get_fields|slice:"5:7" %}
-                {% if value %}
-                <tr>
-                  <td> {{name}} </td>
-                  <td> {{ value }} </td>
-                </tr>
-                {% endif %}
-                {% endfor %}
-               
-              </tbody>
-            </table>
+    </div>
+    
+    <div class="grid grid-cols-3 gap-6">
+        <!-- Main Info -->
+        <div class="col-span-2 space-y-6">
+            <!-- Profile Card -->
+            <div class="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm" data-testid="customer-profile">
+                <div class="flex items-start">
+                    <div class="w-20 h-20 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-3xl">
+                        {{ customer.customer_name|slice:":1"|upper }}
+                    </div>
+                    <div class="ml-6 flex-1">
+                        <h2 class="text-2xl font-bold text-gray-900">{{ customer.customer_name }}</h2>
+                        <p class="text-lg text-gray-500 mt-1">{{ customer.phone_no }}</p>
+                        
+                        <div class="grid grid-cols-4 gap-6 mt-6 pt-6 border-t border-gray-100">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Total Orders</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-1">{{ customer.order_count|default:0 }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Total Spent</p>
+                                <p class="text-2xl font-bold text-green-600 mt-1">₹{{ customer.total_spent|floatformat:0|default:0|intcomma }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">First Order</p>
+                                <p class="text-base font-semibold text-gray-900 mt-1">{{ customer.first_order_date|date:"d M Y"|default:"-" }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Last Order</p>
+                                <p class="text-base font-semibold text-gray-900 mt-1">{{ customer.last_order_date|date:"d M Y"|default:"-" }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             
-          </div>
+            <!-- Recent Orders -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="customer-orders">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-gray-900">Recent Orders</h3>
+                    <a href="{% url 'master:order_list' %}?customer={{ customer.id }}" class="text-sm font-medium text-primary-500 hover:text-primary-600">
+                        View All <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+                
+                {% if orders %}
+                <div class="space-y-3">
+                    {% for order in orders %}
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-lg {% if order.status == 'delivered' %}bg-green-100{% elif order.status == 'cancelled' %}bg-red-100{% else %}bg-blue-100{% endif %} flex items-center justify-center">
+                                {% if order.status == 'delivered' %}
+                                <i class="fas fa-check text-green-600"></i>
+                                {% elif order.status == 'cancelled' %}
+                                <i class="fas fa-times text-red-600"></i>
+                                {% else %}
+                                <i class="fas fa-clock text-blue-600"></i>
+                                {% endif %}
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-base font-semibold text-gray-900">#{{ order.order_no }}</p>
+                                <p class="text-sm text-gray-500">{{ order.created|date:"d M Y" }} • {{ order.items.count }} items</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-base font-bold text-gray-900">₹{{ order.total_amount|floatformat:0|intcomma }}</p>
+                            <p class="text-sm text-gray-500">{{ order.status|title }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">No orders yet</p>
+                {% endif %}
+            </div>
         </div>
-
-      </div>
-      <div class="card custom-card">
-        <div class="card-header">
-          <div class="card-title d-flex align-items-center w-100">
-            <h5 class="mb-0">Primary Address</h5>
-          </div>
+        
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Contact Info -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="customer-contact">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Contact Info</h3>
+                <div class="space-y-4">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                            <i class="fas fa-phone text-gray-600"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-gray-500">Phone</p>
+                            <p class="text-base font-medium text-gray-900">{{ customer.phone_no }}</p>
+                        </div>
+                    </div>
+                    {% if customer.email %}
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                            <i class="fas fa-envelope text-gray-600"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-gray-500">Email</p>
+                            <p class="text-base font-medium text-gray-900">{{ customer.email }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Address -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="customer-address">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Address</h3>
+                <div class="space-y-2 text-base text-gray-700">
+                    <p>{{ customer.address|default:"-" }}</p>
+                    <p>{{ customer.city|default:"-" }}{% if customer.district %}, {{ customer.district }}{% endif %}</p>
+                    <p>{{ customer.state|default:"-" }} - {{ customer.pincode|default:"" }}</p>
+                </div>
+            </div>
+            
+            <!-- Tags -->
+            {% if customer.tags %}
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Tags</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for tag in customer.tags %}
+                    <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">{{ tag }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
-        <div class="card-body table-responsive">
-          <table class="table table-hover info_table mb-0" style="width:100%;">
-            <tbody>
-              <tr>
-                <td> Name </td>
-                <td> {{object.customer_name}} </td>
-              </tr>
-              {% for name, value in object.get_fields|slice:"7:13" %}
-              {% if value %}
-              <tr>
-                <td> {{name}} </td>
-                <td> {{ value }} </td>
-              </tr>
-              {% endif %}
-              {% endfor %}
-              
-            </tbody>
-          </table>
-        </div>
-      </div>
-      {% if object.name_2 %}
-      <div class="card custom-card">
-        <div class="card-header">
-          <div class="card-title d-flex align-items-center w-100">
-            <h5 class="mb-0">Secondry Address</h5>
-          </div>
-        </div>
-        <div class="card-body table-responsive">
-          <table class="table table-hover info_table mb-0" style="width:100%;">
-            <tbody>
-              {% for name, value in object.get_fields|slice:"13:" %}
-              {% if value %}
-              <tr>
-                <td> {{name}} </td>
-                <td> {{ value }} </td>
-              </tr>
-              {% endif %}
-              {% endfor %}
-              
-            </tbody>
-          </table>
-        </div>
-      </div>
-      {% endif %}
-      {% if object.get_orders %}
-      <div class="card content_card">
-        <div class="card-header">
-          <div class="card-title d-flex align-items-center w-100">
-            <h5 class="mb-0">Orders</h5>
-          </div>
-        </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-hover info_table mb-0" style="width:100%;">
-              <tbody>
-                {% for order in object.get_orders %}
-                <tr>
-                  <td> {{order.created}} </td>
-                  <td> {{order.order_no}} </td>
-                  <td> {{order.order_by}} </td>
-                  <td> {{order.channel}} </td>
-                  <td> {% for item in order.get_items %} {{item.product}}*{{item.quantity}} <br> {% endfor %} </td>
-                  <td> {{order.total_amount}} </td>
-                  <td> <a href="{{order.get_update_url}}" class="btn border btn-sm btn-white d-inline-flex align-items-center"
-                      data-bs-placement="top" data-bs-toggle="tooltip" title="Edit"> <i
-                        class="text-primary feather feather-edit-3"></i> </a> </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      
-      {% endif %}
-      {% else %}
-      <div class="card content_card">
-        <div class="card-body p-0">
-          <p class="text-center">There is nothing here</p>
-        </div>
-      </div>
-      {% endif %}
     </div>
-
-  </div>
-  <!-- End Row-->
-
 </div>
-
-{% endblock content %}
+{% endblock %}

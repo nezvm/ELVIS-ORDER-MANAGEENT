@@ -1,0 +1,103 @@
+{% extends 'ui/base.html' %}
+{% load static humanize %}
+
+{% block title %}Products{% endblock %}
+{% block page_title %}Products{% endblock %}
+
+{% block page_subtitle %}
+<span class="ml-4 px-3 py-1 bg-gray-100 rounded-full text-sm font-medium text-gray-600">{{ product_count|default:0 }} total</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6" data-testid="products-page">
+    <!-- Filters & Actions -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <form method="GET" class="flex items-center justify-between" data-testid="products-filter-form">
+            <div class="flex items-center space-x-4">
+                <!-- Search -->
+                <div class="relative">
+                    <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search products..." class="w-72 pl-12 pr-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:bg-white">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+                
+                <!-- Category Filter -->
+                <select name="category" onchange="this.form.submit()" class="px-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if request.GET.category == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+                
+                <button type="submit" class="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                    <i class="fas fa-filter mr-2"></i>Filter
+                </button>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'master:product_create' %}" data-testid="add-product-btn" class="px-5 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors flex items-center">
+                    <i class="fas fa-plus mr-2"></i>New Product
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Products Grid -->
+    <div class="grid grid-cols-4 gap-6" data-testid="products-grid">
+        {% for product in products %}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg transition-shadow group" data-testid="product-card-{{ product.id }}">
+            <div class="aspect-square bg-gray-100 flex items-center justify-center">
+                {% if product.image %}
+                <img src="{{ product.image.url }}" alt="{{ product.product_name }}" class="w-full h-full object-cover">
+                {% else %}
+                <i class="fas fa-box text-4xl text-gray-300"></i>
+                {% endif %}
+            </div>
+            <div class="p-4">
+                <h4 class="text-base font-semibold text-gray-900 group-hover:text-primary-500 transition-colors">{{ product.product_name }}</h4>
+                <p class="text-sm text-gray-500 mt-1">{{ product.sku|default:"No SKU" }}</p>
+                <div class="flex items-center justify-between mt-3">
+                    <p class="text-lg font-bold text-primary-500">₹{{ product.selling_price|floatformat:0|intcomma }}</p>
+                    {% if product.stock_qty is not None %}
+                    <span class="px-2 py-1 text-xs font-medium {% if product.stock_qty > 10 %}bg-green-100 text-green-700{% elif product.stock_qty > 0 %}bg-yellow-100 text-yellow-700{% else %}bg-red-100 text-red-700{% endif %} rounded-lg">
+                        {{ product.stock_qty }} in stock
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="flex items-center space-x-2 mt-4">
+                    <a href="{% url 'master:product_detail' product.id %}" class="flex-1 text-center py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm">
+                        View
+                    </a>
+                    <a href="{% url 'master:product_update' product.id %}" class="flex-1 text-center py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm">
+                        Edit
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-4 bg-white rounded-2xl p-12 border border-gray-100 shadow-sm text-center">
+            <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-box text-4xl text-gray-400"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900">No products found</h3>
+            <p class="text-gray-500 mt-2">Add your first product to get started</p>
+            <a href="{% url 'master:product_create' %}" class="inline-block mt-6 px-6 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
+                <i class="fas fa-plus mr-2"></i>New Product
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="flex items-center justify-center space-x-2">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">Previous</a>
+        {% endif %}
+        <span class="px-4 py-2 text-gray-600">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
