@@ -131,3 +131,22 @@
     </form>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+// Show/hide recovery settings based on campaign type
+const campaignTypeSelect = document.querySelector('select[name="campaign_type"]');
+const recoverySettings = document.getElementById('recovery-settings');
+
+function toggleRecoverySettings() {
+    if (campaignTypeSelect.value === 'abandoned_recovery') {
+        recoverySettings.classList.remove('hidden');
+    } else {
+        recoverySettings.classList.add('hidden');
+    }
+}
+
+campaignTypeSelect.addEventListener('change', toggleRecoverySettings);
+toggleRecoverySettings(); // Initial check
+</script>
+{% endblock %}
