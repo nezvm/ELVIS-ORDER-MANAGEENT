@@ -1,0 +1,166 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}{{ provider.name }}{% endblock %}
+{% block page_title %}{{ provider.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6" data-testid="provider-detail-page">
+    <div class="flex items-center justify-between">
+        <a href="{% url 'marketing:provider_list' %}" class="flex items-center text-gray-500 hover:text-gray-700 transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Providers
+        </a>
+        <div class="flex items-center space-x-3">
+            <button onclick="testProvider('{{ provider.id }}')" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors">
+                <i class="fas fa-sync mr-2"></i>Test Connection
+            </button>
+            <a href="{% url 'marketing:provider_update' provider.id %}" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                <i class="fas fa-edit mr-2"></i>Edit
+            </a>
+        </div>
+    </div>
+    
+    <!-- Provider Header -->
+    <div class="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="w-20 h-20 rounded-2xl {% if provider.status == 'connected' %}bg-green-100{% elif provider.status == 'error' %}bg-red-100{% else %}bg-gray-100{% endif %} flex items-center justify-center">
+                    <i class="fab fa-whatsapp text-4xl {% if provider.status == 'connected' %}text-green-600{% elif provider.status == 'error' %}text-red-600{% else %}text-gray-600{% endif %}"></i>
+                </div>
+                <div class="ml-6">
+                    <div class="flex items-center space-x-3">
+                        <h2 class="text-2xl font-bold text-gray-900">{{ provider.name }}</h2>
+                        {% if provider.is_default %}
+                        <span class="px-3 py-1 rounded-full text-sm font-bold bg-primary-100 text-primary-700">DEFAULT</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-lg text-gray-500 mt-1">{{ provider.get_provider_type_display }}</p>
+                </div>
+            </div>
+            <span class="px-5 py-2.5 rounded-xl text-base font-bold {% if provider.status == 'connected' %}bg-green-100 text-green-700{% elif provider.status == 'error' %}bg-red-100 text-red-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+                {{ provider.get_status_display }}
+            </span>
+        </div>
+        
+        {% if provider.last_test_result %}
+        <div class="mt-6 p-4 bg-gray-50 rounded-xl">
+            <p class="text-sm text-gray-600">{{ provider.last_test_result }}</p>
+            <p class="text-xs text-gray-400 mt-1">Last tested: {{ provider.last_test_at|date:"d M Y, h:i A" }}</p>
+        </div>
+        {% endif %}
+        
+        {% if provider.error_message %}
+        <div class="mt-6 p-4 bg-red-50 rounded-xl border border-red-200">
+            <p class="text-sm text-red-700"><i class="fas fa-exclamation-triangle mr-2"></i>{{ provider.error_message }}</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Stats -->
+    <div class="grid grid-cols-4 gap-6">
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm text-center">
+            <p class="text-3xl font-bold text-gray-900">{{ provider.messages_sent_today }}</p>
+            <p class="text-sm text-gray-500 mt-1">Messages Today</p>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm text-center">
+            <p class="text-3xl font-bold text-gray-900">{{ provider.daily_limit }}</p>
+            <p class="text-sm text-gray-500 mt-1">Daily Limit</p>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm text-center">
+            <p class="text-3xl font-bold text-gray-900">{{ provider.rate_limit_per_second }}</p>
+            <p class="text-sm text-gray-500 mt-1">Rate Limit/sec</p>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm text-center">
+            <p class="text-3xl font-bold text-gray-900">{{ templates.count }}</p>
+            <p class="text-sm text-gray-500 mt-1">Templates</p>
+        </div>
+    </div>
+    
+    <!-- Templates -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-bold text-gray-900">Message Templates</h3>
+            <a href="{% url 'marketing:template_create' %}" class="px-4 py-2 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-colors text-sm">
+                <i class="fas fa-plus mr-2"></i>Add Template
+            </a>
+        </div>
+        
+        {% if templates %}
+        <div class="space-y-3">
+            {% for template in templates %}
+            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                <div>
+                    <p class="text-base font-semibold text-gray-900">{{ template.name }}</p>
+                    <p class="text-sm text-gray-500">{{ template.get_category_display }} • {{ template.get_language_display }}</p>
+                </div>
+                <span class="px-3 py-1 rounded-full text-xs font-semibold {% if template.status == 'approved' %}bg-green-100 text-green-700{% elif template.status == 'rejected' %}bg-red-100 text-red-700{% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                    {{ template.get_status_display }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-center py-8">No templates configured for this provider</p>
+        {% endif %}
+    </div>
+    
+    <!-- Recent Logs -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <h3 class="text-lg font-bold text-gray-900 mb-6">Recent Messages</h3>
+        {% if recent_logs %}
+        <div class="space-y-3">
+            {% for log in recent_logs %}
+            <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-lg {% if log.status == 'delivered' %}bg-green-100{% elif log.status == 'failed' %}bg-red-100{% else %}bg-gray-100{% endif %} flex items-center justify-center">
+                        {% if log.status == 'delivered' %}
+                        <i class="fas fa-check-double text-green-600"></i>
+                        {% elif log.status == 'failed' %}
+                        <i class="fas fa-times text-red-600"></i>
+                        {% else %}
+                        <i class="fas fa-clock text-gray-600"></i>
+                        {% endif %}
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-base font-medium text-gray-900">{{ log.phone_no }}</p>
+                        <p class="text-sm text-gray-500">{{ log.template.name|default:"Direct" }}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold {% if log.status == 'delivered' %}bg-green-100 text-green-700{% elif log.status == 'failed' %}bg-red-100 text-red-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+                        {{ log.get_status_display }}
+                    </span>
+                    <p class="text-xs text-gray-400 mt-1">{{ log.created|date:"d M, h:i A" }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-center py-8">No messages sent yet</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function testProvider(providerId) {
+    try {
+        const response = await fetch(`/marketing/api/provider/${providerId}/test/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrftoken}
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error || 'Test failed', 'error');
+        }
+    } catch (error) {
+        showToast('Failed to test provider', 'error');
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,245 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}WhatsApp Marketing{% endblock %}
+{% block page_title %}WhatsApp Marketing{% endblock %}
+
+{% block content %}
+<div class="space-y-6" data-testid="whatsapp-dashboard">
+    <!-- Stats Row -->
+    <div class="grid grid-cols-4 gap-6">
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Messages Today</p>
+                    <p class="text-4xl font-bold text-gray-900 mt-2">{{ messages_today|default:0 }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center">
+                    <i class="fab fa-whatsapp text-2xl text-green-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Delivered</p>
+                    <p class="text-4xl font-bold text-green-600 mt-2">{{ delivered_today|default:0 }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-check-double text-2xl text-green-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Templates</p>
+                    <p class="text-4xl font-bold text-gray-900 mt-2">{{ templates.count|default:0 }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <i class="fas fa-file-alt text-2xl text-blue-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Active Events</p>
+                    <p class="text-4xl font-bold text-gray-900 mt-2">{{ events.count|default:0 }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-purple-100 flex items-center justify-center">
+                    <i class="fas fa-bolt text-2xl text-purple-600"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-4 gap-6">
+        <a href="{% url 'marketing:provider_list' %}" class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:border-primary-500 hover:shadow-lg transition-all duration-200 group" data-testid="nav-providers">
+            <div class="flex items-center">
+                <div class="w-12 h-12 rounded-xl bg-primary-100 flex items-center justify-center group-hover:bg-primary-500 transition-colors">
+                    <i class="fas fa-plug text-xl text-primary-500 group-hover:text-white transition-colors"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-lg font-semibold text-gray-900">Providers</p>
+                    <p class="text-sm text-gray-500">Manage API providers</p>
+                </div>
+                <i class="fas fa-chevron-right ml-auto text-gray-400 group-hover:text-primary-500 transition-colors"></i>
+            </div>
+        </a>
+        
+        <a href="{% url 'marketing:template_list' %}" class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:border-blue-500 hover:shadow-lg transition-all duration-200 group" data-testid="nav-templates">
+            <div class="flex items-center">
+                <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center group-hover:bg-blue-500 transition-colors">
+                    <i class="fas fa-file-alt text-xl text-blue-500 group-hover:text-white transition-colors"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-lg font-semibold text-gray-900">Templates</p>
+                    <p class="text-sm text-gray-500">Message templates</p>
+                </div>
+                <i class="fas fa-chevron-right ml-auto text-gray-400 group-hover:text-blue-500 transition-colors"></i>
+            </div>
+        </a>
+        
+        <a href="{% url 'marketing:notification_events' %}" class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:border-purple-500 hover:shadow-lg transition-all duration-200 group" data-testid="nav-events">
+            <div class="flex items-center">
+                <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center group-hover:bg-purple-500 transition-colors">
+                    <i class="fas fa-bolt text-xl text-purple-500 group-hover:text-white transition-colors"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-lg font-semibold text-gray-900">Events</p>
+                    <p class="text-sm text-gray-500">Notification triggers</p>
+                </div>
+                <i class="fas fa-chevron-right ml-auto text-gray-400 group-hover:text-purple-500 transition-colors"></i>
+            </div>
+        </a>
+        
+        <a href="{% url 'marketing:message_logs' %}" class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:border-gray-400 hover:shadow-lg transition-all duration-200 group" data-testid="nav-logs">
+            <div class="flex items-center">
+                <div class="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center group-hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-list text-xl text-gray-600 group-hover:text-white transition-colors"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-lg font-semibold text-gray-900">Logs</p>
+                    <p class="text-sm text-gray-500">Message history</p>
+                </div>
+                <i class="fas fa-chevron-right ml-auto text-gray-400 group-hover:text-gray-600 transition-colors"></i>
+            </div>
+        </a>
+    </div>
+    
+    <!-- Providers Section -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="providers-section">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-bold text-gray-900">WhatsApp Providers</h3>
+            <a href="{% url 'marketing:provider_create' %}" class="px-4 py-2 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-colors text-sm">
+                <i class="fas fa-plus mr-2"></i>Add Provider
+            </a>
+        </div>
+        
+        {% if providers %}
+        <div class="grid grid-cols-2 gap-4">
+            {% for provider in providers %}
+            <div class="border border-gray-200 rounded-xl p-5 hover:border-gray-300 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 rounded-xl {% if provider.status == 'connected' %}bg-green-100{% elif provider.status == 'error' %}bg-red-100{% else %}bg-gray-100{% endif %} flex items-center justify-center">
+                            <i class="fab fa-whatsapp text-xl {% if provider.status == 'connected' %}text-green-600{% elif provider.status == 'error' %}text-red-600{% else %}text-gray-600{% endif %}"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-base font-semibold text-gray-900">{{ provider.name }}</p>
+                            <p class="text-sm text-gray-500">{{ provider.get_provider_type_display }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold {% if provider.status == 'connected' %}bg-green-100 text-green-700{% elif provider.status == 'error' %}bg-red-100 text-red-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+                            {{ provider.get_status_display }}
+                        </span>
+                        {% if provider.is_default %}
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-primary-100 text-primary-700">Default</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+                    <div class="flex items-center space-x-4 text-sm text-gray-500">
+                        <span><i class="fas fa-paper-plane mr-1"></i>{{ provider.messages_sent_today }} today</span>
+                        <span><i class="fas fa-file-alt mr-1"></i>{{ provider.templates.count }} templates</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="testProvider('{{ provider.id }}')" class="p-2 text-gray-500 hover:text-blue-500 hover:bg-gray-100 rounded-lg transition-colors" title="Test Connection">
+                            <i class="fas fa-sync"></i>
+                        </button>
+                        <a href="{{ provider.get_absolute_url }}" class="p-2 text-gray-500 hover:text-primary-500 hover:bg-gray-100 rounded-lg transition-colors">
+                            <i class="fas fa-cog"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fab fa-whatsapp text-3xl text-gray-400"></i>
+            </div>
+            <p class="text-lg font-semibold text-gray-700">No providers configured</p>
+            <p class="text-gray-500 mt-1">Add a WhatsApp provider to start sending messages</p>
+            <a href="{% url 'marketing:provider_create' %}" class="inline-block mt-4 px-5 py-2.5 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-colors">
+                <i class="fas fa-plus mr-2"></i>Add Provider
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Recent Logs -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="recent-logs">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-bold text-gray-900">Recent Messages</h3>
+            <a href="{% url 'marketing:message_logs' %}" class="text-sm font-medium text-primary-500 hover:text-primary-600">
+                View All <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+        
+        {% if recent_logs %}
+        <div class="space-y-3">
+            {% for log in recent_logs|slice:":10" %}
+            <div class="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+                <div class="flex items-center">
+                    <div class="w-10 h-10 rounded-lg {% if log.status == 'delivered' %}bg-green-100{% elif log.status == 'read' %}bg-blue-100{% elif log.status == 'failed' %}bg-red-100{% else %}bg-gray-100{% endif %} flex items-center justify-center">
+                        {% if log.status == 'delivered' %}
+                        <i class="fas fa-check-double text-green-600"></i>
+                        {% elif log.status == 'read' %}
+                        <i class="fas fa-eye text-blue-600"></i>
+                        {% elif log.status == 'failed' %}
+                        <i class="fas fa-times text-red-600"></i>
+                        {% else %}
+                        <i class="fas fa-clock text-gray-600"></i>
+                        {% endif %}
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-base font-medium text-gray-900">{{ log.phone_no }}</p>
+                        <p class="text-sm text-gray-500">{{ log.message_type|title }} • {{ log.template.name|default:"Direct message" }}</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-semibold {% if log.status == 'delivered' %}bg-green-100 text-green-700{% elif log.status == 'read' %}bg-blue-100 text-blue-700{% elif log.status == 'failed' %}bg-red-100 text-red-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+                        {{ log.get_status_display }}
+                    </span>
+                    <p class="text-xs text-gray-400 mt-1">{{ log.created|date:"d M, h:i A" }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-center py-8">No messages sent yet</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function testProvider(providerId) {
+    try {
+        const response = await fetch(`/marketing/api/provider/${providerId}/test/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrftoken}
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error || 'Test failed', 'error');
+        }
+    } catch (error) {
+        showToast('Failed to test provider', 'error');
+    }
+}
+</script>
+{% endblock %}

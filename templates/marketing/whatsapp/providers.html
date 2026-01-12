@@ -1,0 +1,122 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}WhatsApp Providers{% endblock %}
+{% block page_title %}WhatsApp Providers{% endblock %}
+
+{% block content %}
+<div class="space-y-6" data-testid="providers-page">
+    <div class="flex items-center justify-between">
+        <a href="{% url 'marketing:whatsapp_dashboard' %}" class="flex items-center text-gray-500 hover:text-gray-700 transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>Back to WhatsApp
+        </a>
+        <a href="{% url 'marketing:provider_create' %}" class="px-5 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
+            <i class="fas fa-plus mr-2"></i>Add Provider
+        </a>
+    </div>
+    
+    <!-- Info Banner -->
+    <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6">
+        <div class="flex items-start">
+            <i class="fas fa-info-circle text-blue-500 text-xl mr-4 mt-0.5"></i>
+            <div>
+                <h4 class="text-base font-semibold text-blue-800">Meta Cloud API Integration</h4>
+                <p class="text-sm text-blue-700 mt-1">Configure your Meta Business Suite credentials to start sending WhatsApp messages. You'll need a Phone Number ID and Access Token from your Meta Business account.</p>
+            </div>
+        </div>
+    </div>
+    
+    {% if providers %}
+    <div class="grid grid-cols-1 gap-4">
+        {% for provider in providers %}
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="w-16 h-16 rounded-2xl {% if provider.status == 'connected' %}bg-green-100{% elif provider.status == 'error' %}bg-red-100{% else %}bg-gray-100{% endif %} flex items-center justify-center">
+                        <i class="fab fa-whatsapp text-3xl {% if provider.status == 'connected' %}text-green-600{% elif provider.status == 'error' %}text-red-600{% else %}text-gray-600{% endif %}"></i>
+                    </div>
+                    <div class="ml-5">
+                        <div class="flex items-center space-x-3">
+                            <h3 class="text-xl font-bold text-gray-900">{{ provider.name }}</h3>
+                            {% if provider.is_default %}
+                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-primary-100 text-primary-700">DEFAULT</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-base text-gray-500 mt-1">{{ provider.get_provider_type_display }}</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-6">
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-gray-900">{{ provider.messages_sent_today }}</p>
+                        <p class="text-sm text-gray-500">Sent Today</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-gray-900">{{ provider.templates.count }}</p>
+                        <p class="text-sm text-gray-500">Templates</p>
+                    </div>
+                    <div class="text-center">
+                        <span class="px-4 py-2 rounded-xl text-sm font-bold {% if provider.status == 'connected' %}bg-green-100 text-green-700{% elif provider.status == 'error' %}bg-red-100 text-red-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+                            {{ provider.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-between mt-6 pt-6 border-t border-gray-100">
+                <div class="flex items-center space-x-6 text-sm text-gray-500">
+                    <span><i class="fas fa-phone mr-2"></i>{{ provider.phone_number_id|default:"Not configured" }}</span>
+                    <span><i class="fas fa-clock mr-2"></i>Last tested: {{ provider.last_test_at|date:"d M Y, h:i A"|default:"Never" }}</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="testProvider('{{ provider.id }}')" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-xl font-medium hover:bg-blue-200 transition-colors">
+                        <i class="fas fa-sync mr-2"></i>Test
+                    </button>
+                    <a href="{{ provider.get_absolute_url }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                        <i class="fas fa-eye mr-2"></i>View
+                    </a>
+                    <a href="{% url 'marketing:provider_update' provider.id %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                        <i class="fas fa-edit mr-2"></i>Edit
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-2xl p-12 border border-gray-100 shadow-sm text-center">
+        <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+            <i class="fab fa-whatsapp text-4xl text-gray-400"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900">No providers configured</h3>
+        <p class="text-gray-500 mt-2">Add a WhatsApp provider to start sending messages</p>
+        <a href="{% url 'marketing:provider_create' %}" class="inline-block mt-6 px-6 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
+            <i class="fas fa-plus mr-2"></i>Add Provider
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function testProvider(providerId) {
+    try {
+        const response = await fetch(`/marketing/api/provider/${providerId}/test/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrftoken}
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error || 'Test failed', 'error');
+        }
+    } catch (error) {
+        showToast('Failed to test provider', 'error');
+    }
+}
+</script>
+{% endblock %}
