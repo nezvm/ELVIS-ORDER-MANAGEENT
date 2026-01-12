@@ -54,6 +54,7 @@ MODULES = [
     "segmentation",
     "integrations",
     "api",
+    "marketing",
 ]
 
 INSTALLED_APPS = INSTALLED_PLUGINS + DJANGO_APPS + MODULES
