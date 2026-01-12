@@ -7,11 +7,12 @@ from decimal import Decimal
 
 
 class Lead(BaseModel):
-    """Leads from Google Contacts sync - NOT customers until converted."""
+    """Leads from Google Contacts sync, Shopify Abandoned, or manual entry."""
     MATCH_STATUS = [
         ('win', 'WIN - Matched'),
         ('loss', 'LOSS - Not Matched'),
         ('pending', 'Pending Review'),
+        ('converted', 'CONVERTED - Order Placed'),
     ]
     
     LEAD_STATUS = [
@@ -24,14 +25,45 @@ class Lead(BaseModel):
         ('dormant', 'Dormant'),
     ]
     
+    LEAD_SOURCES = [
+        ('manual', 'Manual Entry'),
+        ('whatsapp_vcf_import', 'WhatsApp VCF Import'),
+        ('google_contacts_sync', 'Google Contacts Sync'),
+        ('shopify_abandoned_checkout', 'Shopify Abandoned Checkout'),
+        ('shopify_abandoned_cart', 'Shopify Abandoned Cart'),
+        ('website_form', 'Website Form'),
+        ('referral', 'Referral'),
+    ]
+    
+    LOCATION_STATUS = [
+        ('unknown', 'Unknown'),
+        ('enriched', 'Enriched'),
+        ('verified', 'Verified'),
+    ]
+    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
     # Identity
-    phone_no = models.CharField(max_length=20, db_index=True)
+    phone_no = models.CharField(max_length=20, db_index=True, blank=True, null=True)
     phone_normalized = models.CharField(max_length=20, db_index=True, blank=True, null=True, help_text="E.164 format")
     name = models.CharField(max_length=200, blank=True, null=True)
     original_google_name = models.CharField(max_length=200, blank=True, null=True, help_text="Original name from Google before correction")
-    email = models.EmailField(blank=True, null=True)
+    email = models.EmailField(blank=True, null=True, db_index=True)
+    email_normalized = models.EmailField(blank=True, null=True, db_index=True, help_text="Lowercase trimmed email")
+    
+    # Lead Source
+    lead_source = models.CharField(max_length=50, choices=LEAD_SOURCES, default='manual')
+    source_ref_id = models.CharField(max_length=200, blank=True, null=True, help_text="External reference ID (Shopify checkout/cart ID)")
+    source_payload = models.JSONField(default=dict, blank=True, help_text="Raw snapshot from source")
+    captured_at = models.DateTimeField(auto_now_add=True, help_text="When lead was captured in ERP")
+    needs_phone = models.BooleanField(default=False, help_text="True if lead created from email only")
+    
+    # Shopify Abandoned Checkout/Cart Fields
+    recover_url = models.URLField(blank=True, null=True, help_text="Checkout recovery link")
+    cart_value = models.DecimalField(max_digits=12, decimal_places=2, default=0, help_text="Abandoned cart value")
+    cart_items_summary = models.JSONField(default=list, help_text="List of product titles + qty")
+    abandoned_at = models.DateTimeField(blank=True, null=True, help_text="Shopify abandoned timestamp")
+    shopify_store = models.ForeignKey('integrations.ShopifyStore', on_delete=models.SET_NULL, null=True, blank=True, related_name='abandoned_leads')
     
     # Google Sync
     google_resource_name = models.CharField(max_length=200, blank=True, null=True, unique=True)
@@ -46,13 +78,18 @@ class Lead(BaseModel):
     city = models.CharField(max_length=100, blank=True, null=True)
     district = models.CharField(max_length=100, blank=True, null=True)
     state = models.CharField(max_length=100, blank=True, null=True)
-    pincode = models.CharField(max_length=10, blank=True, null=True)
+    pincode = models.CharField(max_length=10, blank=True, null=True, db_index=True)
     country = models.CharField(max_length=100, default='India')
+    location_status = models.CharField(max_length=20, choices=LOCATION_STATUS, default='unknown')
     
     # Match Status
     match_status = models.CharField(max_length=20, choices=MATCH_STATUS, default='pending')
     matched_customer = models.ForeignKey('master.Customer', on_delete=models.SET_NULL, null=True, blank=True, related_name='matched_leads')
     matched_order = models.ForeignKey('master.Order', on_delete=models.SET_NULL, null=True, blank=True, related_name='matched_leads')
+    
+    # Conversion Tracking
+    converted_order = models.ForeignKey('master.Order', on_delete=models.SET_NULL, null=True, blank=True, related_name='converted_leads', help_text="Order that converted this lead")
+    conversion_days = models.IntegerField(null=True, blank=True, help_text="Days from abandoned to conversion")
     
     # Lead Management
     lead_status = models.CharField(max_length=20, choices=LEAD_STATUS, default='new')
