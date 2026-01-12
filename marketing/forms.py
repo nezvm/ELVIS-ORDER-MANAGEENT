@@ -8,13 +8,14 @@ from .models import (
 class LeadForm(forms.ModelForm):
     class Meta:
         model = Lead
-        fields = ['name', 'phone_no', 'email', 'address', 'city', 'district', 
+        fields = ['name', 'phone_no', 'email', 'lead_source', 'address', 'city', 'district', 
                   'state', 'pincode', 'lead_status', 'assigned_to', 'follow_up_date',
                   'whatsapp_opt_in', 'sms_opt_in', 'notes', 'tags']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500'}),
             'phone_no': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500'}),
             'email': forms.EmailInput(attrs={'class': 'w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500'}),
+            'lead_source': forms.Select(attrs={'class': 'w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500'}),
             'address': forms.Textarea(attrs={'class': 'w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500', 'rows': 2}),
             'city': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500'}),
             'district': forms.TextInput(attrs={'class': 'w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500'}),
