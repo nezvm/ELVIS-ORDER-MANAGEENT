@@ -1,0 +1,292 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}{{ lead.name|default:lead.phone_no }}{% endblock %}
+{% block page_title %}Lead Details{% endblock %}
+
+{% block content %}
+<div class="space-y-6" data-testid="lead-detail-page">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <a href="{% url 'marketing:lead_list' %}" class="flex items-center text-gray-500 hover:text-gray-700 transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Leads
+        </a>
+        <div class="flex items-center space-x-3">
+            <a href="{{ lead.get_update_url }}" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                <i class="fas fa-edit mr-2"></i>Edit
+            </a>
+            {% if lead.match_status != 'win' %}
+            <button onclick="matchLead('{{ lead.id }}')" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors">
+                <i class="fas fa-sync mr-2"></i>Re-match
+            </button>
+            {% endif %}
+            {% if lead.lead_status != 'converted' %}
+            <button onclick="convertLead('{{ lead.id }}')" class="px-5 py-2.5 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors">
+                <i class="fas fa-user-check mr-2"></i>Convert to Customer
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-3 gap-6">
+        <!-- Main Info -->
+        <div class="col-span-2 space-y-6">
+            <!-- Profile Card -->
+            <div class="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm" data-testid="lead-profile">
+                <div class="flex items-start">
+                    <div class="w-20 h-20 rounded-2xl bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-3xl">
+                        {{ lead.name|slice:":1"|upper|default:"?" }}
+                    </div>
+                    <div class="ml-6 flex-1">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-900">{{ lead.name|default:"Unknown" }}</h2>
+                                <p class="text-lg text-gray-500 mt-1">{{ lead.phone_no }}</p>
+                            </div>
+                            {% if lead.match_status == 'win' %}
+                            <span class="inline-flex items-center px-4 py-2 rounded-xl text-base font-bold badge-win">
+                                <i class="fas fa-check-circle mr-2"></i>WIN - Matched
+                            </span>
+                            {% elif lead.match_status == 'loss' %}
+                            <span class="inline-flex items-center px-4 py-2 rounded-xl text-base font-bold badge-loss">
+                                <i class="fas fa-times-circle mr-2"></i>LOSS - Not Matched
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-4 py-2 rounded-xl text-base font-bold badge-pending">
+                                <i class="fas fa-clock mr-2"></i>Pending Review
+                            </span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="grid grid-cols-3 gap-6 mt-6 pt-6 border-t border-gray-100">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Lead Status</p>
+                                <p class="text-base font-semibold text-gray-900 mt-1">{{ lead.get_lead_status_display }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Email</p>
+                                <p class="text-base font-semibold text-gray-900 mt-1">{{ lead.email|default:"-" }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Assigned To</p>
+                                <p class="text-base font-semibold text-gray-900 mt-1">{{ lead.assigned_to.username|default:"Unassigned" }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Order History -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="lead-order-history">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Order History</h3>
+                <div class="grid grid-cols-4 gap-4">
+                    <div class="p-4 bg-gray-50 rounded-xl">
+                        <p class="text-sm text-gray-500">Total Orders</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1">{{ lead.lifetime_order_count }}</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 rounded-xl">
+                        <p class="text-sm text-gray-500">Total Revenue</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1">₹{{ lead.lifetime_revenue|floatformat:0 }}</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 rounded-xl">
+                        <p class="text-sm text-gray-500">First Order</p>
+                        <p class="text-base font-semibold text-gray-900 mt-1">{{ lead.first_order_date|date:"d M Y"|default:"-" }}</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 rounded-xl">
+                        <p class="text-sm text-gray-500">Last Order</p>
+                        <p class="text-base font-semibold text-gray-900 mt-1">{{ lead.last_order_date|date:"d M Y"|default:"-" }}</p>
+                    </div>
+                </div>
+                
+                {% if lead.matched_customer %}
+                <div class="mt-4 p-4 bg-green-50 rounded-xl border border-green-200">
+                    <p class="text-sm font-medium text-green-700">
+                        <i class="fas fa-link mr-2"></i>Matched to Customer: 
+                        <a href="{% url 'master:customer_detail' lead.matched_customer.id %}" class="font-bold underline">{{ lead.matched_customer.customer_name }}</a>
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Activity Timeline -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="lead-activity">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Activity Timeline</h3>
+                <div class="space-y-4">
+                    {% for activity in activities %}
+                    <div class="flex items-start">
+                        <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            {% if activity.activity_type == 'synced' %}
+                            <i class="fas fa-sync text-blue-500"></i>
+                            {% elif activity.activity_type == 'name_updated' %}
+                            <i class="fas fa-edit text-purple-500"></i>
+                            {% elif activity.activity_type == 'broadcast_sent' %}
+                            <i class="fab fa-whatsapp text-green-500"></i>
+                            {% elif activity.activity_type == 'converted' %}
+                            <i class="fas fa-user-check text-primary-500"></i>
+                            {% else %}
+                            <i class="fas fa-circle text-gray-400"></i>
+                            {% endif %}
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <p class="text-base font-medium text-gray-900">{{ activity.get_activity_type_display }}</p>
+                            <p class="text-sm text-gray-500 mt-0.5">{{ activity.description }}</p>
+                            <p class="text-xs text-gray-400 mt-1">{{ activity.created|date:"d M Y, h:i A" }}</p>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-gray-500 text-center py-6">No activity recorded yet</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Location -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="lead-location">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Location</h3>
+                <div class="space-y-3">
+                    <div>
+                        <p class="text-sm text-gray-500">Address</p>
+                        <p class="text-base text-gray-900 mt-0.5">{{ lead.address|default:"-" }}</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <p class="text-sm text-gray-500">City</p>
+                            <p class="text-base font-medium text-gray-900 mt-0.5">{{ lead.city|default:"-" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">District</p>
+                            <p class="text-base font-medium text-gray-900 mt-0.5">{{ lead.district|default:"-" }}</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <p class="text-sm text-gray-500">State</p>
+                            <p class="text-base font-medium text-gray-900 mt-0.5">{{ lead.state|default:"-" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Pincode</p>
+                            <p class="text-base font-medium text-gray-900 mt-0.5">{{ lead.pincode|default:"-" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Segmentation -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="lead-segmentation">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Segmentation</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between py-2 border-b border-gray-100">
+                        <span class="text-sm text-gray-500">Behavior</span>
+                        <span class="text-sm font-medium text-gray-900">{{ lead.order_behavior_segment|default:"-" }}</span>
+                    </div>
+                    <div class="flex items-center justify-between py-2 border-b border-gray-100">
+                        <span class="text-sm text-gray-500">Lifecycle</span>
+                        <span class="text-sm font-medium text-gray-900">{{ lead.lifecycle_stage|default:"-" }}</span>
+                    </div>
+                    <div class="flex items-center justify-between py-2 border-b border-gray-100">
+                        <span class="text-sm text-gray-500">Value Tier</span>
+                        <span class="text-sm font-medium text-gray-900 capitalize">{{ lead.value_tier|default:"-" }}</span>
+                    </div>
+                    <div class="flex items-center justify-between py-2">
+                        <span class="text-sm text-gray-500">Risk Status</span>
+                        <span class="text-sm font-medium {% if lead.risk_status == 'high_risk' %}text-red-600{% elif lead.risk_status == 'churned' %}text-orange-600{% else %}text-green-600{% endif %}">{{ lead.risk_status|default:"-" }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Communication Preferences -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="lead-communication">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Communication</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500">WhatsApp Opt-in</span>
+                        {% if lead.whatsapp_opt_in %}
+                        <span class="text-green-600"><i class="fas fa-check-circle"></i> Yes</span>
+                        {% else %}
+                        <span class="text-red-600"><i class="fas fa-times-circle"></i> No</span>
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500">SMS Opt-in</span>
+                        {% if lead.sms_opt_in %}
+                        <span class="text-green-600"><i class="fas fa-check-circle"></i> Yes</span>
+                        {% else %}
+                        <span class="text-red-600"><i class="fas fa-times-circle"></i> No</span>
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500">Broadcasts Sent</span>
+                        <span class="text-sm font-medium text-gray-900">{{ lead.broadcast_count }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Google Sync Info -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="lead-sync-info">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Sync Info</h3>
+                <div class="space-y-3">
+                    <div>
+                        <p class="text-sm text-gray-500">Original Google Name</p>
+                        <p class="text-base text-gray-900 mt-0.5">{{ lead.original_google_name|default:"-" }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">First Synced</p>
+                        <p class="text-base text-gray-900 mt-0.5">{{ lead.first_synced_at|date:"d M Y, h:i A" }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Last Synced</p>
+                        <p class="text-base text-gray-900 mt-0.5">{{ lead.last_synced_at|date:"d M Y, h:i A" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function matchLead(leadId) {
+    try {
+        const response = await fetch(`/marketing/api/lead/${leadId}/match/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrftoken}
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Failed to match lead', 'error');
+    }
+}
+
+async function convertLead(leadId) {
+    if (!confirm('Are you sure you want to convert this lead to a customer?')) return;
+    
+    try {
+        const response = await fetch(`/marketing/api/lead/${leadId}/convert/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrftoken}
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Failed to convert lead', 'error');
+    }
+}
+</script>
+{% endblock %}

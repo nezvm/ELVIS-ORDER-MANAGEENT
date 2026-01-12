@@ -1,0 +1,313 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}Leads{% endblock %}
+{% block page_title %}Leads{% endblock %}
+
+{% block page_subtitle %}
+<span class="ml-4 px-3 py-1 bg-gray-100 rounded-full text-sm font-medium text-gray-600">{{ total_count }} total</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6" data-testid="leads-page">
+    <!-- Stats Row -->
+    <div class="grid grid-cols-4 gap-6">
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="stat-total">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Leads</p>
+                    <p class="text-4xl font-bold text-gray-900 mt-2">{{ total_count|default:0 }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center">
+                    <i class="fas fa-users text-2xl text-gray-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="stat-win">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-green-600 uppercase tracking-wide">WIN (Matched)</p>
+                    <p class="text-4xl font-bold text-green-600 mt-2">{{ win_count|default:0 }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-check-circle text-2xl text-green-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="stat-loss">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-red-600 uppercase tracking-wide">LOSS (Not Matched)</p>
+                    <p class="text-4xl font-bold text-red-600 mt-2">{{ loss_count|default:0 }}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-red-100 flex items-center justify-center">
+                    <i class="fas fa-times-circle text-2xl text-red-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="stat-conversion">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-primary-500 uppercase tracking-wide">Conversion Rate</p>
+                    <p class="text-4xl font-bold text-primary-500 mt-2">{% if total_count > 0 %}{{ win_count|floatformat:0 }}%{% else %}0%{% endif %}</p>
+                </div>
+                <div class="w-14 h-14 rounded-xl bg-primary-100 flex items-center justify-center">
+                    <i class="fas fa-percentage text-2xl text-primary-500"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters & Actions -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div class="flex items-center justify-between">
+            <form method="GET" class="flex items-center space-x-4" data-testid="leads-filter-form">
+                <!-- Search -->
+                <div class="relative">
+                    <input type="text" name="search" value="{{ request.GET.search }}" placeholder="Search by name or phone..." class="w-72 pl-12 pr-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:bg-white">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                </div>
+                
+                <!-- Match Status Filter -->
+                <select name="match_status" onchange="this.form.submit()" class="px-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500" data-testid="filter-match-status">
+                    <option value="">All Status</option>
+                    <option value="win" {% if request.GET.match_status == 'win' %}selected{% endif %}>WIN (Matched)</option>
+                    <option value="loss" {% if request.GET.match_status == 'loss' %}selected{% endif %}>LOSS (Not Matched)</option>
+                    <option value="pending" {% if request.GET.match_status == 'pending' %}selected{% endif %}>Pending</option>
+                </select>
+                
+                <!-- Lead Status Filter -->
+                <select name="lead_status" onchange="this.form.submit()" class="px-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500" data-testid="filter-lead-status">
+                    <option value="">All Lead Status</option>
+                    <option value="new" {% if request.GET.lead_status == 'new' %}selected{% endif %}>New</option>
+                    <option value="contacted" {% if request.GET.lead_status == 'contacted' %}selected{% endif %}>Contacted</option>
+                    <option value="interested" {% if request.GET.lead_status == 'interested' %}selected{% endif %}>Interested</option>
+                    <option value="follow_up" {% if request.GET.lead_status == 'follow_up' %}selected{% endif %}>Follow Up</option>
+                    <option value="converted" {% if request.GET.lead_status == 'converted' %}selected{% endif %}>Converted</option>
+                </select>
+                
+                <!-- State Filter -->
+                <select name="state" onchange="this.form.submit()" class="px-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500" data-testid="filter-state">
+                    <option value="">All States</option>
+                    {% for state in states %}
+                    <option value="{{ state }}" {% if request.GET.state == state %}selected{% endif %}>{{ state }}</option>
+                    {% endfor %}
+                </select>
+                
+                <button type="submit" class="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                    <i class="fas fa-filter mr-2"></i>Filter
+                </button>
+            </form>
+            
+            <div class="flex items-center space-x-3">
+                <button onclick="syncGoogleLeads()" data-testid="sync-google-btn" class="px-5 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors flex items-center">
+                    <i class="fab fa-google mr-2"></i>Sync Google Contacts
+                </button>
+                <a href="{% url 'marketing:lead_create' %}" data-testid="add-lead-btn" class="px-5 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors flex items-center">
+                    <i class="fas fa-plus mr-2"></i>Add Lead
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Leads Table -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" data-testid="leads-table-container">
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Lead</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Match Status</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Lead Status</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Location</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Order History</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Last Synced</th>
+                    <th class="px-6 py-4 text-right text-sm font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for lead in leads %}
+                <tr class="table-row transition-colors" data-testid="lead-row-{{ lead.id }}">
+                    <td class="px-6 py-5">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-lg">
+                                {{ lead.name|slice:":1"|upper|default:"?" }}
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-base font-semibold text-gray-900">{{ lead.name|default:"Unknown" }}</p>
+                                <p class="text-sm text-gray-500">{{ lead.phone_no }}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-5">
+                        {% if lead.match_status == 'win' %}
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold badge-win">
+                            <i class="fas fa-check-circle mr-1.5"></i>WIN
+                        </span>
+                        {% elif lead.match_status == 'loss' %}
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold badge-loss">
+                            <i class="fas fa-times-circle mr-1.5"></i>LOSS
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold badge-pending">
+                            <i class="fas fa-clock mr-1.5"></i>Pending
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-5">
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
+                            {{ lead.get_lead_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-5">
+                        <p class="text-base text-gray-900">{{ lead.city|default:"-" }}</p>
+                        <p class="text-sm text-gray-500">{{ lead.state|default:"-" }}</p>
+                    </td>
+                    <td class="px-6 py-5">
+                        <p class="text-base font-semibold text-gray-900">{{ lead.lifetime_order_count }} orders</p>
+                        <p class="text-sm text-gray-500">₹{{ lead.lifetime_revenue|floatformat:0|default:"0" }}</p>
+                    </td>
+                    <td class="px-6 py-5">
+                        <p class="text-sm text-gray-500">{{ lead.last_synced_at|date:"d M Y" }}</p>
+                        <p class="text-xs text-gray-400">{{ lead.last_synced_at|time:"h:i A" }}</p>
+                    </td>
+                    <td class="px-6 py-5 text-right">
+                        <div class="flex items-center justify-end space-x-2">
+                            <a href="{{ lead.get_absolute_url }}" class="p-2 text-gray-500 hover:text-primary-500 hover:bg-gray-100 rounded-lg transition-colors" title="View">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{{ lead.get_update_url }}" class="p-2 text-gray-500 hover:text-blue-500 hover:bg-gray-100 rounded-lg transition-colors" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <button onclick="matchLead('{{ lead.id }}')" class="p-2 text-gray-500 hover:text-green-500 hover:bg-gray-100 rounded-lg transition-colors" title="Re-match">
+                                <i class="fas fa-sync"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-6 py-16 text-center">
+                        <div class="flex flex-col items-center">
+                            <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                                <i class="fas fa-user-plus text-3xl text-gray-400"></i>
+                            </div>
+                            <p class="text-lg font-semibold text-gray-700">No leads found</p>
+                            <p class="text-gray-500 mt-1">Sync from Google Contacts or add leads manually</p>
+                            <button onclick="syncGoogleLeads()" class="mt-4 px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors">
+                                <i class="fab fa-google mr-2"></i>Sync Google Contacts
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Sync Modal -->
+<div id="syncModal" class="fixed inset-0 z-50 modal-backdrop bg-black/50 flex items-center justify-center" onclick="if(event.target===this)closeSyncModal()">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 transform scale-95 opacity-0 transition-all" id="syncModalContent">
+        <h3 class="text-xl font-bold mb-4">Sync Google Contacts</h3>
+        <p class="text-gray-600 mb-6">This will fetch contacts from your connected Google Workspace account and create leads.</p>
+        <div id="syncStatus" class="hidden mb-4 p-4 rounded-xl bg-blue-50 text-blue-700">
+            <i class="fas fa-spinner fa-spin mr-2"></i>Syncing contacts...
+        </div>
+        <div id="syncResult" class="hidden mb-4 p-4 rounded-xl"></div>
+        <div class="flex space-x-3">
+            <button onclick="performSync()" id="syncBtn" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors">
+                Start Sync
+            </button>
+            <button onclick="closeSyncModal()" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function syncGoogleLeads() {
+    const modal = document.getElementById('syncModal');
+    const content = document.getElementById('syncModalContent');
+    modal.classList.add('active');
+    setTimeout(() => {
+        content.classList.remove('scale-95', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+    }, 10);
+}
+
+function closeSyncModal() {
+    const modal = document.getElementById('syncModal');
+    const content = document.getElementById('syncModalContent');
+    content.classList.add('scale-95', 'opacity-0');
+    content.classList.remove('scale-100', 'opacity-100');
+    setTimeout(() => modal.classList.remove('active'), 200);
+}
+
+async function performSync() {
+    const status = document.getElementById('syncStatus');
+    const result = document.getElementById('syncResult');
+    const btn = document.getElementById('syncBtn');
+    
+    status.classList.remove('hidden');
+    result.classList.add('hidden');
+    btn.disabled = true;
+    
+    try {
+        const formData = new FormData();
+        formData.append('config_id', '1'); // Mock config ID
+        
+        const response = await fetch('{% url "marketing:sync_leads" %}', {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrftoken},
+            body: formData
+        });
+        const data = await response.json();
+        
+        status.classList.add('hidden');
+        result.classList.remove('hidden');
+        
+        if (data.success) {
+            result.className = 'mb-4 p-4 rounded-xl bg-green-50 text-green-700';
+            result.innerHTML = `<i class="fas fa-check-circle mr-2"></i>Successfully synced ${data.created} new leads, updated ${data.updated} existing leads.`;
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            result.className = 'mb-4 p-4 rounded-xl bg-red-50 text-red-700';
+            result.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i>${data.error}`;
+        }
+    } catch (error) {
+        status.classList.add('hidden');
+        result.classList.remove('hidden');
+        result.className = 'mb-4 p-4 rounded-xl bg-red-50 text-red-700';
+        result.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i>Failed to sync: ${error.message}`;
+    }
+    
+    btn.disabled = false;
+}
+
+async function matchLead(leadId) {
+    try {
+        const response = await fetch(`/marketing/api/lead/${leadId}/match/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrftoken}
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Failed to match lead', 'error');
+    }
+}
+</script>
+{% endblock %}
