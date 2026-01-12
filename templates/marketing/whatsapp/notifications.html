@@ -1,0 +1,83 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}Notification Events{% endblock %}
+{% block page_title %}Notification Events{% endblock %}
+
+{% block content %}
+<div class="space-y-6" data-testid="events-page">
+    <div class="flex items-center justify-between">
+        <a href="{% url 'marketing:whatsapp_dashboard' %}" class="flex items-center text-gray-500 hover:text-gray-700 transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>Back to WhatsApp
+        </a>
+    </div>
+    
+    <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6">
+        <div class="flex items-start">
+            <i class="fas fa-info-circle text-blue-500 text-xl mr-4 mt-0.5"></i>
+            <div>
+                <h4 class="text-base font-semibold text-blue-800">Event-Driven Notifications</h4>
+                <p class="text-sm text-blue-700 mt-1">Configure automatic WhatsApp notifications triggered by business events like order creation, shipment updates, and more.</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Event</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Template</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Audience</th>
+                    <th class="px-6 py-4 text-right text-sm font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for event in events %}
+                <tr class="table-row transition-colors">
+                    <td class="px-6 py-5">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                                <i class="fas fa-bolt text-purple-600"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-base font-semibold text-gray-900">{{ event.get_event_type_display }}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-5">
+                        {% if event.is_enabled %}
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold bg-green-100 text-green-700">
+                            <i class="fas fa-check-circle mr-1.5"></i>Enabled
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold bg-gray-100 text-gray-700">
+                            <i class="fas fa-times-circle mr-1.5"></i>Disabled
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-5">
+                        <p class="text-base text-gray-900">{{ event.template.name|default:"-" }}</p>
+                    </td>
+                    <td class="px-6 py-5">
+                        <p class="text-base text-gray-900">{{ event.get_audience_display }}</p>
+                    </td>
+                    <td class="px-6 py-5 text-right">
+                        <button onclick="toggleEvent('{{ event.id }}', {{ event.is_enabled|yesno:'false,true' }})" class="px-4 py-2 {% if event.is_enabled %}bg-gray-100 text-gray-700{% else %}bg-green-600 text-white{% endif %} rounded-xl font-medium hover:opacity-80 transition-colors">
+                            {% if event.is_enabled %}Disable{% else %}Enable{% endif %}
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                        No notification events configured
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

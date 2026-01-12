@@ -1,0 +1,60 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}Message Templates{% endblock %}
+{% block page_title %}Message Templates{% endblock %}
+
+{% block content %}
+<div class="space-y-6" data-testid="templates-page">
+    <div class="flex items-center justify-between">
+        <a href="{% url 'marketing:whatsapp_dashboard' %}" class="flex items-center text-gray-500 hover:text-gray-700 transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>Back to WhatsApp
+        </a>
+        <a href="{% url 'marketing:template_create' %}" class="px-5 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
+            <i class="fas fa-plus mr-2"></i>Add Template
+        </a>
+    </div>
+    
+    {% if templates %}
+    <div class="grid grid-cols-2 gap-6">
+        {% for template in templates %}
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">{{ template.name }}</h3>
+                    <p class="text-sm text-gray-500 mt-1">{{ template.provider.name }}</p>
+                </div>
+                <span class="px-3 py-1.5 rounded-xl text-sm font-semibold {% if template.status == 'approved' %}bg-green-100 text-green-700{% elif template.status == 'rejected' %}bg-red-100 text-red-700{% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                    {{ template.get_status_display }}
+                </span>
+            </div>
+            
+            <div class="flex items-center space-x-4 mb-4">
+                <span class="px-3 py-1 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium">{{ template.get_category_display }}</span>
+                <span class="px-3 py-1 rounded-lg bg-gray-100 text-gray-700 text-sm font-medium">{{ template.get_language_display }}</span>
+            </div>
+            
+            <div class="p-4 bg-gray-50 rounded-xl mb-4">
+                <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ template.body|truncatechars:200 }}</p>
+            </div>
+            
+            {% if template.footer %}
+            <p class="text-xs text-gray-400 mb-4">Footer: {{ template.footer }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-2xl p-12 border border-gray-100 shadow-sm text-center">
+        <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-file-alt text-4xl text-gray-400"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900">No templates yet</h3>
+        <p class="text-gray-500 mt-2">Create message templates to use in your campaigns</p>
+        <a href="{% url 'marketing:template_create' %}" class="inline-block mt-6 px-6 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
+            <i class="fas fa-plus mr-2"></i>Add Template
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
