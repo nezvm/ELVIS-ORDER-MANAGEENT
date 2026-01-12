@@ -1,0 +1,85 @@
+{
+  "summary": "Frontend testing completed for Elvis-Manager ERP Marketing Module - Major Update. All new features tested: Market Insights with 2 tabs (Order Markets vs Lead Markets), Abandoned Insights page, Campaign form with Abandoned Recovery option, Lead form with Lead Source dropdown. Fixed missing lead_source field in lead form template.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_2.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "MOCKED APIs: Google Contacts sync, Meta Cloud API WhatsApp, and Shopify Abandoned Checkout sync are MOCKED - need real integration for production"
+  ],
+  "updated_files": [
+    "/app/templates/marketing/leads/form.html - Added missing lead_source field to the form template"
+  ],
+  "success_rate": {
+    "backend": "N/A - frontend only testing",
+    "frontend": "100%"
+  },
+  "test_credentials": "Username: admin, Password: admin123",
+  "seed_data_creation": "None - using existing admin user",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All new Marketing module features tested and working. Fixed lead_source field missing from lead form template.",
+  "tested_features": {
+    "login": {
+      "status": "PASS",
+      "details": "Login with admin/admin123 works, redirects to dashboard"
+    },
+    "market_insights_page": {
+      "status": "PASS",
+      "details": "Page loads at /marketing/insights/ with 2 tabs: 'Order Markets (Accurate)' and 'Lead Markets (Enriched Only)'"
+    },
+    "market_insights_summary_stats": {
+      "status": "PASS",
+      "details": "Shows Total Leads, Total Orders, Total Revenue, Abandoned Carts stats"
+    },
+    "market_insights_tabs": {
+      "status": "PASS",
+      "details": "Both tabs work - Order Markets shows shipping-based stats, Lead Markets shows enriched leads message"
+    },
+    "market_insights_sections": {
+      "status": "PASS",
+      "details": "Hot Markets, Cold Zones, Loss Markets sections all visible"
+    },
+    "abandoned_insights_page": {
+      "status": "PASS",
+      "details": "Page loads at /marketing/insights/abandoned/ with Top Abandoned Products, Loss Markets, Recent Abandoned Checkouts sections"
+    },
+    "campaign_form_type_dropdown": {
+      "status": "PASS",
+      "details": "Campaign Type dropdown exists with options: Broadcast, Abandoned Recovery, Promotional, Transactional, Reactivation"
+    },
+    "campaign_abandoned_recovery_settings": {
+      "status": "PASS",
+      "details": "Selecting 'Abandoned Recovery' shows recovery settings section with follow-up schedule and stop on conversion option"
+    },
+    "lead_form_source_dropdown": {
+      "status": "PASS",
+      "details": "Lead Source dropdown exists with options: Manual Entry, WhatsApp VCF Import, Google Contacts Sync, Shopify Abandoned Checkout, Shopify Abandoned Cart, Website Form, Referral"
+    },
+    "sidebar_navigation": {
+      "status": "PASS",
+      "details": "All Marketing nav links work: Leads, WhatsApp, Campaigns, Market Insights"
+    }
+  },
+  "fixes_applied": {
+    "lead_source_field": {
+      "file": "/app/templates/marketing/leads/form.html",
+      "issue": "lead_source field was in LeadForm but not rendered in template",
+      "fix": "Added {{ form.lead_source }} to Basic Information section"
+    }
+  },
+  "mocked_apis": {
+    "google_contacts_sync": "MOCKED - placeholder implementation",
+    "whatsapp_meta_cloud_api": "MOCKED - placeholder implementation",
+    "shopify_abandoned_checkout": "MOCKED - placeholder implementation"
+  }
+}
