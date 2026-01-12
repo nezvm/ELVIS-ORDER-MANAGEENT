@@ -1,34 +1,66 @@
-{% extends 'modern_base.html' %}
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}{{ object }}{% endblock %}
+{% block page_title %}{{ object }}{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1 class="h3">{{ title }}</h1>
-    <div>
-        {% if object.get_update_url %}
-        <a href="{{ object.get_update_url }}" class="btn btn-outline-primary">
-            <i class="fas fa-edit me-2"></i>Edit
-        </a>
-        {% endif %}
-        {% if object.get_delete_url %}
-        <a href="{{ object.get_delete_url }}" class="btn btn-outline-danger">
-            <i class="fas fa-trash me-2"></i>Delete
-        </a>
-        {% endif %}
+<div class="space-y-6" data-testid="modern-detail">
+    <!-- Breadcrumb -->
+    {% if list_url %}
+    <div class="flex items-center text-sm text-gray-500">
+        <a href="{{ list_url }}" class="hover:text-primary-500">{{ model_name_plural|default:'Items' }}</a>
+        <i class="fas fa-chevron-right mx-2 text-xs"></i>
+        <span class="text-gray-900 font-medium">{{ object }}</span>
     </div>
-</div>
-
-<div class="card">
-    <div class="card-body">
-        {% block detail_content %}
-        <dl class="row">
-            {% for field in object._meta.fields %}
-            {% if field.name not in 'id,created,updated,is_active,password' %}
-            <dt class="col-sm-3">{{ field.verbose_name|capfirst }}</dt>
-            <dd class="col-sm-9">{{ object|getattribute:field.name|default:'-' }}</dd>
-            {% endif %}
+    {% endif %}
+    
+    <!-- Object Info Card -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div class="flex items-start justify-between mb-6">
+            <div class="flex items-center">
+                {% if object.icon %}
+                <div class="w-16 h-16 rounded-xl bg-primary-100 flex items-center justify-center">
+                    <i class="fas fa-{{ object.icon }} text-3xl text-primary-500"></i>
+                </div>
+                {% endif %}
+                <div class="{% if object.icon %}ml-5{% endif %}">
+                    <h2 class="text-2xl font-bold text-gray-900">{{ object }}</h2>
+                    {% if object.description %}
+                    <p class="text-base text-gray-500">{{ object.description }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                {% if update_url %}
+                <a href="{{ update_url }}" class="px-5 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                    <i class="fas fa-edit mr-2"></i>Edit
+                </a>
+                {% endif %}
+                {% if delete_url %}
+                <form action="{{ delete_url }}" method="post" onsubmit="return confirm('Are you sure you want to delete this item?')">
+                    {% csrf_token %}
+                    <button type="submit" class="px-5 py-3 bg-red-100 text-red-600 rounded-xl font-medium hover:bg-red-200 transition-colors">
+                        <i class="fas fa-trash mr-2"></i>Delete
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Object Details Grid -->
+        {% if fields %}
+        <div class="grid grid-cols-3 gap-6">
+            {% for field_name, field_value in fields.items %}
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500 uppercase tracking-wide font-medium">{{ field_name }}</p>
+                <p class="text-base font-semibold text-gray-900 mt-1">{{ field_value|default:'-' }}</p>
+            </div>
             {% endfor %}
-        </dl>
-        {% endblock %}
+        </div>
+        {% endif %}
     </div>
+    
+    {% block detail_extra %}{% endblock %}
 </div>
 {% endblock %}
