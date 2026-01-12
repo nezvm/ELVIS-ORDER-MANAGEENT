@@ -60,6 +60,9 @@
             </div>
             
             <div class="flex items-center space-x-3">
+                <a href="{% url 'master:quick_order_entry' %}" data-testid="quick-entry-btn" class="px-5 py-3 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600 transition-colors flex items-center">
+                    <i class="fas fa-bolt mr-2"></i>Quick Entry
+                </a>
                 <a href="{% url 'master:order_create' %}" data-testid="add-order-btn" class="px-5 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors flex items-center">
                     <i class="fas fa-plus mr-2"></i>New Order
                 </a>
