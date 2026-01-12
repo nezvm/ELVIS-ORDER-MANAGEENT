@@ -1,208 +1,135 @@
-{% extends 'modern_base.html' %}
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}Integrations{% endblock %}
+{% block page_title %}Integrations{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1 class="h3">{{ title }}</h1>
-</div>
-
-<div class="row mb-4">
-    <div class="col-md-3">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <i class="fab fa-google fa-3x text-danger mb-3"></i>
-                <h5>Google Workspace</h5>
-                <p class="text-muted small">Contact synchronization via Google People API</p>
-                <a href="{% url 'integrations:google_config_list' %}" class="btn btn-outline-primary btn-sm">Manage</a>
+<div class="space-y-6" data-testid="integrations-dashboard">
+    <!-- Google Workspace -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center">
+                <div class="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <i class="fab fa-google text-2xl text-blue-600"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-xl font-bold text-gray-900">Google Workspace</h3>
+                    <p class="text-base text-gray-500">Sync contacts from Google</p>
+                </div>
+            </div>
+            {% if google_config %}
+            <span class="px-4 py-2 rounded-xl text-sm font-bold {% if google_config.is_connected %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+                {% if google_config.is_connected %}Connected{% else %}Disconnected{% endif %}
+            </span>
+            {% endif %}
+        </div>
+        
+        {% if google_config %}
+        <div class="grid grid-cols-3 gap-4 mb-4">
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500">Contacts Synced</p>
+                <p class="text-2xl font-bold text-gray-900">{{ google_config.contacts_count|default:0 }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500">Last Sync</p>
+                <p class="text-base font-medium text-gray-900">{{ google_config.last_sync_at|date:"d M Y, H:i"|default:"Never" }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500">Sync Status</p>
+                <p class="text-base font-medium text-gray-900">{{ google_config.sync_status|default:"-" }}</p>
             </div>
         </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <i class="fab fa-shopify fa-3x text-success mb-3"></i>
-                <h5>Shopify</h5>
-                <p class="text-muted small">Order sync and fulfillment management</p>
-                <a href="{% url 'integrations:shopify_store_list' %}" class="btn btn-outline-success btn-sm">Manage</a>
-            </div>
+        <div class="flex items-center space-x-3">
+            <a href="{% url 'integrations:google_config' google_config.id %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                <i class="fas fa-cog mr-2"></i>Configure
+            </a>
+            <button onclick="syncGoogle()" class="px-4 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors">
+                <i class="fas fa-sync mr-2"></i>Sync Now
+            </button>
         </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-plug fa-3x text-primary mb-3"></i>
-                <h5>Other Integrations</h5>
-                <p class="text-muted small">Payment, notification & marketing services</p>
-                <a href="{% url 'integrations:config_list' %}" class="btn btn-outline-primary btn-sm">Manage</a>
-            </div>
+        {% else %}
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+            <p class="text-sm text-blue-700"><i class="fas fa-info-circle mr-2"></i>Google OAuth credentials not configured. Contact support to enable.</p>
         </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card h-100">
-            <div class="card-body text-center">
-                <i class="fas fa-broadcast-tower fa-3x text-warning mb-3"></i>
-                <h5>Webhooks</h5>
-                <p class="text-muted small">Outgoing webhook endpoints</p>
-                <a href="{% url 'integrations:webhook_list' %}" class="btn btn-outline-warning btn-sm">Manage</a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <!-- Google Configs -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between">
-                Google Workspace Configs
-                <a href="{% url 'integrations:google_config_create' %}" class="btn btn-sm btn-primary">
-                    <i class="fas fa-plus me-1"></i>Add
-                </a>
-            </div>
-            <div class="card-body p-0">
-                <ul class="list-group list-group-flush">
-                    {% for config in google_configs %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>{{ config.name }}</strong>
-                            <br>
-                            <small class="text-muted">
-                                {% if config.sync_enabled %}
-                                <span class="badge bg-success">Sync Enabled</span>
-                                {% else %}
-                                <span class="badge bg-secondary">Sync Disabled</span>
-                                {% endif %}
-                                {% if config.last_sync_at %}
-                                Last: {{ config.last_sync_at|date:"d/m H:i" }}
-                                {% endif %}
-                            </small>
-                        </div>
-                        <div>
-                            <a href="{% url 'integrations:google_config_detail' pk=config.pk %}" class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-eye"></i>
-                            </a>
-                            <button class="btn btn-sm btn-outline-success" onclick="syncGoogle('{{ config.pk }}')">
-                                <i class="fas fa-sync"></i>
-                            </button>
-                        </div>
-                    </li>
-                    {% empty %}
-                    <li class="list-group-item text-muted">No Google configs yet</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
+        <a href="{% url 'integrations:google_create' %}" class="px-4 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors inline-block">
+            <i class="fas fa-plus mr-2"></i>Connect Google
+        </a>
+        {% endif %}
     </div>
     
-    <!-- Shopify Stores -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between">
-                Shopify Stores
-                <a href="{% url 'integrations:shopify_store_create' %}" class="btn btn-sm btn-success">
-                    <i class="fas fa-plus me-1"></i>Add
-                </a>
-            </div>
-            <div class="card-body p-0">
-                <ul class="list-group list-group-flush">
-                    {% for store in shopify_stores %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>{{ store.name }}</strong>
-                            <br>
-                            <small class="text-muted">
-                                {{ store.shop_domain }}
-                                {% if store.connection_status == 'connected' %}
-                                <span class="badge bg-success">Connected</span>
-                                {% else %}
-                                <span class="badge bg-secondary">{{ store.connection_status }}</span>
-                                {% endif %}
-                            </small>
-                        </div>
-                        <div>
-                            <a href="{% url 'integrations:shopify_store_detail' pk=store.pk %}" class="btn btn-sm btn-outline-success">
-                                <i class="fas fa-eye"></i>
-                            </a>
-                            <button class="btn btn-sm btn-outline-primary" onclick="syncShopify('{{ store.pk }}')">
-                                <i class="fas fa-sync"></i>
-                            </button>
-                        </div>
-                    </li>
-                    {% empty %}
-                    <li class="list-group-item text-muted">No Shopify stores yet</li>
-                    {% endfor %}
-                </ul>
+    <!-- Shopify -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center">
+                <div class="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center">
+                    <i class="fab fa-shopify text-2xl text-green-600"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-xl font-bold text-gray-900">Shopify</h3>
+                    <p class="text-base text-gray-500">Sync orders and abandoned checkouts</p>
+                </div>
             </div>
         </div>
-    </div>
-</div>
-
-<div class="row">
-    <!-- Other Integrations -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between">
-                Other Integrations
-                <a href="{% url 'integrations:config_create' %}" class="btn btn-sm btn-primary">
-                    <i class="fas fa-plus me-1"></i>Add
-                </a>
+        
+        {% if shopify_stores %}
+        <div class="space-y-4">
+            {% for store in shopify_stores %}
+            <div class="border border-gray-200 rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-base font-semibold text-gray-900">{{ store.name }}</p>
+                        <p class="text-sm text-gray-500">{{ store.shop_domain }}</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold {% if store.connection_status == 'connected' %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+                            {{ store.connection_status|title }}
+                        </span>
+                        {% if store.sync_abandoned_checkouts %}
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">
+                            Abandoned Sync ON
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+                    <div class="flex items-center space-x-4 text-sm text-gray-500">
+                        <span><i class="fas fa-shopping-cart mr-1"></i>{{ store.orders_synced|default:0 }} orders</span>
+                        <span><i class="fas fa-cart-arrow-down mr-1"></i>{{ store.abandoned_synced|default:0 }} abandoned</span>
+                    </div>
+                    <a href="{% url 'integrations:shopify_config' store.id %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm">
+                        Configure
+                    </a>
+                </div>
             </div>
-            <div class="card-body p-0">
-                <ul class="list-group list-group-flush">
-                    {% for integration in integrations %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>{{ integration.name }}</strong>
-                            <br>
-                            <small class="text-muted">{{ integration.provider }} - {{ integration.get_integration_type_display }}</small>
-                        </div>
-                        <div>
-                            {% if integration.is_enabled %}
-                            <span class="badge bg-success">Enabled</span>
-                            {% else %}
-                            <span class="badge bg-secondary">Disabled</span>
-                            {% endif %}
-                        </div>
-                    </li>
-                    {% empty %}
-                    <li class="list-group-item text-muted">No integrations configured</li>
-                    {% endfor %}
-                </ul>
-            </div>
+            {% endfor %}
         </div>
+        {% else %}
+        <div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
+            <p class="text-sm text-green-700"><i class="fas fa-info-circle mr-2"></i>Connect your Shopify store to sync orders and abandoned checkouts automatically.</p>
+        </div>
+        {% endif %}
+        
+        <a href="{% url 'integrations:shopify_create' %}" class="mt-4 px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors inline-block">
+            <i class="fas fa-plus mr-2"></i>Add Shopify Store
+        </a>
     </div>
     
-    <!-- Webhooks -->
-    <div class="col-md-6 mb-4">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between">
-                Webhook Endpoints
-                <a href="{% url 'integrations:webhook_create' %}" class="btn btn-sm btn-warning">
-                    <i class="fas fa-plus me-1"></i>Add
-                </a>
+    <!-- WhatsApp -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center">
+                    <i class="fab fa-whatsapp text-2xl text-green-600"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-xl font-bold text-gray-900">WhatsApp Business</h3>
+                    <p class="text-base text-gray-500">Meta Cloud API for messaging</p>
+                </div>
             </div>
-            <div class="card-body p-0">
-                <ul class="list-group list-group-flush">
-                    {% for webhook in webhooks %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>{{ webhook.name }}</strong>
-                            <br>
-                            <small class="text-muted">{{ webhook.event_type }} → {{ webhook.url|truncatechars:40 }}</small>
-                        </div>
-                        <div>
-                            {% if webhook.is_enabled %}
-                            <span class="badge bg-success">Active</span>
-                            {% else %}
-                            <span class="badge bg-secondary">Inactive</span>
-                            {% endif %}
-                            <span class="badge bg-info">{{ webhook.total_sent }} sent</span>
-                        </div>
-                    </li>
-                    {% empty %}
-                    <li class="list-group-item text-muted">No webhooks configured</li>
-                    {% endfor %}
-                </ul>
-            </div>
+            <a href="{% url 'marketing:whatsapp_dashboard' %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                Manage <i class="fas fa-arrow-right ml-2"></i>
+            </a>
         </div>
     </div>
 </div>
@@ -210,30 +137,23 @@
 
 {% block extra_js %}
 <script>
-function syncGoogle(configId) {
-    fetch(`/integrations/api/google/${configId}/sync/`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-    })
-    .then(r => r.json())
-    .then(data => {
-        alert(data.message || 'Sync completed');
-        location.reload();
-    })
-    .catch(e => alert('Error: ' + e));
-}
-
-function syncShopify(storeId) {
-    fetch(`/integrations/api/shopify/${storeId}/sync/`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': '{{ csrf_token }}' }
-    })
-    .then(r => r.json())
-    .then(data => {
-        alert(data.message || 'Sync completed');
-        location.reload();
-    })
-    .catch(e => alert('Error: ' + e));
+async function syncGoogle() {
+    try {
+        const response = await fetch('{% url "integrations:google_sync" %}', {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrftoken}
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(data.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Failed to sync', 'error');
+    }
 }
 </script>
 {% endblock %}
