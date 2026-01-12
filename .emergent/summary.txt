@@ -1,0 +1,192 @@
+<analysis>**original_problem_statement:**
+The user has provided a Django-based ERP system called Elvis-Manager. The goal is to extend its functionality significantly without altering the core models or database schema.
+
+**Initial Functional Requirements (Summary):**
+1.  **Dynamic Channel Management:** An admin settings page to add/edit/deactivate sales channels (e.g., WhatsApp, Shopify) and configure the fields required for each channel's order form.
+2.  **WhatsApp Channel Improvements:** Add a unique UTR (Unique Transaction Reference) field specifically for WhatsApp orders with an audit trail.
+3.  **Logistics Panel:** A module for assigning unfulfilled orders to carriers, featuring rule-based and performance-based allocation, manual overrides, and tracking.
+4.  **Google Workspace Contact Sync:** A scheduled job to pull contacts from the Google People API, map them to the Customer model, and handle incremental syncs.
+5.  **Inventory Management:** Track stock quantities, movements, and reorder points in new tables without altering the existing  model.
+6.  **Customer Segmentation:** A module to compute and store customer metrics (LTV, AOV, etc.) and segment customers based on behavior, lifecycle, and value.
+7.  **Shopify Integration:** A custom Shopify app to sync orders, manage inventory, and push fulfillment data back to Shopify.
+8.  **UI/UX Overhaul:** Redesign templates with a modern, responsive framework (Bootstrap 5).
+9.  **Additional Enhancements:** Role-based permissions, notifications, REST APIs, and a plug-and-play integration framework.
+
+**Revised and Detailed Requirements (from user feedback):**
+After an initial implementation, the user provided a much more detailed set of requirements, which are now the primary focus:
+*   **Complete UI Overhaul:** The existing UI is insufficient. A full replacement is required with a modern layout (sidebar + top bar), a consistent design system, server-side tables, and visual dashboards. All legacy templates must be removed.
+*   **New 'Marketing' Module:**
+    *   **Leads (from Google Contacts):** Sync Google contacts into a new  model, not directly to .
+    *   **Lead Segmentation (WIN/LOSS):** Automatically classify leads as 'WIN' (if their phone number matches an existing customer/order) or 'LOSS' (if no match). This is a mandatory view.
+    *   **Google Contact Back-Sync:** If a lead's name is improved in the ERP, sync the better name back to Google Contacts.
+    *   **WhatsApp Broadcasting:** Create a plug-and-play system for WhatsApp providers (e.g., WATI, Gupshup). Include a template manager, event-driven notifications (e.g., order created, shipment assigned), and a campaign broadcasting system with audience segmentation and analytics.
+    *   **Market Insights:** Build dashboards showing geo-intelligence data (by State -> District -> Pincode), including lead counts, conversion rates, revenue, and RTO share. Automatically tag markets as Hot, Cold, or New.
+*   **Shopify Dynamic Channels:** Shopify orders must be split into  and  dynamic channels within the ERP.
+*   **Logistics UI Polish:** The UI must be premium and feel like a professional logistics platform (e.g., ClickPost).
+
+**User's preferred language**: English
+
+**what currently exists?**
+The agent has successfully set up a development environment with PostgreSQL and Redis. The initial Django project was explored, and several new Django apps have been created to lay the groundwork for the requested features (, , , , , ). Database migrations have been run, a superuser exists, and sample data has been loaded. The agent verified that the new modules are accessible via the UI and that basic REST API endpoints are functional. However, this initial implementation was a high-level scaffold, and the user has since provided much more detailed requirements, rendering the current UI and some of the logic incomplete.
+
+**Last working item**:
+- **Last item agent was working:** The agent began implementing the major new features and UI overhaul requested by the user. It started by creating the foundational files for the new  Django app, including , , , and a new base template at . The agent then created the , , , and  for the marketing module.
+- **Status:** IN PROGRESS
+- **Agent Testing Done:** N
+- **Which testing method agent to use?** Frontend testing agent (using the screenshot tool) should be used to verify the new UI pages as they are created. Backend testing can be done via  and  for services and API endpoints.
+- **User Testing Done:** N
+
+**All Pending/In progress Issue list**:
+- **Issue 1: The application's UI does not meet user standards. (Priority: P0)**
+    - **Description:** The user has explicitly rejected the current UI and requested a complete overhaul to a modern, product-like interface. The existing implementation is a mix of old and new templates, which is not acceptable.
+    - **Attempted fixes:** The agent created a new base template () and started creating the new  module. This is the beginning of the fix but is far from complete.
+    - **Next debug checklist:**
+        1.  Systematically create new Django templates for all modules (Dashboard, Orders, Customers, Logistics, Inventory, Marketing, Integrations, Settings) that inherit from .
+        2.  Update all  across all apps to render these new templates.
+        3.  Delete or archive all old templates to ensure they are no longer accessible.
+        4.  Implement the required UI components like server-side tables, filters, and charts.
+    - **Why fix this issue and what will be achieved with the fix?** This is a mandatory requirement from the user. Fixing it will provide the modern, clean, and professional user experience the user expects and is a primary acceptance criterion.
+    - **Status:** IN PROGRESS
+    - **Is recurring issue?** N
+    - **Should Test frontend/backend/both after fix?** Both. The frontend UI needs extensive visual and functional testing. The backend needs to be tested to ensure it correctly serves data to the new UI components.
+
+**In progress Task List**:
+- **Task 1: Implement the new Marketing Module and Modern UI. (Priority: P0)**
+    - **Description:** This is the largest and most critical task, encompassing the user's detailed feedback. It involves building the Leads, WhatsApp Broadcasting, and Market Insights features, all within the new modern UI.
+    - **Where to resume:** The agent has created the backend files for the  app. The immediate next step is to create the Django templates for the marketing module's pages (Leads list, Lead detail, Campaign builder, etc.) and integrate them into the new UI structure.
+    - **What will be achieved with this?** This will deliver the core new functionality requested by the user and satisfy the requirement for a complete UI overhaul.
+    - **Status:** IN PROGRESS
+    - **Should Test frontend/backend/both after fix?** Both.
+
+**Upcoming and Future Tasks**
+- **Upcoming Tasks (P0):**
+    - **Implement Leads Management:** Create the Google Contacts sync service to populate the  model. Implement the WIN/LOSS segmentation logic and the back-sync functionality to update contact names in Google.
+    - **Implement WhatsApp Broadcasting:** Build the plug-and-play provider model, the template manager, the event-driven notification system, and the campaign broadcasting UI with audience filters and analytics.
+    - **Implement Market Insights:** Develop the services to perform geo-aggregation of data (leads, orders, revenue by pincode/district/state) and build the dashboards to visualize these insights, including Hot/Cold market tagging.
+    - **Refine Shopify Integration:** Ensure Shopify orders are correctly categorized into  and  channels.
+- **Future Tasks (P1):**
+    - **Enhance Logistics UI:** Polish the logistics panel to provide a premium, ClickPost-level user experience with bulk actions, drawers, and an intuitive rules manager.
+    - **Implement Suggested Add-ons:** If time permits, add lead assignment to sales reps, WhatsApp inbound reply tracking, and campaign attribution.
+
+**Completed work in this session**
+- **Environment Setup:** Successfully configured the project environment with PostgreSQL, Redis, and Celery, managed by .
+- **Initial Module Scaffolding:** Created the Django apps, models, views, and URLs for , , , , , and .
+- **Database Initialization:** Ran all database migrations and loaded the database with a superuser (/) and sample data.
+- **Initial Verification:** Confirmed that the server is running and the initial dashboards for the new modules are accessible, and basic API endpoints respond correctly.
+- **Began User-Requested Overhaul:** Started creating the new  app and a new base template for the modern UI based on detailed user feedback.
+
+**Earlier issues found/mentioned but not fixed**
+- The entire UI is considered an issue by the user and is currently being reworked. No other specific, unfixed bugs were noted.
+
+**Known issue recurrence from previous fork**
+- N/A
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+-   **Backend:** Django, Django REST Framework
+-   **Database:** PostgreSQL
+-   **Async Tasks:** Celery with a Redis broker
+-   **Process Management:** Supervisord
+-   **Frontend:** Django Template Language (DTL), Bootstrap
+
+**key DB schema**
+-   ****: To store contacts from Google Sync with fields for name, phone, , and a link to the matched customer/order.
+-   ****: To store credentials and configuration for different WhatsApp API providers.
+-   ****: To manage broadcast campaigns, including audience segments and performance analytics.
+-   ****: Stores dynamic sales channels with configurations for required fields like .
+-   **, **: Manages carriers and order shipments.
+-   **, **: Tracks inventory across different locations.
+
+**changes in tech stack**
+-   The database was migrated from the default SQLite to PostgreSQL.
+
+**All files of reference**
+-   **/app/marketing/**: This entire new app is critical. Key files are  (for Leads, Campaigns),  (for Google Sync, broadcasting logic), and .
+-   **/app/templates/ui/base.html**: The new base template that will define the modern look and feel for the entire application.
+-   **/app/elvis_erp/settings.py**: Updated to include all the new apps in  and configure the database and Celery.
+-   **/etc/supervisor/conf.d/elvis.conf**: Defines the services that run the application (, Usage: celery [OPTIONS] COMMAND [ARGS]...
+
+  Celery command entrypoint.
+
+Options:
+  -A, --app TEXT
+  -b, --broker TEXT
+  --result-backend TEXT
+  --loader TEXT
+  --config TEXT
+  --workdir PATH
+  -C, --no-color
+  -q, --quiet
+  --version
+  --skip-checks          Skip Django core checks on startup. Setting the
+                         SKIP_CHECKS environment variable to any non-empty
+                         string will have the same effect.
+  --help                 Show this message and exit.
+
+Commands:
+  amqp     AMQP Administration Shell.
+  beat     Start the beat periodic task scheduler.
+  call     Call a task by name.
+  control  Send the COMMAND control command to the workers.
+  events   Event-stream utilities.
+  graph    The ``celery graph`` command.
+  inspect  Inspect the workers by sending them the COMMAND inspect command.
+  list     Get info from broker.
+  logtool  The ``celery logtool`` command.
+  migrate  Migrate tasks from one broker to another.
+  multi    Start multiple worker instances.
+  purge    Erase all messages from all known task queues.
+  report   Shows information useful to include in bug-reports.
+  result   Print the return value for a given task id.
+  shell    Start shell session with convenient access to celery symbols.
+  status   Show list of workers that are online.
+  upgrade  Perform upgrade between versions.
+  worker   Start worker instance.).
+
+**key api endpoints**
+-   : Base URL for the REST API.
+-   : CRUD for logistics carriers.
+-   : LIST warehouses.
+-   : LIST dynamic sales channels.
+-   : Endpoint to check for UTR uniqueness.
+
+**Critical Info for New Agent**
+-   **Follow the New Requirements:** The user's feedback in message #162 is the **single source of truth**. The initial implementation was just a starting point. Your top priority is to build the features and UI detailed in that message.
+-   **UI Overhaul is Mandatory:** Do not add features to the old UI. All new development must happen within the new, modern UI structure based on .
+-   **Marketing Module is the Core Task:** The detailed  module (Leads, WhatsApp, Insights) is the main deliverable. Focus your efforts here.
+-   **The Environment is Ready:** The stack (Django, Postgres, Redis, Celery) is configured and running under . You can start developing features immediately. The project is located at .
+-   **Superuser Credentials:**  / .
+
+**Last 10 User Messages and any pending HUMAN messages**
+-   **Message 162:** This is the most critical message. The user provided an extensive and detailed list of requirements for a complete UI overhaul and a new, comprehensive Marketing module. This feedback overrides all previous plans and defines the current scope of work. All development must now adhere to these specifications. (Status: IN PROGRESS)
+
+**Project Health Check:**
+-   **Broken:** The UI is in a broken, transitional state. The user has explicitly rejected it, and it's a mix of old and new templates. Navigating the application will likely lead to inconsistent user experiences.
+-   **Mocked:** Much of the backend functionality is currently a scaffold. The complex business logic for lead segmentation (WIN/LOSS), Google back-sync, and market analytics has not been implemented yet.
+
+**3rd Party Integrations**
+-   **Google Workspace (People API):** Required for syncing contacts to the  module. Implementation is pending, will require handling OAuth credentials.
+-   **Shopify (Admin API):** Required for syncing orders and fulfillment. A library is installed, but the full webhook/sync logic needs to be refined. Will require API credentials.
+-   **WhatsApp Providers (e.g., Meta Cloud API, Gupshup):** A plug-and-play abstraction needs to be built. This will require storing and managing API keys/credentials for whichever provider is configured.
+
+**Testing status**
+-   **Testing agent used after significant changes:** NO
+-   **Troubleshoot agent used after agent stuck in loop:** NO
+-   **Test files created:** []
+-   **Known regressions:** None, as the project is in an additive phase.
+
+**Credentials to test flow:**
+-   **ERP Superuser Login:**
+    -   Username: 
+    -   Password: 
+
+**What agent forgot to execute**
+The agent's initial implementation was a broad first pass. It didn't forget tasks but rather didn't implement the deep, specific business logic that the user detailed in their follow-up feedback (Message 162). The key items to be implemented now are:
+-   The complete UI overhaul, removing all legacy templates.
+-   The WIN/LOSS classification logic for leads from Google Contacts.
+-   The name correction back-sync feature for Google Contacts.
+-   The entire WhatsApp broadcasting system, including the plug-and-play provider abstraction and campaign management.
+-   The Market Insights geo-analytics dashboards.
+-   The specific logic to split Shopify orders into  /  channels.</analysis>
