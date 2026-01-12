@@ -130,9 +130,16 @@ class ShopifyStore(BaseModel):
     sync_inventory = models.BooleanField(default=False)
     auto_fulfill = models.BooleanField(default=False, help_text="Auto-mark orders as fulfilled when shipped")
     
+    # Abandoned Checkout Sync Settings
+    sync_abandoned_checkouts = models.BooleanField(default=False, help_text="Sync abandoned checkouts to Leads")
+    sync_abandoned_carts = models.BooleanField(default=False, help_text="Sync abandoned carts to Leads (if supported)")
+    abandoned_sync_interval_minutes = models.IntegerField(default=30, help_text="How often to fetch abandoned checkouts")
+    last_abandoned_sync_at = models.DateTimeField(null=True, blank=True)
+    
     # Webhook settings
     webhook_secret = models.CharField(max_length=200, blank=True, null=True)
     orders_webhook_id = models.CharField(max_length=100, blank=True, null=True)
+    checkouts_webhook_id = models.CharField(max_length=100, blank=True, null=True, help_text="Webhook for abandoned checkouts")
     
     # Status
     last_sync_at = models.DateTimeField(null=True, blank=True)
