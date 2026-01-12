@@ -349,9 +349,18 @@ class Campaign(BaseModel):
         ('cancelled', 'Cancelled'),
     ]
     
+    CAMPAIGN_TYPES = [
+        ('broadcast', 'Broadcast'),
+        ('abandoned_recovery', 'Abandoned Recovery'),
+        ('promotional', 'Promotional'),
+        ('transactional', 'Transactional'),
+        ('reactivation', 'Reactivation'),
+    ]
+    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True, null=True)
+    campaign_type = models.CharField(max_length=30, choices=CAMPAIGN_TYPES, default='broadcast')
     
     # Provider & Template
     provider = models.ForeignKey(WhatsAppProvider, on_delete=models.PROTECT, related_name='campaigns')
@@ -360,6 +369,10 @@ class Campaign(BaseModel):
     # Audience
     audience_filters = models.JSONField(default=dict, help_text="Filters for audience selection")
     audience_count = models.IntegerField(default=0)
+    
+    # Abandoned Recovery Settings
+    recovery_followup_hours = models.JSONField(default=list, help_text="Followup schedule in hours e.g. [1, 24, 72]")
+    stop_on_conversion = models.BooleanField(default=True, help_text="Stop followups when lead converts")
     
     # Scheduling
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
