@@ -41,7 +41,7 @@
             </div>
         </div>
         <div class="flex items-center space-x-3">
-            <a href="{% url 'integrations:google_config' google_config.id %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+            <a href="{% url 'integrations:google_config_detail' google_config.id %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
                 <i class="fas fa-cog mr-2"></i>Configure
             </a>
             <button onclick="syncGoogle()" class="px-4 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors">
@@ -52,7 +52,7 @@
         <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
             <p class="text-sm text-blue-700"><i class="fas fa-info-circle mr-2"></i>Google OAuth credentials not configured. Contact support to enable.</p>
         </div>
-        <a href="{% url 'integrations:google_create' %}" class="px-4 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors inline-block">
+        <a href="{% url 'integrations:google_config_create' %}" class="px-4 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors inline-block">
             <i class="fas fa-plus mr-2"></i>Connect Google
         </a>
         {% endif %}
@@ -97,7 +97,7 @@
                         <span><i class="fas fa-shopping-cart mr-1"></i>{{ store.orders_synced|default:0 }} orders</span>
                         <span><i class="fas fa-cart-arrow-down mr-1"></i>{{ store.abandoned_synced|default:0 }} abandoned</span>
                     </div>
-                    <a href="{% url 'integrations:shopify_config' store.id %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm">
+                    <a href="{% url 'integrations:shopify_store_detail' store.id %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm">
                         Configure
                     </a>
                 </div>
@@ -110,7 +110,7 @@
         </div>
         {% endif %}
         
-        <a href="{% url 'integrations:shopify_create' %}" class="mt-4 px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors inline-block">
+        <a href="{% url 'integrations:shopify_store_create' %}" class="mt-4 px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors inline-block">
             <i class="fas fa-plus mr-2"></i>Add Shopify Store
         </a>
     </div>
