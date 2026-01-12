@@ -55,7 +55,7 @@ class Lead(BaseModel):
     lead_source = models.CharField(max_length=50, choices=LEAD_SOURCES, default='manual')
     source_ref_id = models.CharField(max_length=200, blank=True, null=True, help_text="External reference ID (Shopify checkout/cart ID)")
     source_payload = models.JSONField(default=dict, blank=True, help_text="Raw snapshot from source")
-    captured_at = models.DateTimeField(auto_now_add=True, help_text="When lead was captured in ERP")
+    captured_at = models.DateTimeField(null=True, blank=True, help_text="When lead was captured in ERP")
     needs_phone = models.BooleanField(default=False, help_text="True if lead created from email only")
     
     # Shopify Abandoned Checkout/Cart Fields
