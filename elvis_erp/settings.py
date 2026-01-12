@@ -6,13 +6,13 @@ from django.utils.translation import gettext_lazy as _
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "mu2zt*8$t6pb926p443ig@-*zi*(v23csz_*7l-yo0hfqr2%8#"
+SECRET_KEY = config("SECRET_KEY", default="mu2zt*8$t6pb926p443ig@-*zi*(v23csz_*7l-yo0hfqr2%8#")
 
 DEBUG = config("DEBUG", default=True, cast=bool)
 
 
 ALLOWED_HOSTS = ["*"]
-
+CSRF_TRUSTED_ORIGINS = ["http://localhost:8000", "http://127.0.0.1:8000"]
 
 # Application definition
 
@@ -29,6 +29,10 @@ INSTALLED_PLUGINS = [
     "registration",
     "tinymce",
     "easy_thumbnails",
+    "rest_framework",
+    "drf_spectacular",
+    "django_celery_beat",
+    "django_celery_results",
 ]
 
 DJANGO_APPS = [
@@ -36,7 +40,6 @@ DJANGO_APPS = [
     "django.contrib.humanize",
     "django.contrib.auth",
     "django.contrib.contenttypes",
-    # "django.contrib.sessions",
     "user_sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
@@ -44,15 +47,19 @@ DJANGO_APPS = [
 MODULES = [
     "master",
     "core",
-    "accounts"
-   
+    "accounts",
+    "channels_config",
+    "logistics",
+    "inventory",
+    "segmentation",
+    "integrations",
+    "api",
 ]
 
 INSTALLED_APPS = INSTALLED_PLUGINS + DJANGO_APPS + MODULES
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    # "django.contrib.sessions.middleware.SessionMiddleware",
     "user_sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -94,23 +101,17 @@ DATABASES = {
         "USER": config("DB_USER", default=""),
         "PASSWORD": config("DB_PASSWORD", default=""),
         "HOST": config("DB_HOST", default="localhost"),
-        "PORT": "",
+        "PORT": config("DB_PORT", default=""),
     }
 }
 
 
 # Password validation
-AUTH_PASSWORD_VALIDATORS = [
-    # {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    # {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
-    # {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    # {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
-]
+AUTH_PASSWORD_VALIDATORS = []
 
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
-    # other finders..
     "compressor.finders.CompressorFinder",
 )
 
@@ -132,6 +133,7 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 SESSION_ENGINE = "user_sessions.backends.db"
 SESSION_CACHE_ALIAS = "default"
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 10240
+
 # Internationalization
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Asia/Kolkata"
@@ -167,11 +169,11 @@ LOGOUT_URL = "/accounts/logout/"
 LOGIN_REDIRECT_URL = "/"
 
 
-EMAIL_BACKEND = config("EMAIL_BACKEND")
-EMAIL_HOST = config("EMAIL_HOST")
-EMAIL_PORT = config("EMAIL_PORT")
-EMAIL_HOST_USER = config("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
+EMAIL_BACKEND = config("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+EMAIL_HOST = config("EMAIL_HOST", default="localhost")
+EMAIL_PORT = config("EMAIL_PORT", default=25)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 ACCOUNT_EMAIL_VERIFICATION = "none"
@@ -204,3 +206,33 @@ APP_SETTINGS = {
     "site_keywords": "Efficiency amplified, productivity perfected.",
     "background_image": "/static/app/config/background.jpg",
 }
+
+# REST Framework Configuration
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework.authentication.BasicAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 50,
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Elvis-Manager ERP API",
+    "DESCRIPTION": "RESTful API for Elvis-Manager ERP System",
+    "VERSION": "1.0.0",
+}
+
+# Celery Configuration
+CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_CACHE_BACKEND = "default"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
