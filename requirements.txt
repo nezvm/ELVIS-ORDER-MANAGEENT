@@ -1,3 +1,4 @@
+django==4.2.9
 django-admin-interface
 django-colorfield
 easy-thumbnails
@@ -11,5 +12,17 @@ django-registration-redux
 django-extensions
 django_compressor
 python-decouple
-django==4.2.9
 django-user-sessions
+psycopg2-binary
+celery[redis]
+django-celery-beat
+django-celery-results
+redis
+djangorestframework
+drf-spectacular
+requests
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+shopify
+Pillow
