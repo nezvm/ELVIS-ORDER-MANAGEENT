@@ -1,45 +1,58 @@
-{% extends 'app/base.html' %}
-{% load static i18n crispy_forms_tags django_tables2 %}
-{% block title %}You landed on a desert : {{app_settings.site_title}}{% endblock %}
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}{{ action_name|default:'Action' }}{% endblock %}
+{% block page_title %}{{ action_name|default:'Action' }}{% endblock %}
 
 {% block content %}
-
-<div class="side-app main-container">
-
-    <!--Page header-->
-    <div class="page-header d-flex">
-        <div class="page-leftheader">
-            <div class="page-title">You landed on a desert</div>
-        </div>
+<div class="space-y-6" data-testid="action-page">
+    <!-- Breadcrumb -->
+    {% if back_url %}
+    <div class="flex items-center text-sm text-gray-500">
+        <a href="{{ back_url }}" class="hover:text-primary-500">Back</a>
+        <i class="fas fa-chevron-right mx-2 text-xs"></i>
+        <span class="text-gray-900 font-medium">{{ action_name|default:'Action' }}</span>
     </div>
-
-    <div class="row row-sm">
-        <div class="col-lg-12">
-            <div class="card">
-
-                <div class="card-body text-center">
-                    <div class="card-image text-center mb-4">
-                        <img src="{% static 'app/images/error/404.png' %}" alt="" class="w-100" style="max-width: 400px;">
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mx-auto">
-                            <p>
-                                "Welcome to the desert of lost pages! It looks like you've stumbled upon a 404 error, which
-                                means the page you were trying to find has vanished into the sands of the internet. Don't worry
-                                though, there's plenty of sand to go around! In fact, there's so much sand that there's not much
-                                else here. But hey, at least you won't have to worry about being bothered by any annoying
-                                notifications or pop-ups. Just sit back, relax, and enjoy the silence of the 404 desert. Who
-                                knows, you might even find a treasure chest full of 404 error messages buried somewhere in the
-                                sand. Happy searching!"
-                            </p>
-                            <a href="/" class="btn btn-primary">{% trans "Go Home, It is getting late" %}</a>
-                        </div>
-                    </div>
-                </div>
+    {% endif %}
+    
+    <!-- Action Card -->
+    <div class="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm max-w-lg">
+        <div class="text-center mb-6">
+            <div class="w-16 h-16 rounded-full {% if action_type == 'danger' %}bg-red-100{% elif action_type == 'warning' %}bg-yellow-100{% else %}bg-blue-100{% endif %} flex items-center justify-center mx-auto mb-4">
+                <i class="fas {% if action_icon %}fa-{{ action_icon }}{% else %}fa-question{% endif %} text-3xl {% if action_type == 'danger' %}text-red-500{% elif action_type == 'warning' %}text-yellow-500{% else %}text-blue-500{% endif %}"></i>
             </div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">{{ action_name|default:'Confirm Action' }}</h2>
+            <p class="text-gray-500">{{ action_description|default:'Are you sure you want to proceed with this action?' }}</p>
         </div>
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            {% if form %}
+            <div class="space-y-4 mb-6">
+                {% for field in form %}
+                <div>
+                    <label for="{{ field.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                    <p class="mt-1 text-sm text-red-500">{{ field.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <div class="flex items-center space-x-4">
+                {% if back_url %}
+                <a href="{{ back_url }}" class="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors text-center">
+                    Cancel
+                </a>
+                {% endif %}
+                <button type="submit" data-testid="action-submit-btn" class="flex-1 py-3 {% if action_type == 'danger' %}bg-red-500 hover:bg-red-600{% else %}bg-black hover:bg-gray-800{% endif %} text-white rounded-xl font-semibold transition-colors">
+                    {{ action_button_text|default:'Confirm' }}
+                </button>
+            </div>
+        </form>
     </div>
-
 </div>
-
-{% endblock content %}
+{% endblock %}

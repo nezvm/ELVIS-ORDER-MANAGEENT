@@ -1,70 +1,89 @@
-{% extends 'app/base.html' %}
-{% load static i18n crispy_forms_tags django_tables2 %}
-{% block title %}{{title|title}} : {{app_settings.site_title}}{% endblock %}
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}{{ model_name|default:'Items' }}{% endblock %}
+{% block page_title %}{{ model_name_plural|default:'Items' }}{% endblock %}
 
 {% block content %}
-
-<div class="side-app main-container">
-
-    <!--Page header-->
-    <div class="page-header d-flex">
-        <div class="page-leftheader">
-            <div class="page-title">{{title|title}}</div>
-        </div>
-        <div class="page-rightheader ms-md-auto">
-            <div class="btn-list">
-
-                {% if request.GET.q %}
-                <button class="btn btn-sm btn-white"  title="Reset" id="reset-filter-search"> <span>Reset Search</span> </button>
+<div class="space-y-6" data-testid="object-list">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <p class="text-gray-500">{{ description|default:'Manage your items' }}</p>
+        {% if create_url %}
+        <a href="{{ create_url }}" data-testid="add-btn" class="px-5 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
+            <i class="fas fa-plus mr-2"></i>Add {{ model_name|default:'Item' }}
+        </a>
+        {% endif %}
+    </div>
+    
+    <!-- Table -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {% if object_list %}
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    {% for header in headers %}
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">{{ header }}</th>
+                    {% endfor %}
+                    <th class="px-6 py-4 text-right text-sm font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for object in object_list %}
+                <tr class="table-row transition-colors hover:bg-gray-50">
+                    {% for field in object.display_fields %}
+                    <td class="px-6 py-4 text-base text-gray-900">{{ field }}</td>
+                    {% endfor %}
+                    <td class="px-6 py-4 text-right">
+                        <div class="flex items-center justify-end space-x-2">
+                            {% if object.get_absolute_url %}
+                            <a href="{{ object.get_absolute_url }}" class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm">
+                                View
+                            </a>
+                            {% endif %}
+                            {% if update_url_name %}
+                            <a href="{% url update_url_name object.pk %}" class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm">
+                                Edit
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <!-- Pagination -->
+        {% if page_obj %}
+        <div class="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+            <p class="text-sm text-gray-500">
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} results
+            </p>
+            <div class="flex items-center space-x-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors">
+                    Previous
+                </a>
                 {% endif %}
-                <a class="btn btn-sm btn-white" data-bs-toggle="offcanvas" href="#offcanvasFilter" role="button"
-                    aria-controls="offcanvasFilter" title="Filter Data"> <i class="feather feather-filter"></i> </a>
-                
-                     
-                {% if can_add %}
-                <a href="{{new_link}}" class="btn btn-sm btn-white d-inline-flex align-items-center"
-                    data-bs-placement="top" data-bs-toggle="tooltip" title="New"> <i class="feather feather-plus"></i>
-                    Add</a>
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors">
+                    Next
+                </a>
                 {% endif %}
-                {% if table.paginated_rows %}
-                <a href="{% export_url 'xlsx' %}" class="btn btn-sm btn-white" data-bs-placement="top"
-                    data-bs-toggle="tooltip" title="Export"> <i class="feather feather-download-cloud"></i> </a>
-                {% endif %}
-
             </div>
         </div>
-    </div>
-    <!--End Page header-->
-    {% include 'app/partials/messages.html' %}
-    <div class="row row-sm">
-        <div class="col-lg-12">
-
-            <div class="card custom-card">
-
-                {% if table.paginated_rows %}
-                <div class="card-body p-0">
-                    <div class="table-container">
-                        {% render_table table %}
-                    </div>
-                </div>
-                {% else %}
-                <div class="card-body">
-                    {{title|title}} {% translate "list is empty." %}
-                    {% if can_add %}<a href="{{new_link}}">{% translate "Add New One" %}</a>{% endif %}
-                </div>
-                {% endif %}
-            </div>
+        {% endif %}
+        {% else %}
+        <div class="p-12 text-center text-gray-500">
+            <i class="fas fa-inbox text-5xl text-gray-300 mb-4"></i>
+            <p class="text-lg font-medium">No {{ model_name_plural|default:'items'|lower }} found</p>
+            {% if create_url %}
+            <a href="{{ create_url }}" class="inline-block mt-4 px-6 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
+                <i class="fas fa-plus mr-2"></i>Add First {{ model_name|default:'Item' }}
+            </a>
+            {% endif %}
         </div>
+        {% endif %}
     </div>
-
 </div>
-
-
-
-
-
-
-{% include 'app/partials/filter.html' %}
-{% include 'app/partials/help.html' %}
-
-{% endblock content %}
+{% endblock %}
