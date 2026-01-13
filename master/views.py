@@ -1,13 +1,20 @@
+import json
 from datetime import datetime, timedelta
 from decimal import Decimal
 from django.http import JsonResponse
 from django.db import transaction
-from django.shortcuts import get_object_or_404
+from django.db.models import Sum, Count
+from django.shortcuts import get_object_or_404, render
 from django.urls import reverse_lazy
+from django.views.decorators.http import require_http_methods
+from django.contrib.auth.decorators import login_required
+from django.views import View
+from django.utils.decorators import method_decorator
 from core import mixins
 from master.forms import CustomerForm, DateFilter, OrderItemFormSet
-from master.models import Account, Channel, Customer, Order, Product, ProductPrice
+from master.models import Account, Channel, Customer, Order, OrderItem, Product, ProductPrice
 from master import tables
+from accounts.models import User
 
 today = datetime.now().date()
 yesterday = today - timedelta(days=1) 
@@ -702,3 +709,270 @@ class OrderDeleteView(mixins.HybridDeleteView):
         if type:
             return f"{url}?type={type}"
         return url
+
+
+# =============================================
+# QUICK ORDER ENTRY
+# =============================================
+
+@method_decorator(login_required, name='dispatch')
+class QuickOrderEntryView(View):
+    """Fast order entry page with channel cards and keyboard-optimized workflow."""
+    template_name = 'order/quick_entry.html'
+    
+    def get_business_day_range(self):
+        """Get the current business day range (IST 8PM - 8PM)."""
+        from datetime import timezone as tz
+        import pytz
+        
+        ist = pytz.timezone('Asia/Kolkata')
+        now = datetime.now(ist)
+        
+        # Business day cutoff is 8 PM IST
+        cutoff_hour = 20
+        
+        if now.hour >= cutoff_hour:
+            # After 8 PM - business day is tomorrow
+            business_date = now.date() + timedelta(days=1)
+            start = now.replace(hour=cutoff_hour, minute=0, second=0, microsecond=0)
+            end = start + timedelta(days=1)
+        else:
+            # Before 8 PM - business day is today
+            business_date = now.date()
+            start = (now - timedelta(days=1)).replace(hour=cutoff_hour, minute=0, second=0, microsecond=0)
+            end = now.replace(hour=cutoff_hour, minute=0, second=0, microsecond=0)
+        
+        return business_date, start, end
+    
+    def get(self, request):
+        from datetime import date
+        channels = Channel.objects.filter(is_active=True).order_by('id')
+        accounts = Account.objects.filter(is_active=True)
+        users = User.objects.filter(is_active=True)
+        products = Product.objects.filter(is_active=True)
+        
+        # Get today's stats for each channel
+        today = date.today()
+        
+        # Calculate business date (IST 8PM-8PM)
+        from datetime import timezone as tz
+        import pytz
+        ist = pytz.timezone('Asia/Kolkata')
+        now = datetime.now(ist)
+        if now.hour >= 20:
+            business_date = today + timedelta(days=1)
+        else:
+            business_date = today
+        
+        channel_data = []
+        for channel in channels:
+            orders = Order.objects.filter(
+                channel=channel,
+                is_active=True,
+                created__date=today
+            )
+            channel_data.append({
+                'id': channel.id,
+                'channel_type': channel.channel_type,
+                'prefix': getattr(channel, 'prefix', ''),
+                'today_count': orders.count(),
+                'today_amount': orders.aggregate(total=Sum('total_amount'))['total'] or 0
+            })
+        
+        # Products JSON for frontend search
+        products_json = json.dumps([{
+            'id': p.id,
+            'name': str(p),
+            'code': p.product_code or '',
+            'price': float(p.price),
+            'size': p.size
+        } for p in products])
+        
+        # Get carriers if logistics app exists
+        carriers = []
+        try:
+            from logistics.models import Carrier
+            carriers = Carrier.objects.filter(is_active=True)
+        except:
+            pass
+        
+        active_channel = channels.first() if channels.exists() else None
+        
+        context = {
+            'channels': channel_data,
+            'accounts': accounts,
+            'users': users,
+            'carriers': carriers,
+            'products_json': products_json,
+            'active_channel': active_channel,
+            'business_date': business_date,
+        }
+        
+        return render(request, self.template_name, context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def quick_order_save(request):
+    """Save order from quick entry form."""
+    try:
+        with transaction.atomic():
+            # Parse form data
+            channel_id = request.POST.get('channel_id')
+            phone_no = request.POST.get('phone_no')
+            customer_name = request.POST.get('customer_name')
+            alternate_phone_no = request.POST.get('alternate_phone_no', '')
+            pincode = request.POST.get('pincode')
+            city = request.POST.get('city')
+            state = request.POST.get('state')
+            address = request.POST.get('address')
+            country = request.POST.get('country', 'India')
+            account_id = request.POST.get('account')
+            order_by_id = request.POST.get('order_by')
+            utr = request.POST.get('utr', '').strip()
+            cod_charge = Decimal(request.POST.get('cod_charge', '0') or '0')
+            items_json = request.POST.get('items_json', '[]')
+            
+            # Validate channel
+            channel = get_object_or_404(Channel, id=channel_id)
+            
+            # Validate UTR uniqueness for WhatsApp channel
+            if channel.channel_type == 'WhatsApp' and utr:
+                if Order.objects.filter(utr=utr, is_active=True).exists():
+                    return JsonResponse({'success': False, 'error': 'UTR already exists'})
+            
+            # Get or create customer
+            customer, created = Customer.objects.get_or_create(
+                phone_no=phone_no,
+                defaults={
+                    'customer_name': customer_name,
+                    'alternate_phone_no': alternate_phone_no,
+                    'pincode': pincode,
+                    'city': city,
+                    'state': state,
+                    'address': address,
+                    'country': country,
+                    'creator': request.user,
+                }
+            )
+            
+            if not created:
+                # Update secondary address fields
+                customer.name_2 = customer_name
+                customer.pincode_2 = pincode
+                customer.city_2 = city
+                customer.state_2 = state
+                customer.address_2 = address
+                customer.country_2 = country
+                customer.save()
+            
+            # Parse items
+            items = json.loads(items_json)
+            if not items:
+                return JsonResponse({'success': False, 'error': 'At least one item is required'})
+            
+            # Calculate total
+            total_amount = Decimal('0')
+            for item in items:
+                total_amount += Decimal(item['price']) * int(item['qty'])
+            total_amount += cod_charge
+            
+            # Create order
+            order = Order.objects.create(
+                channel=channel,
+                customer=customer,
+                account_id=account_id,
+                order_by_id=order_by_id,
+                utr=utr or None,
+                cod_charge=cod_charge,
+                total_amount=total_amount,
+                creator=request.user,
+            )
+            
+            # Create order items
+            for item in items:
+                product = get_object_or_404(Product, id=item['product_id'])
+                OrderItem.objects.create(
+                    order=order,
+                    product=product,
+                    price=Decimal(item['price']),
+                    quantity=int(item['qty']),
+                    amount=Decimal(item['price']) * int(item['qty']),
+                    creator=request.user,
+                )
+            
+            return JsonResponse({
+                'success': True,
+                'order_id': order.id,
+                'order_no': order.order_no,
+            })
+            
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+def check_utr(request):
+    """Check if UTR already exists."""
+    utr = request.GET.get('utr', '').strip()
+    if not utr:
+        return JsonResponse({'exists': False})
+    
+    exists = Order.objects.filter(utr=utr, is_active=True).exists()
+    return JsonResponse({'exists': exists})
+
+
+@login_required
+def search_products(request):
+    """Search products for autocomplete."""
+    query = request.GET.get('q', '').strip()
+    channel_type = request.GET.get('channel', '')
+    
+    products = Product.objects.filter(is_active=True)
+    
+    if query:
+        products = products.filter(
+            models.Q(product_name__icontains=query) |
+            models.Q(product_code__icontains=query)
+        )[:10]
+    
+    results = []
+    for p in products:
+        price = p.price
+        if channel_type:
+            price = p.get_price(channel_type)
+        
+        results.append({
+            'id': p.id,
+            'name': str(p),
+            'code': p.product_code or '',
+            'price': float(price),
+            'size': p.size,
+        })
+    
+    return JsonResponse({'products': results})
+
+
+@login_required  
+def lookup_pincode(request):
+    """Lookup city/state from pincode using external API or local database."""
+    pincode = request.GET.get('pincode', '').strip()
+    
+    if len(pincode) != 6:
+        return JsonResponse({'success': False, 'error': 'Invalid pincode'})
+    
+    # Try local PincodeMaster first
+    try:
+        from marketing.models import PincodeMaster
+        pm = PincodeMaster.objects.filter(pincode=pincode).first()
+        if pm:
+            return JsonResponse({
+                'success': True,
+                'city': pm.district,
+                'state': pm.state,
+            })
+    except:
+        pass
+    
+    # Fallback - let frontend handle external API call
+    return JsonResponse({'success': False, 'error': 'Not found locally'})
