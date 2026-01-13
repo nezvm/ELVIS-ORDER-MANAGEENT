@@ -37,7 +37,7 @@ celerybeat-schedule
 media/
 
 # Environments
-# .env
+.env
 .venv
 env/
 venv/
