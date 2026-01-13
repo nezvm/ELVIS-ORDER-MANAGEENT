@@ -1,0 +1,80 @@
+{% extends 'ui/base.html' %}
+{% load static humanize %}
+
+{% block title %}Stock Levels{% endblock %}
+{% block page_title %}Stock Levels{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Filters -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <form method="GET" class="flex flex-wrap items-center gap-4">
+            <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search product..." class="px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm w-64">
+            <select name="warehouse" class="px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm">
+                <option value="">All Warehouses</option>
+                {% for wh in warehouses %}
+                <option value="{{ wh.id }}" {% if request.GET.warehouse == wh.id|stringformat:'s' %}selected{% endif %}>{{ wh.code }}</option>
+                {% endfor %}
+            </select>
+            <select name="status" class="px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm">
+                <option value="">All Status</option>
+                <option value="low" {% if request.GET.status == 'low' %}selected{% endif %}>Low Stock</option>
+                <option value="out" {% if request.GET.status == 'out' %}selected{% endif %}>Out of Stock</option>
+            </select>
+            <button type="submit" class="px-4 py-2.5 bg-black text-white rounded-xl font-medium">Filter</button>
+            <a href="{% url 'inventory:stock_list' %}" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium">Clear</a>
+        </form>
+    </div>
+    
+    <!-- Stock Table -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {% if object_list %}
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Product</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Warehouse</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Quantity</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Available</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Reserved</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Status</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Location</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for stock in object_list %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                        <p class="font-medium text-gray-900">{{ stock.product.product_name }}</p>
+                        <p class="text-sm text-gray-500">{{ stock.product.product_code }}</p>
+                    </td>
+                    <td class="px-6 py-4 text-gray-600">{{ stock.warehouse.code }}</td>
+                    <td class="px-6 py-4 font-bold text-gray-900">{{ stock.quantity }}</td>
+                    <td class="px-6 py-4 text-green-600">{{ stock.available_quantity }}</td>
+                    <td class="px-6 py-4 text-orange-600">{{ stock.reserved_quantity }}</td>
+                    <td class="px-6 py-4">
+                        {% if stock.is_out_of_stock %}
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">Out of Stock</span>
+                        {% elif stock.is_low_stock %}
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">Low Stock</span>
+                        {% else %}
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">In Stock</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-gray-500">{{ stock.bin_location|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-cubes text-2xl text-gray-400"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900">No stock records</h3>
+            <p class="text-gray-500 mt-1">Stock levels will appear here when inventory is added</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

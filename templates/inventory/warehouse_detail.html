@@ -1,0 +1,57 @@
+{% extends 'ui/base.html' %}
+{% load static humanize %}
+
+{% block title %}{{ object.name }} - Warehouse{% endblock %}
+{% block page_title %}{{ object.name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <a href="{% url 'inventory:warehouse_list' %}" class="flex items-center text-gray-500 hover:text-gray-700">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Warehouses
+        </a>
+        <div class="flex space-x-3">
+            <a href="{{ object.get_update_url }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200">
+                <i class="fas fa-edit mr-2"></i>Edit
+            </a>
+        </div>
+    </div>
+    
+    <!-- Warehouse Info -->
+    <div class="grid grid-cols-3 gap-6">
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm col-span-2">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Warehouse Details</h3>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-500">Code</p>
+                    <p class="font-medium">{{ object.code }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Status</p>
+                    <span class="px-2 py-1 {% if object.is_primary %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-700{% endif %} rounded-full text-xs font-medium">
+                        {{ object.is_primary|yesno:"Primary,Secondary" }}
+                    </span>
+                </div>
+                <div class="col-span-2">
+                    <p class="text-sm text-gray-500">Address</p>
+                    <p class="font-medium">{{ object.address }}</p>
+                    <p class="font-medium">{{ object.city }}, {{ object.state }} - {{ object.pincode }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Contact Person</p>
+                    <p class="font-medium">{{ object.contact_person|default:"-" }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Contact Phone</p>
+                    <p class="font-medium">{{ object.contact_phone|default:"-" }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Stock Summary</h3>
+            <p class="text-3xl font-bold text-gray-900">₹{{ object.get_total_stock_value|intcomma }}</p>
+            <p class="text-sm text-gray-500 mt-1">Total Stock Value</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

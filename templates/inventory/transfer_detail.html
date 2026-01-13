@@ -1,0 +1,85 @@
+{% extends 'ui/base.html' %}
+{% load static humanize %}
+
+{% block title %}{{ object.transfer_number }} - Transfer{% endblock %}
+{% block page_title %}{{ object.transfer_number }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <a href="{% url 'inventory:transfer_list' %}" class="flex items-center text-gray-500 hover:text-gray-700">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Transfers
+        </a>
+        <span class="px-4 py-2 rounded-xl text-sm font-bold {% if object.status == 'completed' %}bg-green-100 text-green-700{% elif object.status == 'in_transit' %}bg-blue-100 text-blue-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+            {{ object.get_status_display }}
+        </span>
+    </div>
+    
+    <!-- Transfer Info -->
+    <div class="grid grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">From Warehouse</h3>
+            <div class="flex items-center">
+                <div class="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
+                    <i class="fas fa-warehouse text-xl text-red-600"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="font-bold text-gray-900">{{ object.source_warehouse.name }}</p>
+                    <p class="text-sm text-gray-500">{{ object.source_warehouse.code }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">To Warehouse</h3>
+            <div class="flex items-center">
+                <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-warehouse text-xl text-green-600"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="font-bold text-gray-900">{{ object.destination_warehouse.name }}</p>
+                    <p class="text-sm text-gray-500">{{ object.destination_warehouse.code }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Transfer Items -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div class="p-6 border-b border-gray-100">
+            <h3 class="text-lg font-bold text-gray-900">Transfer Items</h3>
+        </div>
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Product</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Requested</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Shipped</th>
+                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Received</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for item in object.items.all %}
+                <tr>
+                    <td class="px-6 py-4 font-medium text-gray-900">{{ item.product }}</td>
+                    <td class="px-6 py-4">{{ item.quantity_requested }}</td>
+                    <td class="px-6 py-4">{{ item.quantity_shipped }}</td>
+                    <td class="px-6 py-4">{{ item.quantity_received }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="px-6 py-4 text-center text-gray-500">No items</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Notes -->
+    {% if object.notes %}
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Notes</h3>
+        <p class="text-gray-600">{{ object.notes }}</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

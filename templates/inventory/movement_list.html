@@ -1,0 +1,80 @@
+{% extends 'ui/base.html' %}
+{% load static humanize %}
+
+{% block title %}Stock Movements{% endblock %}
+{% block page_title %}Stock Movements{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-end">
+        <a href="{% url 'inventory:movement_create' %}" class="px-5 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800">
+            <i class="fas fa-plus mr-2"></i>Record Movement
+        </a>
+    </div>
+    
+    <!-- Filters -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <form method="GET" class="flex flex-wrap items-center gap-4">
+            <select name="movement_type" class="px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm">
+                <option value="">All Types</option>
+                <option value="purchase" {% if request.GET.movement_type == 'purchase' %}selected{% endif %}>Purchase</option>
+                <option value="sale" {% if request.GET.movement_type == 'sale' %}selected{% endif %}>Sale</option>
+                <option value="adjustment_in" {% if request.GET.movement_type == 'adjustment_in' %}selected{% endif %}>Adjustment In</option>
+                <option value="adjustment_out" {% if request.GET.movement_type == 'adjustment_out' %}selected{% endif %}>Adjustment Out</option>
+                <option value="transfer_in" {% if request.GET.movement_type == 'transfer_in' %}selected{% endif %}>Transfer In</option>
+                <option value="transfer_out" {% if request.GET.movement_type == 'transfer_out' %}selected{% endif %}>Transfer Out</option>
+            </select>
+            <button type="submit" class="px-4 py-2.5 bg-black text-white rounded-xl font-medium">Filter</button>
+            <a href="{% url 'inventory:movement_list' %}" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium">Clear</a>
+        </form>
+    </div>
+    
+    <!-- Movements Table -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {% if object_list %}
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Date</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Type</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Product</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Warehouse</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Quantity</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Reference</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">By</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for movement in object_list %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-sm text-gray-500">{{ movement.created|date:"d M Y, H:i" }}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium {% if 'in' in movement.movement_type or movement.movement_type == 'purchase' %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
+                            {{ movement.get_movement_type_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 font-medium text-gray-900">{{ movement.product }}</td>
+                    <td class="px-6 py-4 text-gray-600">{{ movement.warehouse.code }}</td>
+                    <td class="px-6 py-4">
+                        <span class="font-bold {% if movement.quantity > 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                            {{ movement.quantity|intcomma }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{{ movement.reference_id|default:"-" }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{{ movement.performed_by.username|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-exchange-alt text-2xl text-gray-400"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900">No movements recorded</h3>
+            <p class="text-gray-500 mt-1">Stock movements will appear here</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
