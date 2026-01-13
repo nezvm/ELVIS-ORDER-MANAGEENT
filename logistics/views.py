@@ -87,6 +87,7 @@ class CarrierDeleteView(mixins.HybridDeleteView):
 class ShippingRuleListView(mixins.HybridListView):
     model = ShippingRule
     table_class = ShippingRuleTable
+    template_name = 'logistics/rule_list.html'
     filterset_fields = {'rule_type': ['exact'], 'assigned_carrier': ['exact']}
     
     def get_context_data(self, **kwargs):
