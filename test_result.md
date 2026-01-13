@@ -279,14 +279,13 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Sidebar Navigation - New Pages"
+    - "Segmentation Views & URLs"
     - "Segmentation Templates"
-    - "Inventory Templates"
-    - "Logistics Templates"
-    - "User Management Templates"
-  stuck_tasks: []
-  test_all: true
-  test_priority: "high_first"
+  stuck_tasks:
+    - "Segmentation Views & URLs"
+    - "Segmentation Templates"
+  test_all: false
+  test_priority: "stuck_first"
 
 agent_communication:
   - agent: "main"
