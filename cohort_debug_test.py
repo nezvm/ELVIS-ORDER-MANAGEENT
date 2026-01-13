@@ -8,7 +8,7 @@ import sys
 from urllib.parse import urljoin
 
 def test_cohort_endpoint():
-    base_url = "https://381c6107-1537-4edc-9827-0f764c1c1d3f.preview.emergentagent.com"
+    base_url = "https://modular-elvis.preview.emergentagent.com"
     session = requests.Session()
     
     print("🔍 Debugging Cohort Analysis Endpoint")
