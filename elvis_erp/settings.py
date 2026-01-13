@@ -17,8 +17,10 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8000",
     "http://localhost:8001",
     "http://127.0.0.1:8001",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
     "https://modular-elvis.preview.emergentagent.com",
-    "https://modular-elvis.preview.emergentagent.com",
+    "https://05251f47-c00d-42ed-bd64-9c92017f43e4.preview.emergentagent.com",
 ]
 
 # Application definition
