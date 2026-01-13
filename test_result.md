@@ -349,3 +349,94 @@ agent_communication:
       
       Authentication working correctly for all endpoints.
       All page templates loading with proper navigation and content structure.
+
+  - agent: "main"
+    message: |
+      Phase 2 Enhancements Implemented - Integration of refined repo features into original ERP.
+      
+      NEW FEATURES ADDED:
+      
+      1. ARCHITECTURE DOCUMENTATION
+         - Created /app/memory/ARCHITECTURE.md with comprehensive module documentation
+         - Text-based architecture diagram showing all module relationships
+         - API contracts and data flow patterns documented
+      
+      2. FEATURE FLAGS SYSTEM
+         - Created /app/core/feature_flags.py with toggle functionality
+         - Added FEATURE_FLAGS dict to elvis_erp/settings.py
+         - Modules can be enabled/disabled without code changes
+         - Decorator @feature_required() and FeatureFlagMixin for views
+      
+      3. CREDENTIAL MIGRATION
+         - Created /app/logistics/services.py with DelhiveryService, BlueDartService
+         - Services read credentials from CarrierCredential model (database) 
+         - Fallback to environment variables if database credentials not found
+         - Added carrier credential settings to settings.py (DELHIVERY_*, BLUEDART_*, TPC_*, DTDC_*)
+         - No more hardcoded API tokens in code
+      
+      4. LEGACY MODEL COMPATIBILITY
+         - Added CourierPartner model to master/models.py (from original ZIP)
+         - Added Vendor, Purchase, PurchaseItem models
+         - Added PostOrder, OrderTrackingHistory models
+         - Added PincodeRuleLegacy model
+         - Enhanced Order model with stage, tracking, shipping fields
+         - Enhanced Product model with get_stock() method
+      
+      5. ADMIN PANEL ENHANCEMENTS
+         - Updated master/admin.py with all new models
+         - Updated logistics/admin.py with CarrierCredential management UI
+         - Added credential masking and status indicators
+      
+      Please test:
+      1. All existing endpoints still work
+      2. Admin panel shows new models
+      3. Cohort Analysis page (was previously failing with 520)
+      
+      Login: admin/admin123
+
+  - task: "Feature Flags System"
+    implemented: true
+    working: "NA"
+    file: "core/feature_flags.py, elvis_erp/settings.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Feature flags system created with toggles for logistics, inventory, segmentation, marketing, integrations modules"
+
+  - task: "Credential Migration Service"
+    implemented: true
+    working: "NA"
+    file: "logistics/services.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "DelhiveryService and BlueDartService created to read credentials from CarrierCredential model instead of hardcoded values"
+
+  - task: "Legacy Model Compatibility"
+    implemented: true
+    working: "NA"
+    file: "master/models.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added CourierPartner, Vendor, Purchase, PurchaseItem, PostOrder, OrderTrackingHistory, PincodeRuleLegacy models from original ZIP"
+
+test_plan:
+  current_focus:
+    - "Segmentation Views & URLs"
+    - "Feature Flags System"
+    - "Credential Migration Service"
+    - "Legacy Model Compatibility"
+  stuck_tasks:
+    - "Segmentation Views & URLs"
+  test_all: true
+  test_priority: "stuck_first"
