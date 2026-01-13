@@ -96,6 +96,7 @@ class CustomerProfileDetailView(mixins.HybridDetailView):
 class CustomerSegmentListView(mixins.HybridListView):
     model = CustomerSegment
     table_class = CustomerSegmentTable
+    template_name = 'segmentation/segment_list.html'
     filterset_fields = {'segment_type': ['exact']}
     
     def get_context_data(self, **kwargs):
