@@ -48,6 +48,7 @@ def get_customer_details(request):
 class AccountListView(mixins.HybridListView):
     model = Account
     table_class = tables.AccountTable
+    template_name = 'master/account_list.html'
     filterset_fields = {"name": ["contains", "startswith"], "code": ["contains", "startswith"]}
     
     def get_context_data(self, **kwargs):
