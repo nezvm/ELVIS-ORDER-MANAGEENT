@@ -74,6 +74,7 @@ class InventoryDashboardView(mixins.HybridTemplateView):
 class WarehouseListView(mixins.HybridListView):
     model = Warehouse
     table_class = WarehouseTable
+    template_name = 'inventory/warehouse_list.html'
     filterset_fields = {'name': ['contains'], 'city': ['exact'], 'state': ['exact']}
     
     def get_context_data(self, **kwargs):
