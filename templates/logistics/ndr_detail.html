@@ -1,0 +1,239 @@
+{% extends 'ui/base.html' %}
+{% load static humanize %}
+
+{% block title %}NDR: {{ object.shipment.tracking_number }}{% endblock %}
+{% block page_title %}NDR Details{% endblock %}
+
+{% block content %}
+<div class="space-y-6" data-testid="ndr-detail">
+    <!-- Breadcrumb -->
+    <div class="flex items-center text-sm text-gray-500">
+        <a href="{% url 'logistics:ndr_list' %}" class="hover:text-primary-500">NDR Management</a>
+        <i class="fas fa-chevron-right mx-2 text-xs"></i>
+        <span class="text-gray-900 font-medium">{{ object.shipment.tracking_number }}</span>
+    </div>
+    
+    <div class="grid grid-cols-3 gap-6">
+        <!-- Left Column - NDR Info -->
+        <div class="col-span-2 space-y-6">
+            <!-- NDR Info Card -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                <div class="flex items-start justify-between mb-6">
+                    <div class="flex items-center">
+                        <div class="w-14 h-14 rounded-xl {% if object.is_resolved %}bg-green-100{% else %}bg-red-100{% endif %} flex items-center justify-center">
+                            <i class="fas {% if object.is_resolved %}fa-check{% else %}fa-exclamation-triangle{% endif %} text-2xl {% if object.is_resolved %}text-green-500{% else %}text-red-500{% endif %}"></i>
+                        </div>
+                        <div class="ml-4">
+                            <h2 class="text-xl font-bold text-gray-900">{{ object.get_reason_display }}</h2>
+                            <p class="text-sm text-gray-500">Attempt #{{ object.attempt_number }} • {{ object.ndr_date|date:"d M Y, H:i" }}</p>
+                        </div>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-sm font-semibold {% if object.is_resolved %}bg-green-100 text-green-700{% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                        {% if object.is_resolved %}Resolved{% else %}Pending{% endif %}
+                    </span>
+                </div>
+                
+                {% if object.reason_description %}
+                <div class="p-4 bg-gray-50 rounded-xl mb-6">
+                    <p class="text-sm text-gray-500 uppercase tracking-wider font-medium mb-1">Description</p>
+                    <p class="text-gray-700">{{ object.reason_description }}</p>
+                </div>
+                {% endif %}
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="p-4 bg-gray-50 rounded-xl">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider font-medium">Tracking Number</p>
+                        <p class="text-base font-semibold text-gray-900 mt-1">{{ object.shipment.tracking_number }}</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 rounded-xl">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider font-medium">Order</p>
+                        <a href="{% url 'master:order_detail' object.shipment.order.pk %}" class="text-base font-semibold text-primary-500 hover:underline mt-1 block">#{{ object.shipment.order.order_no }}</a>
+                    </div>
+                    <div class="p-4 bg-gray-50 rounded-xl">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider font-medium">Carrier</p>
+                        <p class="text-base font-semibold text-gray-900 mt-1">{{ object.shipment.carrier.name }}</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 rounded-xl">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider font-medium">COD Amount</p>
+                        <p class="text-base font-semibold text-gray-900 mt-1">₹{{ object.shipment.cod_amount|floatformat:0|intcomma }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Customer Info -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Customer Information</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-xs text-gray-500 uppercase tracking-wider font-medium">Name</p>
+                        <p class="text-base font-semibold text-gray-900 mt-1">{{ object.shipment.order.customer.customer_name }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 uppercase tracking-wider font-medium">Phone</p>
+                        <p class="text-base font-semibold text-gray-900 mt-1">
+                            <a href="tel:{{ object.shipment.order.customer.phone_no }}" class="text-primary-500 hover:underline">
+                                {{ object.shipment.order.customer.phone_no }}
+                            </a>
+                        </p>
+                    </div>
+                    <div class="col-span-2">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider font-medium">Delivery Address</p>
+                        <p class="text-base text-gray-700 mt-1">
+                            {{ object.shipment.order.customer.address }}, {{ object.shipment.order.customer.city }}, 
+                            {{ object.shipment.order.customer.state }} - {{ object.shipment.order.customer.pincode }}
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-3 mt-6">
+                    <a href="tel:{{ object.shipment.order.customer.phone_no }}" class="px-4 py-2 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-colors">
+                        <i class="fas fa-phone mr-2"></i>Call Customer
+                    </a>
+                    <a href="https://wa.me/91{{ object.shipment.order.customer.phone_no }}" target="_blank" class="px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors">
+                        <i class="fab fa-whatsapp mr-2"></i>WhatsApp
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Column - Action Form -->
+        <div class="space-y-6">
+            <!-- Take Action Card -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Take Action</h3>
+                
+                <form id="ndrActionForm" class="space-y-4">
+                    {% csrf_token %}
+                    
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Action *</label>
+                        <select name="action" id="actionSelect" required class="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-primary-500">
+                            <option value="">Select Action</option>
+                            <option value="reattempt" {% if object.action == 'reattempt' %}selected{% endif %}>Reattempt Delivery</option>
+                            <option value="rto" {% if object.action == 'rto' %}selected{% endif %}>Return to Origin (RTO)</option>
+                            <option value="hold" {% if object.action == 'hold' %}selected{% endif %}>Hold at Warehouse</option>
+                            <option value="reschedule" {% if object.action == 'reschedule' %}selected{% endif %}>Reschedule</option>
+                        </select>
+                    </div>
+                    
+                    <div id="rescheduleDateField" class="hidden">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">New Delivery Date</label>
+                        <input type="date" name="new_delivery_date" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    
+                    <div>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" name="customer_contacted" id="customerContacted" class="w-5 h-5 text-primary-500 rounded">
+                            <span class="ml-3 text-sm font-medium text-gray-700">Customer Contacted</span>
+                        </label>
+                    </div>
+                    
+                    <div id="customerResponseField" class="hidden">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Customer Response</label>
+                        <textarea name="customer_response" rows="3" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500" placeholder="What did customer say?">{{ object.customer_response }}</textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Notes</label>
+                        <textarea name="action_notes" rows="3" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500" placeholder="Add notes...">{{ object.action_notes }}</textarea>
+                    </div>
+                    
+                    <div>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" name="is_resolved" class="w-5 h-5 text-primary-500 rounded">
+                            <span class="ml-3 text-sm font-medium text-gray-700">Mark as Resolved</span>
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="w-full py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
+                        <i class="fas fa-save mr-2"></i>Save Action
+                    </button>
+                </form>
+            </div>
+            
+            <!-- Action History -->
+            {% if object.action %}
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Current Action</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500">Action</span>
+                        <span class="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">{{ object.get_action_display }}</span>
+                    </div>
+                    {% if object.action_by %}
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500">By</span>
+                        <span class="text-sm font-medium text-gray-900">{{ object.action_by.username }}</span>
+                    </div>
+                    {% endif %}
+                    {% if object.action_date %}
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500">Date</span>
+                        <span class="text-sm text-gray-900">{{ object.action_date|date:"d M Y, H:i" }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('actionSelect').addEventListener('change', function() {
+    const rescheduleField = document.getElementById('rescheduleDateField');
+    if (this.value === 'reschedule') {
+        rescheduleField.classList.remove('hidden');
+    } else {
+        rescheduleField.classList.add('hidden');
+    }
+});
+
+document.getElementById('customerContacted').addEventListener('change', function() {
+    const responseField = document.getElementById('customerResponseField');
+    if (this.checked) {
+        responseField.classList.remove('hidden');
+    } else {
+        responseField.classList.add('hidden');
+    }
+});
+
+document.getElementById('ndrActionForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = {
+        action: formData.get('action'),
+        action_notes: formData.get('action_notes'),
+        customer_contacted: formData.has('customer_contacted'),
+        customer_response: formData.get('customer_response'),
+        new_delivery_date: formData.get('new_delivery_date'),
+        is_resolved: formData.has('is_resolved')
+    };
+    
+    try {
+        const response = await fetch('{% url "logistics:update_ndr_action" object.pk %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Action saved successfully!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(result.error || 'Failed to save action', 'error');
+        }
+    } catch (error) {
+        showToast('An error occurred', 'error');
+    }
+});
+</script>
+{% endblock %}

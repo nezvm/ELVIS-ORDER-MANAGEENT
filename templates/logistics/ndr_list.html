@@ -1,0 +1,136 @@
+{% extends 'ui/base.html' %}
+{% load static humanize %}
+
+{% block title %}NDR Management{% endblock %}
+{% block page_title %}NDR Management{% endblock %}
+
+{% block page_subtitle %}
+<span class="ml-4 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium">
+    {{ object_list.count }} pending
+</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6" data-testid="ndr-management">
+    <!-- NDR Stats Cards -->
+    <div class="grid grid-cols-5 gap-4">
+        {% for reason, count in ndr_counts.items %}
+        <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">{{ reason|title }}</p>
+            <p class="text-2xl font-bold text-gray-900 mt-1">{{ count }}</p>
+        </div>
+        {% empty %}
+        <div class="col-span-5 text-center py-4 text-gray-500">No pending NDRs</div>
+        {% endfor %}
+    </div>
+    
+    <!-- Filters -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <form method="GET" class="flex items-center space-x-4">
+            <select name="reason" class="px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-primary-500">
+                <option value="">All Reasons</option>
+                <option value="customer_unavailable" {% if request.GET.reason == 'customer_unavailable' %}selected{% endif %}>Customer Unavailable</option>
+                <option value="wrong_address" {% if request.GET.reason == 'wrong_address' %}selected{% endif %}>Wrong Address</option>
+                <option value="address_incomplete" {% if request.GET.reason == 'address_incomplete' %}selected{% endif %}>Address Incomplete</option>
+                <option value="customer_refused" {% if request.GET.reason == 'customer_refused' %}selected{% endif %}>Customer Refused</option>
+                <option value="cod_not_ready" {% if request.GET.reason == 'cod_not_ready' %}selected{% endif %}>COD Not Ready</option>
+                <option value="customer_rescheduled" {% if request.GET.reason == 'customer_rescheduled' %}selected{% endif %}>Customer Rescheduled</option>
+            </select>
+            
+            <select name="action" class="px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-primary-500">
+                <option value="">All Actions</option>
+                <option value="reattempt" {% if request.GET.action == 'reattempt' %}selected{% endif %}>Reattempt</option>
+                <option value="rto" {% if request.GET.action == 'rto' %}selected{% endif %}>RTO</option>
+                <option value="hold" {% if request.GET.action == 'hold' %}selected{% endif %}>Hold</option>
+                <option value="reschedule" {% if request.GET.action == 'reschedule' %}selected{% endif %}>Reschedule</option>
+            </select>
+            
+            <select name="is_resolved" class="px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-primary-500">
+                <option value="">All Status</option>
+                <option value="false" {% if request.GET.is_resolved == 'false' %}selected{% endif %}>Pending</option>
+                <option value="true" {% if request.GET.is_resolved == 'true' %}selected{% endif %}>Resolved</option>
+            </select>
+            
+            <button type="submit" class="px-4 py-2.5 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-colors">
+                <i class="fas fa-filter mr-2"></i>Filter
+            </button>
+            
+            <a href="{% url 'logistics:ndr_list' %}" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+                Clear
+            </a>
+        </form>
+    </div>
+    
+    <!-- NDR Table -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {% if object_list %}
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Tracking #</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Order</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Customer</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Reason</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Attempt</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Action</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Date</th>
+                    <th class="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for ndr in object_list %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-6 py-4">
+                        <a href="{% url 'logistics:shipment_detail' ndr.shipment.pk %}" class="text-primary-500 font-semibold hover:underline">
+                            {{ ndr.shipment.tracking_number }}
+                        </a>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-900">#{{ ndr.shipment.order.order_no }}</td>
+                    <td class="px-6 py-4">
+                        <p class="text-sm font-medium text-gray-900">{{ ndr.shipment.order.customer.customer_name }}</p>
+                        <p class="text-xs text-gray-500">{{ ndr.shipment.order.customer.phone_no }}</p>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium 
+                            {% if ndr.reason == 'customer_unavailable' %}bg-yellow-100 text-yellow-700
+                            {% elif ndr.reason == 'customer_refused' %}bg-red-100 text-red-700
+                            {% elif ndr.reason == 'cod_not_ready' %}bg-orange-100 text-orange-700
+                            {% else %}bg-gray-100 text-gray-700{% endif %}">
+                            {{ ndr.get_reason_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-900">{{ ndr.attempt_number }}</td>
+                    <td class="px-6 py-4">
+                        {% if ndr.action %}
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium
+                            {% if ndr.action == 'reattempt' %}bg-blue-100 text-blue-700
+                            {% elif ndr.action == 'rto' %}bg-red-100 text-red-700
+                            {% else %}bg-gray-100 text-gray-700{% endif %}">
+                            {{ ndr.get_action_display }}
+                        </span>
+                        {% else %}
+                        <span class="text-yellow-500 text-sm"><i class="fas fa-clock mr-1"></i>Pending</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{{ ndr.ndr_date|date:"d M Y" }}</td>
+                    <td class="px-6 py-4 text-right">
+                        <a href="{% url 'logistics:ndr_detail' ndr.pk %}" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+                            Take Action
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-check text-2xl text-green-500"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900">No NDR Records</h3>
+            <p class="text-gray-500 mt-1">All deliveries are on track!</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
