@@ -15,21 +15,29 @@ class Carrier(BaseModel):
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, unique=True)
-    code = models.CharField(max_length=50, unique=True, help_text="Internal code (e.g., 'delhivery', 'bluedart')")
+    code = models.CharField(max_length=50, unique=True, help_text="Internal code (e.g., 'delhivery', 'dtdc')")
     logo = models.ImageField(upload_to='carriers/', null=True, blank=True)
     website = models.URLField(blank=True, null=True)
     tracking_url_template = models.CharField(max_length=500, blank=True, null=True,
                                              help_text="URL template with {tracking_number} placeholder")
+    serviceability_url = models.URLField(blank=True, null=True, help_text="API URL for pincode serviceability check")
     supports_cod = models.BooleanField(default=True)
     supports_prepaid = models.BooleanField(default=True)
     supports_reverse = models.BooleanField(default=False, help_text="Supports reverse logistics")
     status = models.CharField(max_length=20, choices=CARRIER_STATUS, default='active')
     priority = models.IntegerField(default=0, help_text="Higher priority = preferred carrier")
+    is_primary = models.BooleanField(default=False, help_text="Primary carrier for default allocation")
     
     # Performance metrics (updated by background jobs)
     avg_delivery_days = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     sla_adherence_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text="Percentage")
     success_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0, help_text="Delivery success %")
+    
+    # API Stats
+    total_api_calls = models.IntegerField(default=0)
+    successful_api_calls = models.IntegerField(default=0)
+    failed_api_calls = models.IntegerField(default=0)
+    last_api_check = models.DateTimeField(null=True, blank=True)
     
     class Meta:
         verbose_name = "Carrier"
@@ -56,6 +64,12 @@ class Carrier(BaseModel):
         if self.tracking_url_template:
             return self.tracking_url_template.replace('{tracking_number}', tracking_number)
         return None
+    
+    @property
+    def api_success_rate(self):
+        if self.total_api_calls > 0:
+            return round((self.successful_api_calls / self.total_api_calls) * 100, 2)
+        return 0
 
 
 class CarrierCredential(BaseModel):
@@ -80,6 +94,112 @@ class CarrierCredential(BaseModel):
     
     def __str__(self):
         return f"{self.carrier.name} - {self.environment}"
+
+
+class CarrierAPILog(BaseModel):
+    """Logs for tracking API calls to carriers."""
+    LOG_TYPES = [
+        ('serviceability', 'Serviceability Check'),
+        ('create_shipment', 'Create Shipment'),
+        ('cancel_shipment', 'Cancel Shipment'),
+        ('track', 'Track Shipment'),
+        ('generate_label', 'Generate Label'),
+        ('rate_check', 'Rate Check'),
+        ('other', 'Other'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    carrier = models.ForeignKey(Carrier, on_delete=models.CASCADE, related_name='api_logs')
+    log_type = models.CharField(max_length=50, choices=LOG_TYPES)
+    request_url = models.TextField()
+    request_method = models.CharField(max_length=10, default='POST')
+    request_headers = models.JSONField(default=dict, blank=True)
+    request_body = models.JSONField(default=dict, blank=True)
+    response_status = models.IntegerField(null=True)
+    response_body = models.JSONField(default=dict, blank=True)
+    response_time_ms = models.IntegerField(default=0, help_text="Response time in milliseconds")
+    is_success = models.BooleanField(default=False)
+    error_message = models.TextField(blank=True, null=True)
+    reference_id = models.CharField(max_length=100, blank=True, null=True, help_text="Order ID or AWB")
+    
+    class Meta:
+        verbose_name = "Carrier API Log"
+        verbose_name_plural = "Carrier API Logs"
+        ordering = ['-created']
+    
+    def __str__(self):
+        return f"{self.carrier.name} - {self.log_type} - {self.created}"
+
+
+class PincodeRule(BaseModel):
+    """Manual pincode-to-carrier mapping with fallback logic."""
+    RULE_TYPES = [
+        ('manual', 'Manual Mapping'),
+        ('zone', 'Zone Based'),
+        ('fallback', 'Fallback Rule'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    pincode = models.CharField(max_length=10, db_index=True)
+    carrier = models.ForeignKey(Carrier, on_delete=models.CASCADE, related_name='pincode_rules')
+    rule_type = models.CharField(max_length=20, choices=RULE_TYPES, default='manual')
+    priority = models.IntegerField(default=0, help_text="Higher priority = checked first")
+    supports_cod = models.BooleanField(default=True)
+    supports_prepaid = models.BooleanField(default=True)
+    delivery_days = models.IntegerField(null=True, blank=True, help_text="Expected delivery days")
+    notes = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        verbose_name = "Pincode Rule"
+        verbose_name_plural = "Pincode Rules"
+        ordering = ['-priority', 'pincode']
+        unique_together = ['pincode', 'carrier', 'rule_type']
+    
+    def __str__(self):
+        return f"{self.pincode} -> {self.carrier.name} (P{self.priority})"
+    
+    @staticmethod
+    def get_list_url():
+        return reverse_lazy("logistics:pincode_rule_list")
+    
+    def get_absolute_url(self):
+        return reverse_lazy("logistics:pincode_rule_detail", kwargs={"pk": str(self.pk)})
+    
+    def get_update_url(self):
+        return reverse_lazy("logistics:pincode_rule_update", kwargs={"pk": str(self.pk)})
+    
+    def get_delete_url(self):
+        return reverse_lazy("logistics:pincode_rule_delete", kwargs={"pk": str(self.pk)})
+
+
+class ChannelShippingRule(BaseModel):
+    """Channel and payment type based carrier preferences."""
+    PAYMENT_TYPES = [
+        ('cod', 'Cash on Delivery'),
+        ('prepaid', 'Prepaid'),
+        ('all', 'All Payment Types'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    channel = models.ForeignKey('master.Channel', on_delete=models.CASCADE, related_name='shipping_rules')
+    payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPES, default='all')
+    carrier = models.ForeignKey(Carrier, on_delete=models.CASCADE, related_name='channel_rules')
+    priority = models.IntegerField(default=0, help_text="Higher priority = preferred")
+    is_enabled = models.BooleanField(default=True)
+    notes = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        verbose_name = "Channel Shipping Rule"
+        verbose_name_plural = "Channel Shipping Rules"
+        ordering = ['-priority']
+        unique_together = ['channel', 'payment_type', 'carrier']
+    
+    def __str__(self):
+        return f"{self.channel.channel_type} ({self.payment_type}) -> {self.carrier.name}"
+    
+    @staticmethod
+    def get_list_url():
+        return reverse_lazy("logistics:channel_rule_list")
 
 
 class CarrierZone(BaseModel):
@@ -148,6 +268,7 @@ class ShippingRule(BaseModel):
         ('customer_tier', 'By Customer Tier'),
         ('channel', 'By Sales Channel'),
         ('product', 'By Product Category'),
+        ('pincode', 'By Pincode'),
     ]
     
     CONDITION_OPERATORS = [
@@ -158,6 +279,7 @@ class ShippingRule(BaseModel):
         ('in_list', 'In List'),
         ('not_in_list', 'Not In List'),
         ('contains', 'Contains'),
+        ('starts_with', 'Starts With'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -165,6 +287,7 @@ class ShippingRule(BaseModel):
     description = models.TextField(blank=True, null=True)
     rule_type = models.CharField(max_length=50, choices=RULE_TYPES)
     priority = models.IntegerField(default=0, help_text="Higher priority rules are evaluated first")
+    is_enabled = models.BooleanField(default=True)
     
     # Condition
     condition_field = models.CharField(max_length=100, help_text="Field to evaluate (e.g., 'state', 'weight', 'total_amount')")
@@ -199,6 +322,9 @@ class ShippingRule(BaseModel):
     
     def evaluate(self, order_data):
         """Evaluate if this rule matches the order data."""
+        if not self.is_enabled:
+            return False
+            
         field_value = order_data.get(self.condition_field)
         
         if field_value is None:
@@ -220,6 +346,8 @@ class ShippingRule(BaseModel):
             return str(field_value) not in [str(v) for v in values]
         elif self.condition_operator == 'contains':
             return str(self.condition_value).lower() in str(field_value).lower()
+        elif self.condition_operator == 'starts_with':
+            return str(field_value).startswith(str(self.condition_value))
         
         return False
 
@@ -238,6 +366,7 @@ class Shipment(BaseModel):
         ('rto_delivered', 'RTO Delivered'),
         ('cancelled', 'Cancelled'),
         ('lost', 'Lost'),
+        ('failed', 'Failed'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -280,6 +409,8 @@ class Shipment(BaseModel):
         ('manual', 'Manual'),
         ('rule_based', 'Rule Based'),
         ('performance_based', 'Performance Based'),
+        ('channel_based', 'Channel Based'),
+        ('pincode_based', 'Pincode Based'),
         ('bulk', 'Bulk Assignment'),
     ], default='manual')
     rule_used = models.ForeignKey(ShippingRule, on_delete=models.SET_NULL, null=True, blank=True)
@@ -312,6 +443,7 @@ class ShipmentTracking(BaseModel):
     shipment = models.ForeignKey(Shipment, on_delete=models.CASCADE, related_name='tracking_events')
     status = models.CharField(max_length=100)
     status_code = models.CharField(max_length=50, blank=True, null=True)
+    status_description = models.CharField(max_length=500, blank=True, null=True)
     location = models.CharField(max_length=200, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     event_time = models.DateTimeField()
@@ -383,3 +515,32 @@ class NDRRecord(BaseModel):
     
     def get_absolute_url(self):
         return reverse_lazy("logistics:ndr_detail", kwargs={"pk": str(self.pk)})
+
+
+class ShippingSettings(BaseModel):
+    """Global shipping settings."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    primary_carrier = models.ForeignKey(Carrier, on_delete=models.SET_NULL, null=True, blank=True, related_name='primary_settings')
+    enable_channel_rules = models.BooleanField(default=True, help_text="Enable channel-based carrier selection")
+    enable_pincode_rules = models.BooleanField(default=True, help_text="Enable pincode-based carrier selection")
+    enable_auto_allocation = models.BooleanField(default=True, help_text="Automatically allocate carriers to new orders")
+    default_weight_kg = models.DecimalField(max_digits=5, decimal_places=2, default=0.5, help_text="Default package weight")
+    max_cod_amount = models.DecimalField(max_digits=10, decimal_places=2, default=50000, help_text="Maximum COD amount allowed")
+    
+    # API Settings
+    check_serviceability_before_allocation = models.BooleanField(default=True)
+    retry_failed_allocations = models.BooleanField(default=True)
+    max_allocation_retries = models.IntegerField(default=3)
+    
+    class Meta:
+        verbose_name = "Shipping Settings"
+        verbose_name_plural = "Shipping Settings"
+    
+    def __str__(self):
+        return "Shipping Settings"
+    
+    @classmethod
+    def get_settings(cls):
+        """Get or create the singleton settings object."""
+        obj, created = cls.objects.get_or_create(pk=uuid.UUID('00000000-0000-0000-0000-000000000001'))
+        return obj
