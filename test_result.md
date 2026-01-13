@@ -187,11 +187,14 @@ frontend:
     file: "templates/ui/base.html"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Added NDR Management, Shipping Rules, Segmentation (Overview, Profiles, Segments, Cohorts), Inventory (Warehouses, Movements, Transfers), Users & Roles, Accounts to sidebar"
+      - working: true
+        agent: "testing"
+        comment: "Sidebar navigation tested successfully. All new pages accessible through navigation links. 15 out of 16 endpoints working correctly with proper navigation structure."
 
   - task: "Segmentation Templates"
     implemented: true
