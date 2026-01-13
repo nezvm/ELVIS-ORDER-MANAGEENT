@@ -198,15 +198,18 @@ frontend:
 
   - task: "Segmentation Templates"
     implemented: true
-    working: true
+    working: false
     file: "templates/segmentation/*.html"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Created profile_list, profile_detail, segment_list, segment_detail, cohort_analysis templates"
+      - working: false
+        agent: "testing"
+        comment: "Segmentation templates partially working. Profile list, segment list templates working correctly. CRITICAL ISSUE: cohort_analysis.html template causing HTTP 520 server error when accessed via /segmentation/cohorts/. Template exists but view logic has issues."
 
   - task: "Inventory Templates"
     implemented: true
