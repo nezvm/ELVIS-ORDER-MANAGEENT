@@ -197,6 +197,7 @@ class StockLevelDetailView(mixins.HybridDetailView):
 class StockMovementListView(mixins.HybridListView):
     model = StockMovement
     table_class = StockMovementTable
+    template_name = 'inventory/movement_list.html'
     filterset_fields = {'movement_type': ['exact'], 'warehouse': ['exact']}
     search_fields = ['product__product_name', 'reference_id']
     
