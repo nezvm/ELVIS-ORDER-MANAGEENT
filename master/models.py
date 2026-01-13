@@ -369,19 +369,59 @@ class Order(BaseModel):
     
     def save(self, *args, **kwargs):
         if not self.order_no :
-            print('not created')
             if Order.objects.filter(is_active=True).exists():
                 max_order_number = Order.objects.first().order_no
-                print(max_order_number)
                 current_number = int(max_order_number.split("-EB")[1])
-                print(current_number)
                 order_no = f"{self.channel.prefix}-EB{str(current_number + 1).zfill(4)}"
             else:
                 order_no = f"{self.channel.prefix}-EB{str(1).zfill(4)}"
-            print(order_no)
             self.order_no = order_no
         super().save(*args, **kwargs)
     
+    def get_stage_badge(self):
+        stage_badge_colors = {
+            "Confirm": "badge-primary",
+            "Booked": "badge-secondary",
+            "Delivered": "badge-success",
+            "Cancelled": "badge-dark",
+            "Pending": "badge-danger",
+        }
+        return stage_badge_colors.get(self.stage, "")
+    
+    def get_products_desc(self):
+        """Example output: '2x T-Shirt (Rs500), 1x Jeans (Rs1200)'"""
+        return ", ".join(
+            f"{item.quantity}x {item.product.product_name} (Rs{item.product.price})"
+            for item in self.get_items()
+        )
+    
+    @property
+    def capitalized_city(self):
+        if self.city:
+            return f"{self.city.upper()}"
+        return ""
+
+    @property
+    def capitalized_state(self):
+        if self.state:
+            return f"{self.state.upper()}"
+        return ""
+    
+    @property
+    def capitalized_country(self):
+        if self.country:
+            return f"{self.country.upper()}"
+        return ""
+
+    def get_track_url(self):
+        if self.tracking_id and self.courier_partner:
+            if self.courier_partner.tracking_slug:
+                base = 'https://trackcourier.io/track-and-trace/'
+                courier = self.courier_partner.tracking_slug
+                tracking_id = self.tracking_id
+                return f"{base}{courier}/{tracking_id}"
+        return None
+
 
 class OrderItem(BaseModel):
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
@@ -398,3 +438,121 @@ class OrderItem(BaseModel):
         verbose_name_plural = "Order Items"
 
 
+class OrderTrackingHistory(models.Model):
+    """Track status changes for orders."""
+    order = models.ForeignKey('master.Order', on_delete=models.CASCADE)
+    status = models.CharField(max_length=100)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.order.order_no} - {self.status} at {self.timestamp}"
+
+
+# =============================================================================
+# VENDOR & PURCHASE MODELS (from original ZIP)
+# =============================================================================
+class Vendor(BaseModel):
+    """Vendor/supplier for purchase orders."""
+    name = models.CharField("Name of Vendor", max_length=255)
+    address = models.TextField()
+    contact_details = models.CharField(max_length=100)
+
+    def __str__(self):
+        return f"{self.name}"
+    
+    class Meta:
+        verbose_name = "Vendor"
+        verbose_name_plural = "Vendors"
+
+    def get_absolute_url(self):
+        return reverse_lazy("master:vendor_detail", kwargs={"pk": self.pk})
+    
+    @staticmethod
+    def get_list_url():
+        return reverse_lazy("master:vendor_list")
+
+    def get_update_url(self):
+        return reverse_lazy("master:vendor_update", kwargs={"pk": self.pk})
+
+    def get_delete_url(self):
+        return reverse_lazy("master:vendor_delete", kwargs={"pk": self.pk})
+
+
+class Purchase(BaseModel):
+    """Purchase order from vendors."""
+    invoice_number = models.CharField(max_length=50, unique=True)
+    invoice_date = models.DateField()
+    vendor = models.ForeignKey('master.Vendor', on_delete=models.SET_NULL, null=True)
+    payment_due_date = models.DateField(blank=True, null=True)
+    grand_total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    net_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    def __str__(self):
+        return f"BILL - {self.invoice_number}"
+    
+    class Meta:
+        verbose_name = "Purchase"
+        verbose_name_plural = "Purchases"
+    
+    @staticmethod
+    def get_list_url():
+        return reverse_lazy("master:purchase_list")
+
+    def get_absolute_url(self):
+        return reverse_lazy("master:purchase_detail", kwargs={"pk": self.pk})
+
+    def get_update_url(self):
+        return reverse_lazy("master:purchase_update", kwargs={"pk": self.pk})
+
+    def get_delete_url(self):
+        return reverse_lazy("master:purchase_delete", kwargs={"pk": self.pk})
+    
+    def get_items(self):
+        return PurchaseItem.objects.filter(is_active=True, purchase=self)
+
+
+class PurchaseItem(BaseModel):
+    """Line items in a purchase order."""
+    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE)
+    item = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
+    quantity = models.PositiveIntegerField(default=1)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    line_total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
+    class Meta:
+        verbose_name = "Purchase Item"
+        verbose_name_plural = "Purchase Items"
+
+
+class PostOrder(BaseModel):
+    """Barcode tracking for shipped orders."""
+    barcode = models.CharField(max_length=50, unique=True, blank=True, null=True)
+    order = models.ForeignKey('master.Order', on_delete=models.CASCADE)
+    is_complete = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"POST ORDER - {self.barcode}"
+    
+    class Meta:
+        verbose_name = "Post Order"
+        verbose_name_plural = "Post Orders"
+
+
+# =============================================================================
+# PINCODE RULE (Legacy - for backward compatibility)
+# =============================================================================
+class PincodeRuleLegacy(BaseModel):
+    """Legacy pincode to courier mapping (see logistics.PincodeRule for new version)."""
+    courier = models.ForeignKey(CourierPartner, on_delete=models.CASCADE)
+    pincode = models.CharField(max_length=6)
+    cscrcd = models.CharField(max_length=5, blank=True, null=True)
+    priority = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        verbose_name = "Pincode Rule (Legacy)"
+        verbose_name_plural = "Pincode Rules (Legacy)"
+        unique_together = ('courier', 'pincode')
+
+    def __str__(self):
+        return f"{self.pincode} -> {self.courier.name}"
