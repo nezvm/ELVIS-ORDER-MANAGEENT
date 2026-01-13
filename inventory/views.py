@@ -259,6 +259,7 @@ class StockMovementCreateView(mixins.HybridCreateView):
 class StockTransferListView(mixins.HybridListView):
     model = StockTransfer
     table_class = StockTransferTable
+    template_name = 'inventory/transfer_list.html'
     filterset_fields = {'status': ['exact'], 'source_warehouse': ['exact'], 'destination_warehouse': ['exact']}
     
     def get_context_data(self, **kwargs):
