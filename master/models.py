@@ -1,12 +1,45 @@
 import datetime
 from decimal import Decimal
 from django.db import models
+from django.db.models import Sum
 from django.urls import reverse_lazy
 from core.base import BaseModel
 from accounts.models import User
+from core.choices import MONTH_CHOICES, YEAR_CHOICES
+
 # Create your models here.
 
 today = datetime.date.today()
+
+
+# =============================================================================
+# COURIER PARTNER MODEL (from original ZIP)
+# =============================================================================
+class CourierPartner(BaseModel):
+    """Legacy courier partner model - for backward compatibility."""
+    name = models.CharField(max_length=100, unique=True)
+    code = models.CharField(max_length=50, unique=True)
+    tracking_slug = models.CharField(max_length=50, unique=True, null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+    
+    class Meta:
+        verbose_name = "Courier Partner"
+        verbose_name_plural = "Courier Partners"
+    
+    @staticmethod
+    def get_list_url():
+        return reverse_lazy("master:courierpartner_list")
+    
+    def get_absolute_url(self):
+        return reverse_lazy("master:courierpartner_detail", kwargs={"pk": self.pk})
+
+    def get_update_url(self):
+        return reverse_lazy("master:courierpartner_update", kwargs={"pk": self.pk})
+
+    def get_delete_url(self):
+        return reverse_lazy("master:courierpartner_delete", kwargs={"pk": self.pk})
 class Account(BaseModel):
     name = models.CharField(max_length=100)
     code = models.CharField(max_length=100, unique=True)
