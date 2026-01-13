@@ -293,7 +293,7 @@ class ElvisERPTester:
 def main():
     """Main test execution"""
     # Configuration from review request
-    BASE_URL = "https://modular-elvis.preview.emergentagent.com"
+    BASE_URL = "http://localhost:8001"
     USERNAME = "admin"
     PASSWORD = "admin123"
     
