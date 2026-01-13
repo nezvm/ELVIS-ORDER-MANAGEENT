@@ -4,7 +4,7 @@ from core.base import BaseAdmin
 from .models import (
     Carrier, CarrierCredential, CarrierZone, CarrierRate, 
     ShippingRule, Shipment, ShipmentTracking, NDRRecord,
-    CarrierAPILog, PincodeServiceability, ShippingSettings
+    CarrierAPILog, PincodeRule, ShippingSettings
 )
 
 
