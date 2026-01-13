@@ -244,3 +244,65 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
+
+
+# =============================================================================
+# FEATURE FLAGS
+# =============================================================================
+# Enable/disable modules without code changes
+FEATURE_FLAGS = {
+    # Core Module Toggles
+    'ENABLE_LOGISTICS_MODULE': True,      # Carrier management, shipping rules, NDR
+    'ENABLE_INVENTORY_MODULE': True,      # Warehouse, stock levels, movements
+    'ENABLE_SEGMENTATION_MODULE': True,   # Customer profiles, segments, cohorts
+    'ENABLE_MARKETING_MODULE': True,      # Leads, campaigns, market insights
+    'ENABLE_INTEGRATIONS_MODULE': True,   # Shopify, Google, webhooks
+    'ENABLE_DYNAMIC_CHANNELS': True,      # DynamicChannel config (vs static Channel)
+    
+    # Legacy Fallbacks
+    'USE_LEGACY_SHIPPING': False,         # Use old courier_partner.py functions
+    
+    # Feature-specific toggles
+    'ENABLE_COHORT_ANALYSIS': True,
+    'ENABLE_WHATSAPP_INTEGRATION': False,  # Requires Meta Cloud API setup
+    'ENABLE_SHOPIFY_INTEGRATION': False,   # Requires Shopify API credentials
+    'ENABLE_GOOGLE_CONTACTS_SYNC': False,  # Requires Google Workspace setup
+}
+
+# =============================================================================
+# CARRIER CREDENTIALS (Fallback - prefer database CarrierCredential model)
+# =============================================================================
+# These are used only if database credentials are not configured
+# In production, use the admin panel to configure CarrierCredential
+
+# Delhivery
+DELHIVERY_API_TOKEN = config('DELHIVERY_API_TOKEN', default='')
+DELHIVERY_PICKUP_NAME = config('DELHIVERY_PICKUP_NAME', default='Elvis co')
+
+# BlueDart
+BLUEDART_CLIENT_ID = config('BLUEDART_CLIENT_ID', default='')
+BLUEDART_CLIENT_SECRET = config('BLUEDART_CLIENT_SECRET', default='')
+BLUEDART_LICENCE_KEY = config('BLUEDART_LICENCE_KEY', default='')
+BLUEDART_LOGIN_ID = config('BLUEDART_LOGIN_ID', default='')
+BLUEDART_CUSTOMER_CODE = config('BLUEDART_CUSTOMER_CODE', default='')
+BLUEDART_SHIPPER_NAME = config('BLUEDART_SHIPPER_NAME', default='')
+BLUEDART_SHIPPER_MOBILE = config('BLUEDART_SHIPPER_MOBILE', default='')
+BLUEDART_SHIPPER_PINCODE = config('BLUEDART_SHIPPER_PINCODE', default='')
+BLUEDART_ORIGIN_AREA = config('BLUEDART_ORIGIN_AREA', default='')
+
+# TPC (Professional Couriers)
+TPC_CLIENT_CODE = config('TPC_CLIENT_CODE', default='')
+TPC_PASSWORD = config('TPC_PASSWORD', default='')
+TPC_SENDER_NAME = config('TPC_SENDER_NAME', default='Elvis Co')
+TPC_SENDER_CODE = config('TPC_SENDER_CODE', default='')
+TPC_SENDER_ADDRESS = config('TPC_SENDER_ADDRESS', default='')
+TPC_SENDER_CITY = config('TPC_SENDER_CITY', default='')
+TPC_SENDER_PINCODE = config('TPC_SENDER_PINCODE', default='')
+TPC_SENDER_MOBILE = config('TPC_SENDER_MOBILE', default='')
+TPC_SENDER_EMAIL = config('TPC_SENDER_EMAIL', default='')
+TPC_SENDER_GSTIN = config('TPC_SENDER_GSTIN', default='')
+
+# DTDC
+DTDC_API_KEY = config('DTDC_API_KEY', default='')
+DTDC_CUSTOMER_CODE = config('DTDC_CUSTOMER_CODE', default='')
