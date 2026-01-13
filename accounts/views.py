@@ -10,6 +10,7 @@ from .models import User
 class UserListView(mixins.HybridListView):
     model = User
     table_class = tables.UserTable
+    template_name = 'user/list.html'
     filterset_fields = ("is_active", "is_staff", "usertype")
     
     def get_context_data(self, **kwargs):
