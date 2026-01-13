@@ -1,0 +1,80 @@
+{% extends 'ui/base.html' %}
+{% load static humanize %}
+
+{% block title %}Users & Roles{% endblock %}
+{% block page_title %}Users & Roles{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex justify-end">
+        <a href="{% url 'accounts:user_create' %}" class="px-5 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800">
+            <i class="fas fa-plus mr-2"></i>Add User
+        </a>
+    </div>
+    
+    <!-- User Table -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {% if object_list %}
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">User</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Email</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Role</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Status</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Last Login</th>
+                    <th class="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for user in object_list %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-xl bg-primary-500 flex items-center justify-center text-white font-bold">
+                                {{ user.username|slice:":1"|upper }}
+                            </div>
+                            <div class="ml-3">
+                                <p class="font-medium text-gray-900">{{ user.first_name|default:user.username }}</p>
+                                <p class="text-sm text-gray-500">@{{ user.username }}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-gray-600">{{ user.email|default:"-" }}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium {% if user.usertype == 'Superadmin' %}bg-purple-100 text-purple-700{% elif user.usertype == 'Admin' %}bg-blue-100 text-blue-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+                            {{ user.usertype|default:"Staff" }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if user.is_active %}
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Active</span>
+                        {% else %}
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-gray-500">{{ user.last_login|date:"d M Y, H:i"|default:"Never" }}</td>
+                    <td class="px-6 py-4 text-right">
+                        <div class="flex items-center justify-end space-x-2">
+                            <a href="{% url 'accounts:user_detail' user.pk %}" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">View</a>
+                            <a href="{% url 'accounts:user_update' user.pk %}" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">Edit</a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-users text-2xl text-gray-400"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900">No users found</h3>
+            <a href="{% url 'accounts:user_create' %}" class="inline-block mt-4 px-5 py-2.5 bg-black text-white rounded-xl font-medium hover:bg-gray-800">
+                <i class="fas fa-plus mr-2"></i>Add User
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

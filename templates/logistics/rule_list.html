@@ -4,74 +4,49 @@
 {% block title %}Shipping Rules{% endblock %}
 {% block page_title %}Shipping Rules{% endblock %}
 
-{% block page_subtitle %}
-<span class="ml-4 px-3 py-1 bg-gray-100 rounded-full text-sm font-medium text-gray-600">
-    {{ object_list.count }} rules
-</span>
-{% endblock %}
-
 {% block content %}
-<div class="space-y-6" data-testid="shipping-rules">
-    <!-- Header Actions -->
-    <div class="flex items-center justify-between">
-        <p class="text-gray-500">Configure automatic carrier allocation rules</p>
-        <a href="{% url 'logistics:rule_create' %}" class="px-5 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors">
-            <i class="fas fa-plus mr-2"></i>New Rule
+<div class="space-y-6">
+    <div class="flex justify-end">
+        <a href="{% url 'logistics:rule_create' %}" class="px-5 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800">
+            <i class="fas fa-plus mr-2"></i>Add Rule
         </a>
     </div>
     
-    <!-- Filters -->
-    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-        <form method="GET" class="flex items-center space-x-4">
-            <select name="rule_type" class="px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-primary-500">
-                <option value="">All Types</option>
-                <option value="zone" {% if request.GET.rule_type == 'zone' %}selected{% endif %}>By Zone/State</option>
-                <option value="weight" {% if request.GET.rule_type == 'weight' %}selected{% endif %}>By Weight</option>
-                <option value="price" {% if request.GET.rule_type == 'price' %}selected{% endif %}>By Order Value</option>
-                <option value="cod" {% if request.GET.rule_type == 'cod' %}selected{% endif %}>By COD Availability</option>
-                <option value="channel" {% if request.GET.rule_type == 'channel' %}selected{% endif %}>By Sales Channel</option>
-            </select>
-            
-            <select name="assigned_carrier" class="px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-primary-500">
-                <option value="">All Carriers</option>
-                {% for carrier in carriers %}
-                <option value="{{ carrier.id }}" {% if request.GET.assigned_carrier == carrier.id|stringformat:"s" %}selected{% endif %}>{{ carrier.name }}</option>
-                {% endfor %}
-            </select>
-            
-            <button type="submit" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
-                <i class="fas fa-filter mr-2"></i>Filter
-            </button>
-        </form>
+    <!-- Info Banner -->
+    <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6">
+        <div class="flex items-start">
+            <i class="fas fa-info-circle text-blue-500 text-xl mr-4 mt-0.5"></i>
+            <div>
+                <h4 class="text-base font-semibold text-blue-800">Rule-Based Carrier Allocation</h4>
+                <p class="text-sm text-blue-700 mt-1">Configure rules to automatically assign carriers based on zone, weight, order value, or other criteria. Rules are evaluated in priority order (highest first).</p>
+            </div>
+        </div>
     </div>
     
-    <!-- Rules List -->
+    <!-- Rules Table -->
     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         {% if object_list %}
         <table class="w-full">
             <thead class="bg-gray-50 border-b border-gray-200">
                 <tr>
-                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Priority</th>
-                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Rule Name</th>
-                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Type</th>
-                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Condition</th>
-                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Carrier</th>
-                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Fallback</th>
-                    <th class="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Priority</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Rule Name</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Type</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Condition</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Assigned Carrier</th>
+                    <th class="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
                 {% for rule in object_list %}
-                <tr class="hover:bg-gray-50 transition-colors">
+                <tr class="hover:bg-gray-50">
                     <td class="px-6 py-4">
-                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary-100 text-primary-700 font-bold text-sm">
-                            {{ rule.priority }}
-                        </span>
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-gray-900 text-white">{{ rule.priority }}</span>
                     </td>
                     <td class="px-6 py-4">
-                        <p class="text-base font-semibold text-gray-900">{{ rule.name }}</p>
+                        <p class="font-medium text-gray-900">{{ rule.name }}</p>
                         {% if rule.description %}
-                        <p class="text-sm text-gray-500 truncate max-w-xs">{{ rule.description }}</p>
+                        <p class="text-sm text-gray-500">{{ rule.description|truncatewords:10 }}</p>
                         {% endif %}
                     </td>
                     <td class="px-6 py-4">
@@ -79,32 +54,20 @@
                             {{ rule.get_rule_type_display }}
                         </span>
                     </td>
-                    <td class="px-6 py-4 text-sm text-gray-700">
-                        <code class="px-2 py-1 bg-gray-100 rounded text-xs">
-                            {{ rule.condition_field }} {{ rule.get_condition_operator_display|lower }} {{ rule.condition_value }}
-                        </code>
+                    <td class="px-6 py-4 text-gray-600">
+                        <code class="text-sm bg-gray-100 px-2 py-1 rounded">{{ rule.condition_field }} {{ rule.condition_operator }} {{ rule.condition_value }}</code>
                     </td>
                     <td class="px-6 py-4">
-                        <span class="inline-flex items-center">
-                            <i class="fas fa-truck text-gray-400 mr-2"></i>
-                            <span class="text-sm font-medium text-gray-900">{{ rule.assigned_carrier.name }}</span>
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 text-sm text-gray-500">
+                        <span class="font-medium text-gray-900">{{ rule.assigned_carrier.name }}</span>
                         {% if rule.fallback_carrier %}
-                        {{ rule.fallback_carrier.name }}
-                        {% else %}
-                        <span class="text-gray-400">—</span>
+                        <span class="text-sm text-gray-500"> (Fallback: {{ rule.fallback_carrier.name }})</span>
                         {% endif %}
                     </td>
                     <td class="px-6 py-4 text-right">
                         <div class="flex items-center justify-end space-x-2">
-                            <a href="{% url 'logistics:rule_update' rule.pk %}" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
-                                Edit
-                            </a>
-                            <a href="{% url 'logistics:rule_delete' rule.pk %}" class="px-3 py-1.5 bg-red-100 text-red-600 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors">
-                                Delete
-                            </a>
+                            <a href="{{ rule.get_absolute_url }}" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">View</a>
+                            <a href="{{ rule.get_update_url }}" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">Edit</a>
+                            <a href="{{ rule.get_delete_url }}" class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200">Delete</a>
                         </div>
                     </td>
                 </tr>
@@ -114,28 +77,15 @@
         {% else %}
         <div class="p-12 text-center">
             <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-cogs text-2xl text-gray-400"></i>
+                <i class="fas fa-cog text-2xl text-gray-400"></i>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900">No Shipping Rules</h3>
-            <p class="text-gray-500 mt-1">Create rules to automatically assign carriers</p>
-            <a href="{% url 'logistics:rule_create' %}" class="inline-block mt-4 px-5 py-2.5 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-colors">
-                <i class="fas fa-plus mr-2"></i>Create First Rule
+            <h3 class="text-lg font-semibold text-gray-900">No shipping rules</h3>
+            <p class="text-gray-500 mt-1">Create rules to automate carrier allocation</p>
+            <a href="{% url 'logistics:rule_create' %}" class="inline-block mt-4 px-5 py-2.5 bg-black text-white rounded-xl font-medium hover:bg-gray-800">
+                <i class="fas fa-plus mr-2"></i>Add Rule
             </a>
         </div>
         {% endif %}
-    </div>
-    
-    <!-- Info Box -->
-    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <div class="flex items-start">
-            <i class="fas fa-info-circle text-blue-500 mt-0.5 mr-3"></i>
-            <div>
-                <p class="text-sm font-medium text-blue-800">How Rules Work</p>
-                <p class="text-sm text-blue-700 mt-1">
-                    Rules are evaluated in order of priority (highest first). When assigning a carrier, the system checks each rule's condition against the order. The first matching rule's carrier is assigned. If no rules match, the fallback carrier is used.
-                </p>
-            </div>
-        </div>
     </div>
 </div>
 {% endblock %}
