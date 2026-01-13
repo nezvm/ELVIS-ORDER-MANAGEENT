@@ -122,15 +122,18 @@ backend:
 
   - task: "Segmentation Views & URLs"
     implemented: true
-    working: true
+    working: false
     file: "segmentation/views.py, segmentation/urls.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Profile list, segment list, cohort analysis views created with templates"
+      - working: false
+        agent: "testing"
+        comment: "CRITICAL: Cohort Analysis endpoint (/segmentation/cohorts/) returning HTTP 520 server error. CohortAnalysisView exists but causing server-side error. Other segmentation endpoints (dashboard, profiles, segments) working correctly. Issue likely in view logic or database query in CohortAnalysisView.get_context_data() method."
 
   - task: "Inventory Views & URLs"
     implemented: true
