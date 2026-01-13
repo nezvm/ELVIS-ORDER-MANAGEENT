@@ -1,391 +1,312 @@
-"""Shipping Allocation Service for automatic carrier assignment."""
-import logging
-from django.db import transaction
-from django.db.models import Q
+"""
+Logistics Service Layer
+
+This module provides shipping services that read credentials from the database
+instead of hardcoded values. It serves as a bridge between the old courier_partner.py
+and the new CarrierCredential model.
+"""
+import json
+import time
+import requests
+from decimal import Decimal
 from django.utils import timezone
-from .models import (
-    Carrier, PincodeRule, ChannelShippingRule, ShippingRule, 
-    Shipment, ShippingSettings, CarrierAPILog
-)
-from .courier_apis import CourierAPIRegistry
-
-logger = logging.getLogger(__name__)
+from django.conf import settings
+from .models import Carrier, CarrierCredential, CarrierAPILog, ShippingRule, Shipment, ShippingSettings
 
 
-class ShipmentAllocationService:
-    """Service for allocating carriers to orders."""
+class CarrierService:
+    """
+    Service class for carrier operations.
+    Reads credentials from database instead of hardcoded values.
+    """
     
-    def __init__(self):
-        self.settings = ShippingSettings.get_settings()
-    
-    def get_order_data(self, order):
-        """Extract relevant data from order for rule evaluation."""
-        customer = order.customer
-        channel = order.channel
+    @staticmethod
+    def get_credentials(carrier_code, environment='production'):
+        """
+        Get carrier credentials from database.
         
+        Args:
+            carrier_code: Carrier code (e.g., 'delhivery', 'bluedart')
+            environment: 'sandbox' or 'production'
+        
+        Returns:
+            CarrierCredential object or None
+        """
+        try:
+            return CarrierCredential.objects.get(
+                carrier__code=carrier_code,
+                environment=environment,
+                is_active=True
+            )
+        except CarrierCredential.DoesNotExist:
+            return None
+    
+    @staticmethod
+    def get_carrier_by_code(code):
+        """Get carrier by code."""
+        try:
+            return Carrier.objects.get(code=code, is_active=True)
+        except Carrier.DoesNotExist:
+            return None
+    
+    @staticmethod
+    def log_api_call(carrier, log_type, request_url, request_method, request_headers,
+                     request_body, response_status, response_body, response_time_ms,
+                     is_success, error_message=None, reference_id=None):
+        """Log an API call to a carrier."""
+        # Mask sensitive data in headers
+        safe_headers = {k: '***' if 'auth' in k.lower() or 'token' in k.lower() else v 
+                       for k, v in request_headers.items()}
+        
+        return CarrierAPILog.objects.create(
+            carrier=carrier,
+            log_type=log_type,
+            request_url=request_url,
+            request_method=request_method,
+            request_headers=safe_headers,
+            request_body=request_body,
+            response_status=response_status,
+            response_body=response_body,
+            response_time_ms=response_time_ms,
+            is_success=is_success,
+            error_message=error_message,
+            reference_id=reference_id
+        )
+
+
+class DelhiveryService:
+    """
+    Delhivery shipping service using database credentials.
+    """
+    CARRIER_CODE = 'delhivery'
+    API_URL = 'https://api.delhivery.com/api/cmu/create.json'
+    
+    @classmethod
+    def get_credentials(cls, environment='production'):
+        """Get Delhivery credentials from database."""
+        creds = CarrierService.get_credentials(cls.CARRIER_CODE, environment)
+        if creds:
+            return {
+                'api_token': creds.api_key,
+                'pickup_name': creds.additional_config.get('pickup_name', 'Elvis co'),
+                'base_url': creds.base_url or cls.API_URL,
+            }
+        
+        # Fallback to settings/env vars if database credentials not found
         return {
-            'order_no': order.order_no,
-            'order_date': order.created.strftime('%Y-%m-%d') if order.created else '',
-            'channel': channel.channel_type if channel else '',
-            'channel_id': str(channel.pk) if channel else '',
-            'payment_type': order.payment_type or 'prepaid',
-            'is_cod': order.payment_type == 'cod',
-            'cod_amount': float(order.total_amount) if order.payment_type == 'cod' else 0,
-            'total_amount': float(order.total_amount or 0),
-            'weight': float(order.get_total_weight() if hasattr(order, 'get_total_weight') else 0.5),
-            'quantity': order.items.count() if hasattr(order, 'items') else 1,
-            'product_description': ', '.join([item.product.product_name for item in order.items.all()[:3]]) if hasattr(order, 'items') else 'Products',
-            
-            # Customer details
-            'customer_name': customer.customer_name if customer else '',
-            'phone': customer.phone_no if customer else '',
-            'email': customer.email if customer else '',
-            'address': order.shipping_address or (customer.address if customer else ''),
-            'address2': '',
-            'city': customer.city if customer else '',
-            'state': customer.state if customer else '',
-            'pincode': customer.pincode if customer else '',
-            'customer_tier': customer.tier if hasattr(customer, 'tier') else '',
-            
-            # Pickup details (from settings or first warehouse)
-            'pickup_name': self.settings.primary_carrier.name if self.settings.primary_carrier else 'Warehouse',
-            'pickup_address': 'Default Warehouse Address',
-            'pickup_city': 'Default City',
-            'pickup_state': 'Default State',
-            'pickup_pincode': '110001',
-            'pickup_phone': '',
-            
-            # Dimensions (default values)
-            'length': 10,
-            'width': 10,
-            'height': 10,
-            'volumetric_weight': 0,
-            
-            # Invoice
-            'invoice_no': order.order_no,
-            'hsn_code': '',
-            'seller_gst': '',
+            'api_token': getattr(settings, 'DELHIVERY_API_TOKEN', ''),
+            'pickup_name': getattr(settings, 'DELHIVERY_PICKUP_NAME', 'Elvis co'),
+            'base_url': cls.API_URL,
         }
     
-    def check_serviceability(self, carrier, pincode, is_cod=False):
-        """Check if a carrier can service a pincode."""
+    @classmethod
+    def book_shipment(cls, order, environment='production'):
+        """Book a shipment with Delhivery."""
+        creds = cls.get_credentials(environment)
+        
+        if not creds['api_token']:
+            return {
+                'success': False,
+                'message': 'Delhivery API token not configured',
+            }
+        
+        carrier = CarrierService.get_carrier_by_code(cls.CARRIER_CODE)
+        payment_mode = "COD" if hasattr(order, 'channel') and 'COD' in str(order.channel.channel_type) else "Prepaid"
+        
+        cod_amount = ""
+        if payment_mode == 'COD':
+            cod_charge = 50 if getattr(order, 'cod_charge', 0) == 0 else 0
+            amt = order.get_shipping_amount() + cod_charge
+            cod_amount = str(amt)
+        
+        shipment = {
+            "name": order.name,
+            "add": order.address,
+            "pin": order.pincode,
+            "city": order.city,
+            "state": order.state,
+            "country": order.country or "India",
+            "phone": order.phone or order.mobile,
+            "order": order.order_no,
+            "payment_mode": payment_mode,
+            "products_desc": order.get_products_desc(),
+            "cod_amount": cod_amount,
+            "total_amount": str(order.get_shipping_amount()),
+            "shipment_width": "10",
+            "shipment_height": "10",
+            "weight": "0.5",
+            "shipping_mode": "Surface",
+            "address_type": "home"
+        }
+        
+        data_payload = {
+            "shipments": [shipment],
+            "pickup_location": {"name": creds['pickup_name']}
+        }
+        
+        headers = {
+            "Authorization": f"Token {creds['api_token']}",
+            "Accept": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+        
+        start_time = time.time()
         try:
-            if not self.settings.check_serviceability_before_allocation:
-                return True
+            response = requests.post(
+                creds['base_url'],
+                data={"format": "json", "data": json.dumps(data_payload)},
+                headers=headers,
+                timeout=30
+            )
+            response_time_ms = int((time.time() - start_time) * 1000)
             
-            api = CourierAPIRegistry.get_api(carrier)
-            result = api.check_serviceability('110001', pincode, is_cod)
+            try:
+                res_data = response.json()
+            except Exception:
+                res_data = {'raw': response.text}
             
-            if result.get('serviceable'):
-                if is_cod and not result.get('cod_available'):
-                    return False
-                return True
-            return False
-        except Exception as e:
-            logger.error(f"Serviceability check failed for {carrier.name}: {e}")
-            return False  # Fail safe - don't allocate if check fails
+            # Log API call
+            if carrier:
+                CarrierService.log_api_call(
+                    carrier=carrier,
+                    log_type='create_shipment',
+                    request_url=creds['base_url'],
+                    request_method='POST',
+                    request_headers=headers,
+                    request_body=data_payload,
+                    response_status=response.status_code,
+                    response_body=res_data,
+                    response_time_ms=response_time_ms,
+                    is_success=response.status_code == 200,
+                    reference_id=order.order_no
+                )
+            
+            if response.status_code != 200:
+                return {'success': False, 'message': 'Delhivery API error', 'data': res_data}
+            
+            packages = res_data.get("packages")
+            if not packages:
+                return {'success': False, 'message': res_data.get("rmk", "Pincode not serviceable"), 'data': res_data}
+            
+            package = packages[0]
+            waybill = package.get("waybill")
+            
+            if not waybill:
+                return {'success': False, 'message': package.get("remarks") or "Waybill not generated", 'data': res_data}
+            
+            # Update order
+            order.tracking_id = waybill
+            order.last_tracking_status = "Booked"
+            order.booked_date = timezone.localtime()
+            order.tracking_last_checked = timezone.localtime()
+            order.stage = "Booked"
+            order.save()
+            
+            return {'success': True, 'message': f"Booked – AWB {waybill}", 'data': package}
+            
+        except requests.RequestException as e:
+            return {'success': False, 'message': str(e)}
+
+
+class BlueDartService:
+    """
+    BlueDart shipping service using database credentials.
+    """
+    CARRIER_CODE = 'bluedart'
+    TOKEN_URL = 'https://apigateway.bluedart.com/in/transportation/token/v1/login'
+    WAYBILL_URL = 'https://apigateway.bluedart.com/in/transportation/waybill/v1/GenerateWayBill'
     
-    def get_carrier_by_pincode_rule(self, pincode, is_cod=False):
-        """Get carrier based on pincode rules (highest priority)."""
-        if not self.settings.enable_pincode_rules:
+    @classmethod
+    def get_credentials(cls, environment='production'):
+        """Get BlueDart credentials from database."""
+        creds = CarrierService.get_credentials(cls.CARRIER_CODE, environment)
+        if creds:
+            return {
+                'client_id': creds.client_id,
+                'client_secret': creds.client_secret,
+                'licence_key': creds.additional_config.get('licence_key', ''),
+                'login_id': creds.additional_config.get('login_id', ''),
+                'customer_code': creds.additional_config.get('customer_code', ''),
+                'shipper_name': creds.additional_config.get('shipper_name', ''),
+                'shipper_mobile': creds.additional_config.get('shipper_mobile', ''),
+                'shipper_pincode': creds.additional_config.get('shipper_pincode', ''),
+                'origin_area': creds.additional_config.get('origin_area', ''),
+            }
+        
+        # Fallback to settings
+        return {
+            'client_id': getattr(settings, 'BLUEDART_CLIENT_ID', ''),
+            'client_secret': getattr(settings, 'BLUEDART_CLIENT_SECRET', ''),
+            'licence_key': getattr(settings, 'BLUEDART_LICENCE_KEY', ''),
+            'login_id': getattr(settings, 'BLUEDART_LOGIN_ID', ''),
+            'customer_code': getattr(settings, 'BLUEDART_CUSTOMER_CODE', ''),
+            'shipper_name': getattr(settings, 'BLUEDART_SHIPPER_NAME', ''),
+            'shipper_mobile': getattr(settings, 'BLUEDART_SHIPPER_MOBILE', ''),
+            'shipper_pincode': getattr(settings, 'BLUEDART_SHIPPER_PINCODE', ''),
+            'origin_area': getattr(settings, 'BLUEDART_ORIGIN_AREA', ''),
+        }
+    
+    @classmethod
+    def get_token(cls, environment='production'):
+        """Get JWT token from BlueDart."""
+        creds = cls.get_credentials(environment)
+        
+        headers = {
+            "Accept": "application/json",
+            "ClientID": creds['client_id'],
+            "clientSecret": creds['client_secret'],
+        }
+        
+        response = requests.get(cls.TOKEN_URL, headers=headers, timeout=20)
+        
+        if response.status_code != 200:
+            raise Exception(f"BlueDart token error: {response.text}")
+        
+        data = response.json()
+        return data.get("JWTToken")
+
+
+class ShippingRuleEngine:
+    """
+    Engine for automatic carrier allocation based on rules.
+    """
+    
+    @staticmethod
+    def get_order_data(order):
+        """Extract order data for rule evaluation."""
+        return {
+            'state': order.state,
+            'city': order.city,
+            'pincode': order.pincode,
+            'total_amount': float(order.total_amount),
+            'weight': 0.5,  # Default weight
+            'channel': order.channel.channel_type if hasattr(order.channel, 'channel_type') else str(order.channel),
+            'payment_type': 'cod' if 'COD' in str(order.channel.channel_type) else 'prepaid',
+        }
+    
+    @classmethod
+    def allocate_carrier(cls, order):
+        """
+        Allocate a carrier to an order based on shipping rules.
+        
+        Returns:
+            Carrier object or None
+        """
+        from core.feature_flags import use_legacy_shipping
+        
+        # If legacy shipping enabled, return None (use old courier_partner.py)
+        if use_legacy_shipping():
             return None
         
-        rules = PincodeRule.objects.filter(
-            pincode=pincode,
-            carrier__status='active',
-            is_active=True
-        ).select_related('carrier').order_by('-priority')
+        order_data = cls.get_order_data(order)
         
-        for rule in rules:
-            if is_cod and not rule.supports_cod:
-                continue
-            if not is_cod and not rule.supports_prepaid:
-                continue
-            
-            # Check serviceability
-            if self.check_serviceability(rule.carrier, pincode, is_cod):
-                return rule.carrier
-        
-        return None
-    
-    def get_carrier_by_channel_rule(self, channel, payment_type):
-        """Get carrier based on channel and payment type."""
-        if not self.settings.enable_channel_rules or not channel:
-            return None
-        
-        # Look for exact match first
-        rule = ChannelShippingRule.objects.filter(
-            channel=channel,
-            payment_type=payment_type,
-            carrier__status='active',
-            is_enabled=True,
-            is_active=True
-        ).select_related('carrier').order_by('-priority').first()
-        
-        if rule:
-            return rule.carrier
-        
-        # Try with 'all' payment type
-        rule = ChannelShippingRule.objects.filter(
-            channel=channel,
-            payment_type='all',
-            carrier__status='active',
-            is_enabled=True,
-            is_active=True
-        ).select_related('carrier').order_by('-priority').first()
-        
-        return rule.carrier if rule else None
-    
-    def get_carrier_by_shipping_rule(self, order_data):
-        """Get carrier based on shipping rules."""
-        rules = ShippingRule.objects.filter(
-            assigned_carrier__status='active',
-            is_enabled=True,
-            is_active=True
-        ).select_related('assigned_carrier', 'fallback_carrier').order_by('-priority')
+        # Get all enabled rules, sorted by priority
+        rules = ShippingRule.objects.filter(is_enabled=True, is_active=True).order_by('-priority')
         
         for rule in rules:
             if rule.evaluate(order_data):
-                # Check if primary carrier is available
-                if self.check_serviceability(rule.assigned_carrier, order_data['pincode'], order_data.get('is_cod')):
-                    return rule.assigned_carrier, rule
-                # Try fallback
-                elif rule.fallback_carrier and self.check_serviceability(rule.fallback_carrier, order_data['pincode'], order_data.get('is_cod')):
-                    return rule.fallback_carrier, rule
+                return rule.assigned_carrier
         
-        return None, None
-    
-    def get_primary_carrier(self, pincode, is_cod=False):
-        """Get primary carrier from settings."""
-        if self.settings.primary_carrier and self.settings.primary_carrier.status == 'active':
-            if self.check_serviceability(self.settings.primary_carrier, pincode, is_cod):
-                return self.settings.primary_carrier
-        return None
-    
-    def get_fallback_carrier(self, pincode, is_cod=False):
-        """Get any available carrier as fallback."""
-        carriers = Carrier.objects.filter(status='active', is_active=True).order_by('-priority')
-        
-        for carrier in carriers:
-            if is_cod and not carrier.supports_cod:
-                continue
-            if not is_cod and not carrier.supports_prepaid:
-                continue
-            
-            if self.check_serviceability(carrier, pincode, is_cod):
-                return carrier
-        
-        return None
-    
-    def allocate_carrier(self, order):
-        """Allocate the best carrier for an order.
-        
-        Priority:
-        1. Pincode-specific rule (manual mapping)
-        2. Channel + Payment type rule
-        3. General shipping rules
-        4. Primary carrier from settings
-        5. Any available carrier (fallback)
-        
-        Returns:
-            tuple: (carrier, assignment_method, rule_used)
-        """
-        order_data = self.get_order_data(order)
-        pincode = order_data['pincode']
-        is_cod = order_data['is_cod']
-        
-        # 1. Check pincode-specific rules (highest priority)
-        carrier = self.get_carrier_by_pincode_rule(pincode, is_cod)
-        if carrier:
-            return carrier, 'pincode_based', None
-        
-        # 2. Check channel rules
-        if order.channel:
-            payment_type = 'cod' if is_cod else 'prepaid'
-            carrier = self.get_carrier_by_channel_rule(order.channel, payment_type)
-            if carrier:
-                if self.check_serviceability(carrier, pincode, is_cod):
-                    return carrier, 'channel_based', None
-        
-        # 3. Check general shipping rules
-        carrier, rule = self.get_carrier_by_shipping_rule(order_data)
-        if carrier:
-            return carrier, 'rule_based', rule
-        
-        # 4. Try primary carrier
-        carrier = self.get_primary_carrier(pincode, is_cod)
-        if carrier:
-            return carrier, 'rule_based', None
-        
-        # 5. Fallback to any available carrier
-        carrier = self.get_fallback_carrier(pincode, is_cod)
-        if carrier:
-            return carrier, 'rule_based', None
-        
-        return None, None, None
-    
-    @transaction.atomic
-    def create_shipment(self, order, carrier=None, user=None, force=False):
-        """Create a shipment for an order.
-        
-        Args:
-            order: The order to ship
-            carrier: Optional carrier to use (for manual override)
-            user: User creating the shipment
-            force: Force book AWB even if carrier not optimal
-            
-        Returns:
-            tuple: (success, shipment_or_error_message)
-        """
-        # Check if order already has an active shipment
-        existing = Shipment.objects.filter(
-            order=order
-        ).exclude(status__in=['cancelled', 'rto_delivered']).first()
-        
-        if existing and not force:
-            return False, f"Order already has shipment: {existing.tracking_number}"
-        
-        # Get order data
-        order_data = self.get_order_data(order)
-        
-        # Allocate carrier if not provided
-        if not carrier:
-            carrier, assignment_method, rule = self.allocate_carrier(order)
-            if not carrier:
-                return False, "No suitable carrier found for this order"
-        else:
-            assignment_method = 'manual'
-            rule = None
-        
-        # Get API and create shipment
-        api = CourierAPIRegistry.get_api(carrier)
-        result = api.create_shipment(order_data)
-        
-        if result['success']:
-            # Create shipment record
-            shipment = Shipment.objects.create(
-                order=order,
-                carrier=carrier,
-                tracking_number=result['tracking_number'],
-                awb_number=result['awb_number'],
-                status='manifested',
-                weight=order_data['weight'],
-                length=order_data['length'],
-                width=order_data['width'],
-                height=order_data['height'],
-                shipping_cost=0,  # Can be calculated based on carrier rates
-                cod_amount=order_data['cod_amount'],
-                is_cod=order_data['is_cod'],
-                manifest_date=timezone.now(),
-                pickup_address={
-                    'name': order_data['pickup_name'],
-                    'address': order_data['pickup_address'],
-                    'city': order_data['pickup_city'],
-                    'state': order_data['pickup_state'],
-                    'pincode': order_data['pickup_pincode'],
-                    'phone': order_data['pickup_phone']
-                },
-                delivery_address={
-                    'name': order_data['customer_name'],
-                    'address': order_data['address'],
-                    'city': order_data['city'],
-                    'state': order_data['state'],
-                    'pincode': order_data['pincode'],
-                    'phone': order_data['phone']
-                },
-                carrier_response=result.get('raw_response', {}),
-                label_url=result.get('label_url'),
-                assigned_by=user,
-                assignment_method=assignment_method,
-                rule_used=rule
-            )
-            
-            # Update order with shipment info
-            order.awb_number = result['awb_number']
-            order.carrier_name = carrier.name
-            order.save(update_fields=['awb_number', 'carrier_name'] if hasattr(order, 'awb_number') else [])
-            
-            return True, shipment
-        else:
-            return False, result.get('message', 'Failed to create shipment')
-    
-    def cancel_shipment(self, shipment):
-        """Cancel a shipment."""
-        api = CourierAPIRegistry.get_api(shipment.carrier)
-        result = api.cancel_shipment(shipment.awb_number)
-        
-        if result['success']:
-            shipment.status = 'cancelled'
-            shipment.save(update_fields=['status'])
-            return True, "Shipment cancelled successfully"
-        else:
-            return False, result.get('message', 'Failed to cancel shipment')
-    
-    def update_tracking(self, shipment):
-        """Update tracking status for a shipment."""
-        from .models import ShipmentTracking
-        
-        api = CourierAPIRegistry.get_api(shipment.carrier)
-        result = api.get_tracking_status(shipment.awb_number)
-        
-        if result['success']:
-            # Update shipment status
-            status_mapping = {
-                'picked_up': 'picked_up',
-                'in_transit': 'in_transit',
-                'out_for_delivery': 'out_for_delivery',
-                'delivered': 'delivered',
-                'rto': 'rto_initiated',
-                'returned': 'rto_delivered',
-                'cancelled': 'cancelled',
-            }
-            
-            new_status = status_mapping.get(result['status'].lower(), shipment.status)
-            if new_status != shipment.status:
-                shipment.status = new_status
-                shipment.save(update_fields=['status'])
-            
-            # Add tracking events
-            for event in result.get('events', []):
-                ShipmentTracking.objects.get_or_create(
-                    shipment=shipment,
-                    status=event['status'],
-                    event_time=event.get('timestamp', timezone.now()),
-                    defaults={
-                        'location': event.get('location', ''),
-                        'status_description': event.get('description', ''),
-                        'raw_data': event
-                    }
-                )
-            
-            return True, "Tracking updated"
-        else:
-            return False, result.get('message', 'Failed to fetch tracking')
-    
-    def bulk_allocate(self, orders, user=None):
-        """Allocate carriers to multiple orders.
-        
-        Returns:
-            dict: {'success': count, 'failed': count, 'details': [...]}
-        """
-        results = {'success': 0, 'failed': 0, 'details': []}
-        
-        for order in orders:
-            success, result = self.create_shipment(order, user=user)
-            if success:
-                results['success'] += 1
-                results['details'].append({
-                    'order': order.order_no,
-                    'success': True,
-                    'awb': result.awb_number,
-                    'carrier': result.carrier.name
-                })
-            else:
-                results['failed'] += 1
-                results['details'].append({
-                    'order': order.order_no,
-                    'success': False,
-                    'error': result
-                })
-        
-        return results
+        # Fallback to primary carrier
+        settings_obj = ShippingSettings.get_settings()
+        return settings_obj.primary_carrier
