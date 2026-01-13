@@ -232,11 +232,14 @@ frontend:
     file: "templates/logistics/*.html"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Created rule_list, rule_detail, shipment_detail templates"
+      - working: true
+        agent: "testing"
+        comment: "All logistics templates tested successfully. Logistics panel, NDR management, shipping rules, carriers, and shipments all loading correctly with proper content and navigation."
 
   - task: "User Management Templates"
     implemented: true
