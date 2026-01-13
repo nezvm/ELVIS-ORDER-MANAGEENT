@@ -178,18 +178,59 @@
                     <i class="fas fa-truck-loading w-5 mr-4 text-lg"></i>
                     <span>Carriers</span>
                 </a>
+                <a href="{% url 'logistics:ndr_list' %}" data-testid="nav-ndr" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/logistics/ndr' in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
+                    <i class="fas fa-exclamation-triangle w-5 mr-4 text-lg text-orange-400"></i>
+                    <span>NDR Management</span>
+                </a>
+                <a href="{% url 'logistics:rule_list' %}" data-testid="nav-rules" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/logistics/rule' in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
+                    <i class="fas fa-cog w-5 mr-4 text-lg"></i>
+                    <span>Shipping Rules</span>
+                </a>
                 
                 <!-- Inventory Section -->
                 <div class="pt-6 pb-2">
                     <p class="px-4 text-xs font-bold text-white/40 uppercase tracking-widest">Inventory</p>
                 </div>
-                <a href="{% url 'inventory:dashboard' %}" data-testid="nav-inventory" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/inventory' in request.path and 'stock' not in request.path and 'warehouse' not in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
-                    <i class="fas fa-warehouse w-5 mr-4 text-lg"></i>
+                <a href="{% url 'inventory:dashboard' %}" data-testid="nav-inventory" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/inventory' in request.path and 'stock' not in request.path and 'warehouse' not in request.path and 'movement' not in request.path and 'transfer' not in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
+                    <i class="fas fa-tachometer-alt w-5 mr-4 text-lg"></i>
                     <span>Overview</span>
                 </a>
                 <a href="{% url 'inventory:stock_list' %}" data-testid="nav-stock" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/inventory/stock' in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
                     <i class="fas fa-cubes w-5 mr-4 text-lg"></i>
                     <span>Stock Levels</span>
+                </a>
+                <a href="{% url 'inventory:warehouse_list' %}" data-testid="nav-warehouses" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/inventory/warehouse' in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
+                    <i class="fas fa-warehouse w-5 mr-4 text-lg"></i>
+                    <span>Warehouses</span>
+                </a>
+                <a href="{% url 'inventory:movement_list' %}" data-testid="nav-movements" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/inventory/movement' in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
+                    <i class="fas fa-exchange-alt w-5 mr-4 text-lg"></i>
+                    <span>Stock Movements</span>
+                </a>
+                <a href="{% url 'inventory:transfer_list' %}" data-testid="nav-transfers" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/inventory/transfer' in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
+                    <i class="fas fa-random w-5 mr-4 text-lg"></i>
+                    <span>Transfers</span>
+                </a>
+                
+                <!-- Segmentation Section -->
+                <div class="pt-6 pb-2">
+                    <p class="px-4 text-xs font-bold text-white/40 uppercase tracking-widest">Segmentation</p>
+                </div>
+                <a href="{% url 'segmentation:dashboard' %}" data-testid="nav-seg-dashboard" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if request.path == '/segmentation/' %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
+                    <i class="fas fa-chart-bar w-5 mr-4 text-lg"></i>
+                    <span>Overview</span>
+                </a>
+                <a href="{% url 'segmentation:profile_list' %}" data-testid="nav-profiles" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/segmentation/profile' in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
+                    <i class="fas fa-user-tag w-5 mr-4 text-lg"></i>
+                    <span>Customer Profiles</span>
+                </a>
+                <a href="{% url 'segmentation:segment_list' %}" data-testid="nav-segments" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/segmentation/segment' in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
+                    <i class="fas fa-object-group w-5 mr-4 text-lg"></i>
+                    <span>Segments</span>
+                </a>
+                <a href="{% url 'segmentation:cohort_analysis' %}" data-testid="nav-cohorts" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/segmentation/cohort' in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
+                    <i class="fas fa-layer-group w-5 mr-4 text-lg"></i>
+                    <span>Cohort Analysis</span>
                 </a>
                 
                 <!-- Settings Section -->
@@ -203,6 +244,14 @@
                 <a href="{% url 'integrations:dashboard' %}" data-testid="nav-integrations" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/integrations' in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
                     <i class="fas fa-plug w-5 mr-4 text-lg"></i>
                     <span>Integrations</span>
+                </a>
+                <a href="{% url 'accounts:user_list' %}" data-testid="nav-users" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/accounts/user' in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
+                    <i class="fas fa-users-cog w-5 mr-4 text-lg"></i>
+                    <span>Users & Roles</span>
+                </a>
+                <a href="{% url 'master:account_list' %}" data-testid="nav-accounts" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/master/account' in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
+                    <i class="fas fa-university w-5 mr-4 text-lg"></i>
+                    <span>Accounts</span>
                 </a>
             </nav>
             
