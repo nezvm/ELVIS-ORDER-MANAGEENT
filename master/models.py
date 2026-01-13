@@ -262,6 +262,21 @@ class Customer(BaseModel):
         return Order.objects.filter(customer=self)
 
 
+# =============================================================================
+# ORDER STATUS CHOICES
+# =============================================================================
+ORDER_STATUS = (
+    ("Pending", "Pending"),
+    ("Booked", "Booked"),
+    ("Packed", "Packed"),
+    ("Shipped", "Shipped"),
+    ("In_transit", "IN TRANSIT"),
+    ("Delivered", "Delivered"),
+    ("Cancelled", "Cancelled"),
+    ("Returned", "Returned"),
+)
+
+
 class Order(BaseModel):
     channel = models.ForeignKey(Channel,on_delete=models.CASCADE)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
@@ -270,7 +285,32 @@ class Order(BaseModel):
     cod_charge = models.DecimalField(max_digits=10, decimal_places=2,default=0)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     order_no = models.CharField(max_length=20, null=True, blank=True,unique=True)
-    order_by  = models.ForeignKey(User, on_delete=models.CASCADE,related_name="order_by")
+    order_by = models.ForeignKey(User, on_delete=models.CASCADE,related_name="order_by")
+    
+    # Stage and shipping fields (from original ZIP)
+    stage = models.CharField(max_length=100, default="Pending", choices=ORDER_STATUS)
+    name = models.CharField(max_length=100, null=True, blank=True)
+    phone = models.CharField(max_length=20, null=True, blank=True)
+    mobile = models.CharField(max_length=20, null=True, blank=True)
+    pincode = models.CharField(max_length=6, null=True, blank=True)
+    address = models.CharField(max_length=250, null=True, blank=True)
+    city = models.CharField(max_length=100, null=True, blank=True)
+    state = models.CharField(max_length=100, null=True, blank=True)
+    country = models.CharField(max_length=100, null=True, blank=True)
+    
+    # Courier/tracking fields
+    courier_partner = models.ForeignKey(CourierPartner, null=True, blank=True, on_delete=models.SET_NULL)
+    tracking_id = models.CharField(max_length=100, null=True, blank=True)
+    last_tracking_status = models.CharField(max_length=100, null=True, blank=True)
+    tracking_last_checked = models.DateTimeField(null=True, blank=True)
+    destination_code = models.CharField(max_length=100, null=True, blank=True)
+    
+    # Date tracking
+    booked_date = models.DateTimeField(null=True, blank=True)
+    cancelled_date = models.DateTimeField(null=True, blank=True)
+    packed_date = models.DateTimeField(null=True, blank=True)
+    shipped_date = models.DateTimeField(null=True, blank=True)
+    delivered_date = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         if self.utr:
@@ -293,6 +333,9 @@ class Order(BaseModel):
 
     def get_update_url(self):
         return reverse_lazy("master:order_update", kwargs={"pk": self.pk})
+    
+    def get_courier_update_url(self):
+        return reverse_lazy("master:order_courier_update", kwargs={"pk": self.pk})
 
     def get_delete_url(self):
         return reverse_lazy("master:order_delete", kwargs={"pk": self.pk})
@@ -300,8 +343,29 @@ class Order(BaseModel):
     def get_items(self):
         return self.orderitem_set.all()
     
+    def alternate_phone_no(self):
+        if self.mobile:
+            return self.mobile
+        else:
+            return self.customer.alternate_phone_no or ''
+    
     def get_total_amount(self):
         return sum([item.amount for item in self.orderitem_set.all()])
+    
+    def get_total_actual_amount(self):
+        total = 0
+        for item in self.orderitem_set.select_related("product"):
+            try:
+                total += item.product.price * item.quantity
+            except Exception:
+                total += 0
+        return total
+    
+    def get_shipping_amount(self):
+        return sum([item.product.price * item.quantity for item in self.orderitem_set.all()])
+    
+    def get_shipping_cod_amount(self):
+        return self.get_shipping_amount() + self.cod_charge
     
     def save(self, *args, **kwargs):
         if not self.order_no :
