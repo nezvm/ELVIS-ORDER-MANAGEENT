@@ -156,11 +156,14 @@ backend:
     file: "logistics/views.py, logistics/urls.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "NDR management, shipping rules views with custom templates"
+      - working: true
+        agent: "testing"
+        comment: "All logistics endpoints tested successfully: Logistics Panel (/logistics/panel/), NDR Management (/logistics/ndr/), Shipping Rules (/logistics/rules/), Carriers (/logistics/carriers/), Shipments (/logistics/shipments/). All returning HTTP 200 with proper content and navigation."
 
   - task: "User Management Views"
     implemented: true
