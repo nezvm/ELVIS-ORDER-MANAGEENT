@@ -135,14 +135,14 @@ class CarrierAPILogAdmin(admin.ModelAdmin):
 
 @admin.register(PincodeRule)
 class PincodeRuleAdmin(admin.ModelAdmin):
-    list_display = ['pincode', 'carrier', 'is_prepaid_available', 'is_cod_available', 'is_reverse_available']
-    list_filter = ['carrier', 'is_prepaid_available', 'is_cod_available']
+    list_display = ['pincode', 'carrier', 'supports_prepaid', 'supports_cod', 'delivery_days', 'priority']
+    list_filter = ['carrier', 'supports_prepaid', 'supports_cod', 'rule_type']
     search_fields = ['pincode']
 
 
 @admin.register(ShippingSettings)
 class ShippingSettingsAdmin(admin.ModelAdmin):
-    list_display = ['id', 'primary_carrier', 'auto_assign_enabled', 'auto_book_enabled', 'updated']
+    list_display = ['id', 'primary_carrier', 'enable_auto_allocation', 'enable_channel_rules', 'updated']
     
     def has_add_permission(self, request):
         # Only allow one settings object
