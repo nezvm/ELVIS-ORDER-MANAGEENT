@@ -133,8 +133,8 @@ class CarrierAPILogAdmin(admin.ModelAdmin):
                        'is_success', 'error_message', 'reference_id', 'created']
 
 
-@admin.register(PincodeServiceability)
-class PincodeServiceabilityAdmin(admin.ModelAdmin):
+@admin.register(PincodeRule)
+class PincodeRuleAdmin(admin.ModelAdmin):
     list_display = ['pincode', 'carrier', 'is_prepaid_available', 'is_cod_available', 'is_reverse_available']
     list_filter = ['carrier', 'is_prepaid_available', 'is_cod_available']
     search_fields = ['pincode']
