@@ -112,14 +112,31 @@ class Product(BaseModel):
     product_code = models.CharField(max_length=100, unique=True, null=True, blank=True)
     size = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    opning_stock = models.DecimalField('stock', max_digits=10, decimal_places=0, default=0)
     image = models.ImageField(upload_to="product", null=True, blank=True)
+    order = models.PositiveIntegerField(default=10)
+    is_hide = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.product_name.upper()}-{self.size.upper()}'
     
+    def get_stock(self):
+        """Calculate current stock from opening + purchases - sales."""
+        opening = self.opning_stock or 0
+
+        purchase_data = PurchaseItem.objects.filter(item=self).aggregate(total_purchased=Sum('quantity'))
+        total_purchased = purchase_data['total_purchased'] or 0
+
+        sale_data = OrderItem.objects.filter(product=self).aggregate(total_sold=Sum('quantity'))
+        total_sold = sale_data['total_sold'] or 0
+
+        stock = opening + total_purchased - total_sold
+        return stock
+    
     class Meta:
         verbose_name = "Product"
         verbose_name_plural = "Products"
+        ordering = ["order", 'id']
 
     @staticmethod
     def get_list_url():
@@ -141,7 +158,7 @@ class Product(BaseModel):
             return self.price
         
     def get_orders(self):
-        return OrderItem.objects.filter(product=self)
+        return OrderItem.objects.filter(product=self).select_related('order')
 
 class ProductPrice(BaseModel):
     product = models.ForeignKey(Product,on_delete=models.CASCADE)
