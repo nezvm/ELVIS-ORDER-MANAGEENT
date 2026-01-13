@@ -1,0 +1,106 @@
+{% extends 'ui/base.html' %}
+{% load static humanize %}
+
+{% block title %}Customer Profiles{% endblock %}
+{% block page_title %}Customer Profiles{% endblock %}
+
+{% block page_subtitle %}
+<span class="ml-4 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+    {{ object_list.count }} profiles
+</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6" data-testid="profiles-page">
+    <!-- Filters -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <form method="GET" class="flex flex-wrap items-center gap-4">
+            <select name="order_behavior_segment" class="px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-primary-500">
+                <option value="">All Behavior</option>
+                <option value="one_time" {% if request.GET.order_behavior_segment == 'one_time' %}selected{% endif %}>One-Time</option>
+                <option value="repeat" {% if request.GET.order_behavior_segment == 'repeat' %}selected{% endif %}>Repeat</option>
+                <option value="loyal" {% if request.GET.order_behavior_segment == 'loyal' %}selected{% endif %}>Loyal</option>
+                <option value="super_loyal" {% if request.GET.order_behavior_segment == 'super_loyal' %}selected{% endif %}>Super Loyal</option>
+            </select>
+            <select name="value_tier" class="px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-primary-500">
+                <option value="">All Value Tiers</option>
+                <option value="high" {% if request.GET.value_tier == 'high' %}selected{% endif %}>High</option>
+                <option value="medium" {% if request.GET.value_tier == 'medium' %}selected{% endif %}>Medium</option>
+                <option value="low" {% if request.GET.value_tier == 'low' %}selected{% endif %}>Low</option>
+            </select>
+            <select name="lifecycle_stage" class="px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-primary-500">
+                <option value="">All Lifecycle</option>
+                <option value="new" {% if request.GET.lifecycle_stage == 'new' %}selected{% endif %}>New</option>
+                <option value="active" {% if request.GET.lifecycle_stage == 'active' %}selected{% endif %}>Active</option>
+                <option value="at_risk" {% if request.GET.lifecycle_stage == 'at_risk' %}selected{% endif %}>At Risk</option>
+                <option value="churned" {% if request.GET.lifecycle_stage == 'churned' %}selected{% endif %}>Churned</option>
+            </select>
+            <button type="submit" class="px-4 py-2.5 bg-black text-white rounded-xl font-medium hover:bg-gray-800">
+                <i class="fas fa-filter mr-2"></i>Filter
+            </button>
+            <a href="{% url 'segmentation:profile_list' %}" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200">
+                Clear
+            </a>
+        </form>
+    </div>
+    
+    <!-- Profiles Table -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {% if object_list %}
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Customer</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Lifetime Value</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Orders</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Behavior</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Lifecycle</th>
+                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase">Value Tier</th>
+                    <th class="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for profile in object_list %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-6 py-4">
+                        <p class="font-medium text-gray-900">{{ profile.customer.customer_name }}</p>
+                        <p class="text-sm text-gray-500">{{ profile.customer.phone_no }}</p>
+                    </td>
+                    <td class="px-6 py-4 text-lg font-bold text-gray-900">₹{{ profile.lifetime_revenue|intcomma }}</td>
+                    <td class="px-6 py-4 text-gray-900">{{ profile.lifetime_order_count }}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                            {{ profile.order_behavior_segment|default:"-" }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium {% if profile.lifecycle_stage == 'active' %}bg-green-100 text-green-700{% elif profile.lifecycle_stage == 'at_risk' %}bg-yellow-100 text-yellow-700{% elif profile.lifecycle_stage == 'churned' %}bg-red-100 text-red-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+                            {{ profile.lifecycle_stage|default:"-" }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium {% if profile.value_tier == 'high' %}bg-purple-100 text-purple-700{% elif profile.value_tier == 'medium' %}bg-blue-100 text-blue-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+                            {{ profile.value_tier|default:"-" }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <a href="{{ profile.get_absolute_url }}" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">
+                            View
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-user-tag text-2xl text-gray-400"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900">No profiles found</h3>
+            <p class="text-gray-500 mt-1">Profiles will be generated when customers place orders</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends 'ui/base.html' %}
+{% load static humanize %}
+
+{% block title %}{{ profile.customer.customer_name }} - Profile{% endblock %}
+{% block page_title %}{{ profile.customer.customer_name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <a href="{% url 'segmentation:profile_list' %}" class="inline-flex items-center text-gray-500 hover:text-gray-700">
+        <i class="fas fa-arrow-left mr-2"></i>Back to Profiles
+    </a>
+    
+    <!-- Profile Summary -->
+    <div class="grid grid-cols-4 gap-6">
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <p class="text-sm text-gray-500 uppercase tracking-wider">Lifetime Value</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">₹{{ object.lifetime_revenue|intcomma }}</p>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <p class="text-sm text-gray-500 uppercase tracking-wider">Total Orders</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ object.lifetime_order_count }}</p>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <p class="text-sm text-gray-500 uppercase tracking-wider">Avg Order Value</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">₹{{ object.average_order_value|intcomma }}</p>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <p class="text-sm text-gray-500 uppercase tracking-wider">Days Since Order</p>
+            <p class="text-3xl font-bold {% if object.days_since_last_order > 90 %}text-red-500{% elif object.days_since_last_order > 30 %}text-yellow-500{% else %}text-green-500{% endif %} mt-2">{{ object.days_since_last_order }}</p>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-3 gap-6">
+        <!-- Segments -->
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Segments</h3>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500">Behavior</span>
+                    <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">{{ object.order_behavior_segment|default:"-" }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500">Lifecycle</span>
+                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">{{ object.lifecycle_stage|default:"-" }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500">Value Tier</span>
+                    <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">{{ object.value_tier|default:"-" }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500">Channel</span>
+                    <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">{{ object.channel_loyalty|default:"-" }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Customer Info -->
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Customer Info</h3>
+            <div class="space-y-3">
+                <p><span class="text-gray-500">Phone:</span> <span class="font-medium">{{ object.customer.phone_no }}</span></p>
+                <p><span class="text-gray-500">City:</span> <span class="font-medium">{{ object.customer.city }}</span></p>
+                <p><span class="text-gray-500">State:</span> <span class="font-medium">{{ object.customer.state }}</span></p>
+                <p><span class="text-gray-500">Primary Channel:</span> <span class="font-medium">{{ object.primary_channel|default:"-" }}</span></p>
+            </div>
+        </div>
+        
+        <!-- Segment Memberships -->
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Segment Memberships</h3>
+            {% if segments %}
+            <div class="space-y-2">
+                {% for membership in segments %}
+                <div class="px-3 py-2 bg-gray-50 rounded-lg flex items-center">
+                    <i class="fas fa-{{ membership.segment.icon|default:'users' }} text-gray-400 mr-3"></i>
+                    <span class="font-medium">{{ membership.segment.name }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500">No segment memberships</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Recent Orders -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Recent Orders</h3>
+        {% if orders %}
+        <table class="w-full">
+            <thead class="border-b border-gray-200">
+                <tr>
+                    <th class="text-left py-3 text-xs font-bold text-gray-500 uppercase">Order</th>
+                    <th class="text-left py-3 text-xs font-bold text-gray-500 uppercase">Channel</th>
+                    <th class="text-left py-3 text-xs font-bold text-gray-500 uppercase">Amount</th>
+                    <th class="text-left py-3 text-xs font-bold text-gray-500 uppercase">Date</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for order in orders %}
+                <tr>
+                    <td class="py-3"><a href="{{ order.get_absolute_url }}" class="text-primary-500 font-medium hover:underline">#{{ order.order_no }}</a></td>
+                    <td class="py-3">{{ order.channel.channel_type }}</td>
+                    <td class="py-3 font-medium">₹{{ order.total_amount|intcomma }}</td>
+                    <td class="py-3 text-gray-500">{{ order.created|date:"d M Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-gray-500">No orders found</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
