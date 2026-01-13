@@ -1,0 +1,387 @@
+{% extends 'ui/base.html' %}
+{% load static humanize %}
+
+{% block title %}Shipping Dashboard{% endblock %}
+{% block page_title %}Shipping Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-4 gap-6">
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 uppercase tracking-wider">Pending Orders</p>
+                    <p class="text-3xl font-bold text-orange-500 mt-2">{{ pending_count }}</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center">
+                    <i class="fas fa-clock text-xl text-orange-500"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 uppercase tracking-wider">Today Booked</p>
+                    <p class="text-3xl font-bold text-green-500 mt-2">{{ today_booked }}</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-check text-xl text-green-500"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 uppercase tracking-wider">In Transit</p>
+                    <p class="text-3xl font-bold text-blue-500 mt-2">{{ in_transit_count }}</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <i class="fas fa-shipping-fast text-xl text-blue-500"></i>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500 uppercase tracking-wider">Carriers</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-2">{{ carriers.count }}</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
+                    <i class="fas fa-truck text-xl text-gray-500"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <form method="GET" class="flex flex-wrap items-center gap-4">
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Date From</label>
+                <input type="date" name="date_from" value="{{ request.GET.date_from }}" class="px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Date To</label>
+                <input type="date" name="date_to" value="{{ request.GET.date_to }}" class="px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Channel</label>
+                <select name="channel" class="px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm">
+                    <option value="">All Channels</option>
+                    {% for ch in channels %}
+                    <option value="{{ ch.id }}" {% if request.GET.channel == ch.id|stringformat:'s' %}selected{% endif %}>{{ ch.channel_type }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Carrier</label>
+                <select name="carrier" class="px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm">
+                    <option value="">All Carriers</option>
+                    {% for c in carriers %}
+                    <option value="{{ c.id }}" {% if request.GET.carrier == c.id|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
+                <select name="status" class="px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm">
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending (No Carrier)</option>
+                    <option value="assigned" {% if status_filter == 'assigned' %}selected{% endif %}>Assigned (With AWB)</option>
+                </select>
+            </div>
+            <div class="flex items-end gap-2">
+                <button type="submit" class="px-4 py-2.5 bg-black text-white rounded-xl font-medium hover:bg-gray-800">
+                    <i class="fas fa-filter mr-2"></i>Filter
+                </button>
+                <a href="{% url 'logistics:shipping_dashboard' %}" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200">
+                    Clear
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <button onclick="selectAll()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200">
+                <i class="fas fa-check-square mr-2"></i>Select All
+            </button>
+            <button onclick="bulkAllocate()" class="px-4 py-2 bg-blue-500 text-white rounded-xl text-sm font-medium hover:bg-blue-600">
+                <i class="fas fa-magic mr-2"></i>Auto Allocate Selected
+            </button>
+        </div>
+        <div class="flex items-center gap-2">
+            <select id="manualCarrier" class="px-4 py-2.5 border border-gray-200 rounded-xl bg-white text-sm">
+                <option value="">Select Carrier</option>
+                {% for c in carriers %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+            </select>
+            <button onclick="allocateWithCarrier()" class="px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600">
+                <i class="fas fa-truck mr-2"></i>Assign Carrier
+            </button>
+        </div>
+    </div>
+    
+    <!-- Orders/Shipments Table -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {% if status_filter == 'pending' %}
+        <!-- Pending Orders Table -->
+        {% if orders %}
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-4 py-4 text-left">
+                        <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll()" class="rounded">
+                    </th>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase">Order</th>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase">Customer</th>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase">Channel</th>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase">Pincode</th>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase">Payment</th>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase">Amount</th>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase">Date</th>
+                    <th class="px-4 py-4 text-right text-xs font-bold text-gray-700 uppercase">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for order in orders %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-4">
+                        <input type="checkbox" class="order-checkbox rounded" value="{{ order.id }}">
+                    </td>
+                    <td class="px-4 py-4">
+                        <a href="{{ order.get_absolute_url }}" class="text-primary-500 font-semibold hover:underline">#{{ order.order_no }}</a>
+                    </td>
+                    <td class="px-4 py-4">
+                        <p class="font-medium text-gray-900">{{ order.customer.customer_name|default:"-" }}</p>
+                        <p class="text-sm text-gray-500">{{ order.customer.phone_no|default:"-" }}</p>
+                    </td>
+                    <td class="px-4 py-4">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                            {{ order.channel.channel_type|default:"-" }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-4 font-mono text-gray-900">{{ order.customer.pincode|default:"-" }}</td>
+                    <td class="px-4 py-4">
+                        {% if order.payment_type == 'cod' %}
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">COD</span>
+                        {% else %}
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">Prepaid</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-4 font-bold text-gray-900">₹{{ order.total_amount|intcomma }}</td>
+                    <td class="px-4 py-4 text-gray-500">{{ order.created|date:"d M Y" }}</td>
+                    <td class="px-4 py-4 text-right">
+                        <button onclick="forceBook('{{ order.id }}')" class="px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200">
+                            <i class="fas fa-bolt mr-1"></i>Book AWB
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-check text-2xl text-green-500"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900">All orders have been shipped!</h3>
+            <p class="text-gray-500 mt-1">No pending orders without carrier assignment</p>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <!-- Assigned Shipments Table -->
+        {% if shipments %}
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase">AWB</th>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase">Order</th>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase">Customer</th>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase">Carrier</th>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase">Status</th>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase">Booked</th>
+                    <th class="px-4 py-4 text-right text-xs font-bold text-gray-700 uppercase">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for shipment in shipments %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-4">
+                        <a href="{{ shipment.get_absolute_url }}" class="text-primary-500 font-mono font-semibold hover:underline">{{ shipment.awb_number|default:shipment.tracking_number }}</a>
+                    </td>
+                    <td class="px-4 py-4">
+                        <a href="{{ shipment.order.get_absolute_url }}" class="text-gray-700 font-medium hover:underline">#{{ shipment.order.order_no }}</a>
+                    </td>
+                    <td class="px-4 py-4">
+                        <p class="font-medium text-gray-900">{{ shipment.order.customer.customer_name|default:"-" }}</p>
+                    </td>
+                    <td class="px-4 py-4">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                            {{ shipment.carrier.name }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-4">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-medium {% if shipment.status == 'delivered' %}bg-green-100 text-green-700{% elif shipment.status == 'in_transit' %}bg-blue-100 text-blue-700{% else %}bg-gray-100 text-gray-700{% endif %}">
+                            {{ shipment.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-4 text-gray-500">{{ shipment.created|date:"d M Y" }}</td>
+                    <td class="px-4 py-4 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                            {% if shipment.label_url %}
+                            <a href="{% url 'logistics:download_label' shipment.pk %}" class="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200" target="_blank">
+                                <i class="fas fa-download"></i>
+                            </a>
+                            {% endif %}
+                            <button onclick="trackShipment('{{ shipment.pk }}')" class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-200">
+                                <i class="fas fa-sync"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-shipping-fast text-2xl text-gray-400"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900">No shipments found</h3>
+            <p class="text-gray-500 mt-1">Adjust your filters to see shipments</p>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleSelectAll() {
+    const isChecked = document.getElementById('selectAllCheckbox').checked;
+    document.querySelectorAll('.order-checkbox').forEach(cb => cb.checked = isChecked);
+}
+
+function selectAll() {
+    document.querySelectorAll('.order-checkbox').forEach(cb => cb.checked = true);
+    document.getElementById('selectAllCheckbox').checked = true;
+}
+
+function getSelectedOrders() {
+    return Array.from(document.querySelectorAll('.order-checkbox:checked')).map(cb => cb.value);
+}
+
+async function bulkAllocate() {
+    const orderIds = getSelectedOrders();
+    if (orderIds.length === 0) {
+        showToast('Please select at least one order', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('{% url "logistics:allocate_orders" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({ order_ids: orderIds })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(`Allocated ${data.success_count} of ${data.total} orders`, 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast(data.error || 'Allocation failed', 'error');
+        }
+    } catch (e) {
+        showToast('Error allocating orders', 'error');
+    }
+}
+
+async function allocateWithCarrier() {
+    const orderIds = getSelectedOrders();
+    const carrierId = document.getElementById('manualCarrier').value;
+    
+    if (orderIds.length === 0) {
+        showToast('Please select at least one order', 'error');
+        return;
+    }
+    if (!carrierId) {
+        showToast('Please select a carrier', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('{% url "logistics:allocate_orders" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({ order_ids: orderIds, carrier_id: carrierId })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(`Allocated ${data.success_count} of ${data.total} orders`, 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast(data.error || 'Allocation failed', 'error');
+        }
+    } catch (e) {
+        showToast('Error allocating orders', 'error');
+    }
+}
+
+async function forceBook(orderId) {
+    const carrierId = document.getElementById('manualCarrier').value;
+    
+    try {
+        const response = await fetch(`/logistics/shipping/force-book/${orderId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken
+            },
+            body: JSON.stringify({ carrier_id: carrierId || null })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(`AWB booked: ${data.awb} (${data.carrier})`, 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast(data.error || 'Booking failed', 'error');
+        }
+    } catch (e) {
+        showToast('Error booking AWB', 'error');
+    }
+}
+
+async function trackShipment(shipmentId) {
+    try {
+        const response = await fetch(`/logistics/shipments/${shipmentId}/track/`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrftoken}
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('Tracking updated', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.message || 'Tracking update failed', 'error');
+        }
+    } catch (e) {
+        showToast('Error updating tracking', 'error');
+    }
+}
+</script>
+{% endblock %}
