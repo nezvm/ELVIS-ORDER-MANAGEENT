@@ -21,6 +21,7 @@ from .services import CarrierAllocationService, MockCarrierService
 class CarrierListView(mixins.HybridListView):
     model = Carrier
     table_class = CarrierTable
+    template_name = 'logistics/carrier_list.html'
     filterset_fields = {'name': ['contains'], 'status': ['exact'], 'supports_cod': ['exact']}
     
     def get_context_data(self, **kwargs):
