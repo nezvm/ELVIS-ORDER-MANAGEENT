@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 
 app_name = 'integrations'
@@ -6,6 +6,9 @@ app_name = 'integrations'
 urlpatterns = [
     # Dashboard
     path('', views.IntegrationDashboardView.as_view(), name='dashboard'),
+    
+    # WhatsApp Integration (includes webhook)
+    path('whatsapp/', include('integrations.whatsapp.urls')),
     
     # Google Workspace
     path('google/', views.GoogleConfigListView.as_view(), name='google_config_list'),
