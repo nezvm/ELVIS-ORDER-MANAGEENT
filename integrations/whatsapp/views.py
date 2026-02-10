@@ -153,6 +153,16 @@ def extract_message_events(payload):
             }]
         }]
     }
+    
+    Referral structure (for Click-to-WhatsApp ads):
+    "referral": {
+        "source_url": "https://...",
+        "source_type": "ad",
+        "source_id": "123456789",
+        "headline": "Ad headline",
+        "body": "Ad body text",
+        "ctwa_clid": "click_tracking_id"
+    }
     """
     events = []
     
