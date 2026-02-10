@@ -473,9 +473,123 @@ agent_communication:
         agent: "testing"
         comment: "✅ Legacy model compatibility working correctly. All 7 new models (CourierPartner, Vendor, Purchase, PurchaseItem, PostOrder, OrderTrackingHistory, PincodeRuleLegacy) successfully imported and accessible. Models properly registered in admin panel and database queries working without errors."
 
+  - task: "WhatsApp Lead Auto-Save - Webhook Endpoints"
+    implemented: true
+    working: true
+    file: "integrations/whatsapp/views.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Implemented WhatsApp webhook endpoints: GET for Meta verification, POST for receiving messages. Webhook returns hub.challenge on valid token. All 9 unit tests pass."
+
+  - task: "WhatsApp Lead Auto-Save - Customer Deduplication"
+    implemented: true
+    working: true
+    file: "integrations/whatsapp/models.py, integrations/whatsapp/views.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Global customer deduplication by wa_id. Same customer messaging multiple sales numbers creates 1 WhatsAppCustomer + multiple WhatsAppCustomerChannel records. Unit tests confirm correct behavior."
+
+  - task: "WhatsApp Lead Auto-Save - Ad Attribution"
+    implemented: true
+    working: true
+    file: "integrations/whatsapp/views.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Captures Click-to-WhatsApp ad referral data including source_type, source_id, headline, body, ctwa_clid. Tags leads as from_ad or organic. Unit test confirms ad attribution captured correctly."
+
+  - task: "WhatsApp Lead Auto-Save - Lead Integration"
+    implemented: true
+    working: true
+    file: "integrations/whatsapp/views.py, marketing/models.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "WhatsApp leads automatically create Lead records in marketing app. Lead source is whatsapp_inbound or whatsapp_ctwa_ad. Leads appear in unified All Leads page. Unit test confirms lead creation."
+
+  - task: "WhatsApp Lead Auto-Save - UI Dashboard"
+    implemented: true
+    working: true
+    file: "integrations/whatsapp/views.py, templates/integrations/whatsapp/dashboard.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "WhatsApp Integration dashboard shows webhook URL, verify token, connected numbers with stats, recent leads with ad/organic tagging. Setup instructions included."
+
+  - task: "WhatsApp Lead Auto-Save - Sidebar Navigation"
+    implemented: true
+    working: true
+    file: "templates/ui/base.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Added WhatsApp Leads under Marketing section, WhatsApp Setup under Integrations section. Navigation links working correctly."
+
 test_plan:
   current_focus:
-    - "All tasks completed successfully"
+    - "WhatsApp Lead Auto-Save - Webhook Endpoints"
+    - "WhatsApp Lead Auto-Save - Customer Deduplication"
+    - "WhatsApp Lead Auto-Save - Ad Attribution"
+    - "WhatsApp Lead Auto-Save - Lead Integration"
+    - "WhatsApp Lead Auto-Save - UI Dashboard"
+    - "WhatsApp Lead Auto-Save - Sidebar Navigation"
   stuck_tasks: []
-  test_all: true
-  test_priority: "completed"
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: |
+      Implemented WhatsApp Lead Auto-Save feature:
+      
+      1. Created integrations/whatsapp Django app with models:
+         - WhatsAppCustomer (global dedupe by wa_id)
+         - WhatsAppCustomerChannel (touchpoints)
+         - WhatsAppMessage (message storage)
+         - WhatsAppNumberConfig (sales number tracking)
+         - WhatsAppWebhookLog (debugging)
+      
+      2. Webhook endpoints:
+         - GET /webhooks/whatsapp/ - Meta verification
+         - POST /webhooks/whatsapp/ - Message ingestion
+      
+      3. Ad Attribution:
+         - Captures CTWA referral data (headline, source_id, ctwa_clid)
+         - Tags leads as from_ad/organic
+      
+      4. UI Pages:
+         - WhatsApp Integration dashboard (/integrations/whatsapp/)
+         - WhatsApp Leads list (/integrations/whatsapp/customers/)
+         - Customer detail view
+      
+      5. All 9 unit tests pass:
+         - Webhook verification
+         - Customer deduplication
+         - Message storage
+         - Lead creation
+         - Ad attribution
+      
+      Testing needed:
+      - Verify webhook endpoints accessible
+      - Verify UI pages load correctly
+      - Verify sidebar navigation works
