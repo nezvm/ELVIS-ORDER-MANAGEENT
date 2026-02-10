@@ -290,6 +290,7 @@ def process_message_event(event):
     phone_number_id = event['phone_number_id']
     profile_name = event.get('profile_name')
     message_id = event.get('message_id')
+    referral = event.get('referral')  # Ad attribution data
     
     customer_created = False
     customer_updated = False
@@ -299,6 +300,20 @@ def process_message_event(event):
         logger.debug(f"Message {message_id} already processed, skipping")
         return False, False
     
+    # Determine attribution source from referral data
+    is_from_ad = False
+    attribution_source = 'organic'
+    
+    if referral:
+        source_type = referral.get('source_type', '').lower()
+        if source_type == 'ad':
+            is_from_ad = True
+            attribution_source = 'ctwa_ad'
+        elif source_type == 'post':
+            attribution_source = 'organic'  # Organic post click
+        elif source_type:
+            attribution_source = 'meta_ad'
+    
     # 1. Upsert WhatsAppCustomer (global dedup by wa_id)
     customer, created = WhatsAppCustomer.objects.get_or_create(
         wa_id=wa_id,
@@ -306,12 +321,21 @@ def process_message_event(event):
             'profile_name': profile_name,
             'last_message_preview': event.get('body', '')[:500] if event.get('body') else None,
             'last_message_at': event['timestamp_utc'],
+            'is_from_ad': is_from_ad,
+            'attribution_source': attribution_source,
+            # Ad-specific fields (only on first contact)
+            'meta_ad_source_id': referral.get('source_id') if referral else None,
+            'meta_ad_source_type': referral.get('source_type') if referral else None,
+            'meta_ad_source_url': referral.get('source_url') if referral else None,
+            'meta_ad_headline': referral.get('headline') if referral else None,
+            'meta_ad_body': referral.get('body') if referral else None,
+            'meta_ctwa_clid': referral.get('ctwa_clid') if referral else None,
         }
     )
     
     if created:
         customer_created = True
-        logger.info(f"New WhatsApp customer: {wa_id}")
+        logger.info(f"New WhatsApp customer: {wa_id}, source: {attribution_source}, from_ad: {is_from_ad}")
     else:
         # Update existing customer
         customer_updated = True
