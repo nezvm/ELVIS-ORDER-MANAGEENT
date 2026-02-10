@@ -363,7 +363,7 @@ def process_message_event(event):
     number_config.last_webhook_at = timezone.now()
     number_config.webhook_count = (number_config.webhook_count or 0) + 1
     number_config.total_messages_received = (number_config.total_messages_received or 0) + 1
-    number_config.save(update_fields=['last_webhook_at', 'webhook_count', 'total_messages_received', 'modified'])
+    number_config.save(update_fields=['last_webhook_at', 'webhook_count', 'total_messages_received', 'updated'])
     
     # 3. Upsert WhatsAppCustomerChannel (touchpoint)
     channel, channel_created = WhatsAppCustomerChannel.objects.get_or_create(
