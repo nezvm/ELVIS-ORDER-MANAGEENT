@@ -62,6 +62,7 @@ MODULES = [
     "inventory",
     "segmentation",
     "integrations",
+    "integrations.whatsapp",
     "api",
     "marketing",
 ]
