@@ -309,3 +309,15 @@ TPC_SENDER_GSTIN = config('TPC_SENDER_GSTIN', default='')
 # DTDC
 DTDC_API_KEY = config('DTDC_API_KEY', default='')
 DTDC_CUSTOMER_CODE = config('DTDC_CUSTOMER_CODE', default='')
+
+# =============================================================================
+# WHATSAPP BUSINESS PLATFORM SETTINGS
+# =============================================================================
+# Webhook verification token (set this in your Meta App webhook config)
+WA_VERIFY_TOKEN = config('WA_VERIFY_TOKEN', default='elvis_whatsapp_verify_2024')
+
+# App Secret for signature verification (optional but recommended for production)
+WA_APP_SECRET = config('WA_APP_SECRET', default='')
+
+# Meta Access Token for API calls (for outbound messages - optional)
+META_ACCESS_TOKEN = config('META_ACCESS_TOKEN', default='')
