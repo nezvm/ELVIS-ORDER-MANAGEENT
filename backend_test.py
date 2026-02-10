@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Backend Test Suite for Elvis-Manager ERP Application
-Tests all new frontend pages and backend endpoints
+Tests WhatsApp Lead Auto-Save feature endpoints and UI pages
 """
 
 import requests
@@ -9,7 +9,7 @@ import sys
 import json
 from urllib.parse import urljoin
 
-class ElvisERPTester:
+class WhatsAppERPTester:
     def __init__(self, base_url, username, password):
         self.base_url = base_url.rstrip('/')
         self.username = username
