@@ -1,0 +1,206 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}{{ customer.profile_name|default:customer.wa_id }}{% endblock %}
+{% block page_title %}{{ customer.profile_name|default:customer.wa_id }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Back Link -->
+    <div>
+        <a href="{% url 'integrations:whatsapp_customer_list' %}" class="text-gray-500 hover:text-gray-700">
+            <i class="fas fa-arrow-left mr-2"></i>Back to WhatsApp Leads
+        </a>
+    </div>
+    
+    <!-- Customer Info Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-6">
+            <div class="flex items-start justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center">
+                        <span class="text-2xl font-bold text-primary-600">{{ customer.profile_name|slice:":1"|upper|default:"?" }}</span>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">{{ customer.profile_name|default:"Unknown" }}</h2>
+                        <p class="text-gray-500">+{{ customer.wa_id }}</p>
+                        <div class="flex items-center space-x-2 mt-2">
+                            {% if customer.is_from_ad %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                <i class="fas fa-ad mr-1"></i> From Ad
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <i class="fas fa-leaf mr-1"></i> Organic
+                            </span>
+                            {% endif %}
+                            <span class="text-xs text-gray-500">{{ customer.get_attribution_source_display }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm text-gray-500">First seen</p>
+                    <p class="font-medium">{{ customer.first_seen|date:"d M Y, H:i" }}</p>
+                </div>
+            </div>
+            
+            <!-- Stats Row -->
+            <div class="grid grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-100">
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-gray-900">{{ customer.total_messages }}</p>
+                    <p class="text-sm text-gray-500">Messages</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-gray-900">{{ customer.total_channels_contacted }}</p>
+                    <p class="text-sm text-gray-500">Channels</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-gray-900">{{ customer.last_message_at|timesince }}</p>
+                    <p class="text-sm text-gray-500">Last Active</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-gray-900">{{ customer.assigned_sales_user.username|default:"-" }}</p>
+                    <p class="text-sm text-gray-500">Assigned To</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Attribution Details (if from ad) -->
+        {% if customer.is_from_ad and customer.meta_ad_headline %}
+        <div class="px-6 py-4 bg-orange-50 border-t border-orange-100">
+            <h4 class="text-sm font-semibold text-orange-800 mb-2"><i class="fas fa-ad mr-1"></i> Ad Attribution</h4>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                {% if customer.meta_ad_headline %}
+                <div>
+                    <span class="text-orange-600">Headline:</span>
+                    <span class="text-gray-700">{{ customer.meta_ad_headline }}</span>
+                </div>
+                {% endif %}
+                {% if customer.meta_ad_source_type %}
+                <div>
+                    <span class="text-orange-600">Source Type:</span>
+                    <span class="text-gray-700">{{ customer.meta_ad_source_type }}</span>
+                </div>
+                {% endif %}
+                {% if customer.meta_ctwa_clid %}
+                <div class="col-span-2">
+                    <span class="text-orange-600">Click ID:</span>
+                    <code class="text-xs bg-orange-100 px-1 rounded">{{ customer.meta_ctwa_clid }}</code>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Channels (Touchpoints) -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-900">Channels Contacted</h3>
+            <p class="text-sm text-gray-500">Sales numbers this customer has messaged</p>
+        </div>
+        
+        {% if channels %}
+        <div class="divide-y divide-gray-200">
+            {% for channel in channels %}
+            <div class="p-4 hover:bg-gray-50">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                            <i class="fab fa-whatsapp text-green-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">{{ channel.number_config.name|default:channel.phone_number_id }}</p>
+                            <code class="text-xs text-gray-500">{{ channel.phone_number_id }}</code>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-medium text-gray-900">{{ channel.message_count }} messages</p>
+                        <p class="text-xs text-gray-500">Last: {{ channel.last_contact_at|timesince }} ago</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-8 text-center text-gray-500">No channels found</div>
+        {% endif %}
+    </div>
+    
+    <!-- Message History -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-900">Message History</h3>
+        </div>
+        
+        {% if messages %}
+        <div class="p-6 space-y-4 max-h-96 overflow-y-auto">
+            {% for msg in messages %}
+            <div class="{% if msg.direction == 'inbound' %}mr-16{% else %}ml-16{% endif %}">
+                <div class="{% if msg.direction == 'inbound' %}bg-gray-100{% else %}bg-green-100{% endif %} rounded-2xl p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-medium {% if msg.direction == 'inbound' %}text-gray-600{% else %}text-green-700{% endif %}">
+                            {% if msg.direction == 'inbound' %}Received{% else %}Sent{% endif %}
+                        </span>
+                        <span class="text-xs text-gray-500">{{ msg.timestamp_utc|date:"d M, H:i" }}</span>
+                    </div>
+                    {% if msg.msg_type == 'text' %}
+                    <p class="text-gray-800">{{ msg.body }}</p>
+                    {% else %}
+                    <p class="text-gray-500 italic"><i class="fas fa-file mr-1"></i> {{ msg.get_msg_type_display }}</p>
+                    {% if msg.body %}
+                    <p class="text-gray-600 text-sm mt-1">{{ msg.body }}</p>
+                    {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-8 text-center text-gray-500">No messages found</div>
+        {% endif %}
+    </div>
+    
+    <!-- Linked Records -->
+    <div class="grid grid-cols-2 gap-6">
+        <!-- Linked Lead -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Linked Lead</h3>
+            {% if customer.linked_lead %}
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="font-medium text-gray-900">{{ customer.linked_lead.name }}</p>
+                    <p class="text-sm text-gray-500">{{ customer.linked_lead.phone_no }}</p>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mt-1">
+                        {{ customer.linked_lead.get_lead_status_display }}
+                    </span>
+                </div>
+                <a href="{{ customer.linked_lead.get_absolute_url }}" class="text-primary-500 hover:text-primary-600">
+                    <i class="fas fa-external-link-alt"></i>
+                </a>
+            </div>
+            {% else %}
+            <p class="text-gray-500">Not linked to any lead</p>
+            {% endif %}
+        </div>
+        
+        <!-- Linked Customer -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Linked Customer</h3>
+            {% if customer.linked_customer %}
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="font-medium text-gray-900">{{ customer.linked_customer.customer_name }}</p>
+                    <p class="text-sm text-gray-500">{{ customer.linked_customer.phone_no }}</p>
+                </div>
+                <a href="{{ customer.linked_customer.get_absolute_url }}" class="text-primary-500 hover:text-primary-600">
+                    <i class="fas fa-external-link-alt"></i>
+                </a>
+            </div>
+            {% else %}
+            <p class="text-gray-500">Not linked to any customer</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,346 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}WhatsApp Integration{% endblock %}
+{% block page_title %}WhatsApp Integration{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Connection Setup Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-100">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                        <i class="fab fa-whatsapp text-2xl text-green-600"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900">WhatsApp Business Platform</h2>
+                        <p class="text-sm text-gray-500">Connect your WhatsApp Business numbers via Meta Cloud API</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    {% if total_numbers > 0 %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                        <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                        {{ total_numbers }} Number{% if total_numbers > 1 %}s{% endif %} Connected
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                        <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
+                        Not Connected
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Webhook Configuration -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Webhook Configuration</h3>
+                    
+                    <div class="bg-gray-50 rounded-xl p-4 space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Webhook URL</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="text" readonly value="{{ webhook_url }}" 
+                                       id="webhookUrl"
+                                       class="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-mono">
+                                <button onclick="copyToClipboard('webhookUrl')" 
+                                        class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Verify Token</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="text" readonly value="{{ verify_token }}" 
+                                       id="verifyToken"
+                                       class="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-mono">
+                                <button onclick="copyToClipboard('verifyToken')" 
+                                        class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-sm text-gray-500">
+                        <p class="font-medium text-gray-700 mb-2">Subscribed Events:</p>
+                        <code class="bg-gray-100 px-2 py-1 rounded">messages</code>
+                    </div>
+                </div>
+                
+                <!-- Setup Instructions -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Setup Instructions</h3>
+                    
+                    <div class="bg-blue-50 rounded-xl p-4">
+                        <ol class="space-y-3 text-sm text-gray-700">
+                            <li class="flex items-start space-x-3">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">1</span>
+                                <span>Go to <a href="https://developers.facebook.com/apps" target="_blank" class="text-blue-600 hover:underline">Meta for Developers</a> and create/select your app</span>
+                            </li>
+                            <li class="flex items-start space-x-3">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">2</span>
+                                <span>Add WhatsApp product and configure webhook with the URL and token above</span>
+                            </li>
+                            <li class="flex items-start space-x-3">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">3</span>
+                                <span>Subscribe to <strong>messages</strong> webhook field</span>
+                            </li>
+                            <li class="flex items-start space-x-3">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">4</span>
+                                <span>On each WhatsApp Business phone: <strong>Settings → Linked Devices → Link a device → Connect to Business Platform</strong></span>
+                            </li>
+                            <li class="flex items-start space-x-3">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">5</span>
+                                <span>Scan the QR code shown in Meta dashboard</span>
+                            </li>
+                        </ol>
+                    </div>
+                    
+                    <div class="text-xs text-gray-500 bg-yellow-50 rounded-lg p-3">
+                        <i class="fas fa-info-circle text-yellow-600 mr-1"></i>
+                        <strong>Coexistence Mode:</strong> You can continue using WhatsApp Business mobile app normally while leads are auto-captured.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">Total Leads</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ total_customers }}</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-users text-green-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">Total Messages</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ total_messages }}</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <i class="fas fa-comments text-blue-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">Connected Numbers</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ total_numbers }}</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
+                    <i class="fas fa-phone text-purple-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">From Ads</p>
+                    <p class="text-3xl font-bold text-gray-900">-</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center">
+                    <i class="fas fa-ad text-orange-600"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Connected Numbers -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-900">Connected Numbers</h3>
+            <span class="text-sm text-gray-500">Auto-detected from webhook activity</span>
+        </div>
+        
+        {% if numbers %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Number</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone Number ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Messages</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customers</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Activity</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for num in numbers %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                    <i class="fab fa-whatsapp text-green-600"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">{{ num.name|default:num.display_phone_number }}</div>
+                                    <div class="text-sm text-gray-500">{{ num.display_phone_number|default:'-' }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <code class="text-xs bg-gray-100 px-2 py-1 rounded">{{ num.phone_number_id }}</code>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ num.total_messages_received }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ num.total_customers }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {% if num.last_webhook_at %}
+                            {{ num.last_webhook_at|timesince }} ago
+                            {% else %}
+                            Never
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-plug text-gray-400 text-2xl"></i>
+            </div>
+            <h4 class="text-lg font-medium text-gray-900 mb-2">No Numbers Connected</h4>
+            <p class="text-gray-500 mb-4">Numbers will appear here automatically when they receive their first webhook.</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Recent Leads -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-900">Recent WhatsApp Leads</h3>
+            <a href="{% url 'integrations:whatsapp_customer_list' %}" class="text-primary-500 hover:text-primary-600 text-sm font-medium">
+                View All <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+        
+        {% if recent_customers %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Message</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Messages</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Seen</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for customer in recent_customers %}
+                    <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='{{ customer.get_absolute_url }}'">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center mr-3">
+                                    <span class="text-primary-600 font-bold">{{ customer.profile_name|slice:":1"|upper|default:"?" }}</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">{{ customer.profile_name|default:"Unknown" }}</div>
+                                    <div class="text-sm text-gray-500">+{{ customer.wa_id }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if customer.is_from_ad %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                <i class="fas fa-ad mr-1"></i> Ad
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <i class="fas fa-leaf mr-1"></i> Organic
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-900 max-w-xs truncate">{{ customer.last_message_preview|default:"-"|truncatechars:50 }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ customer.total_messages }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ customer.first_seen|timesince }} ago</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-inbox text-gray-400 text-2xl"></i>
+            </div>
+            <h4 class="text-lg font-medium text-gray-900 mb-2">No Leads Yet</h4>
+            <p class="text-gray-500">Leads will appear here when customers message your WhatsApp numbers.</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Recent Webhook Activity -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-900">Recent Webhook Activity</h3>
+        </div>
+        
+        {% if recent_webhooks %}
+        <div class="divide-y divide-gray-200">
+            {% for log in recent_webhooks %}
+            <div class="p-4 hover:bg-gray-50">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        {% if log.processed %}
+                        <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                        {% else %}
+                        <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+                        {% endif %}
+                        <span class="text-sm font-medium text-gray-900">{{ log.event_type|default:"webhook" }}</span>
+                        <span class="text-xs text-gray-500">{{ log.created|timesince }} ago</span>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        {% if log.messages_processed > 0 %}
+                        <span class="text-green-600">{{ log.messages_processed }} message{% if log.messages_processed > 1 %}s{% endif %}</span>
+                        {% endif %}
+                        {% if log.customers_created > 0 %}
+                        <span class="ml-2 text-blue-600">{{ log.customers_created }} new lead{% if log.customers_created > 1 %}s{% endif %}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if log.error_message %}
+                <div class="mt-2 text-xs text-red-600">{{ log.error_message|truncatechars:100 }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-8 text-center text-gray-500">
+            No webhook activity yet
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    element.select();
+    document.execCommand('copy');
+    showToast('Copied to clipboard!', 'success');
+}
+</script>
+{% endblock %}

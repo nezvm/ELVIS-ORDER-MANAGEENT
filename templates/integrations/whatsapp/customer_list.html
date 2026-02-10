@@ -1,0 +1,139 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}WhatsApp Leads{% endblock %}
+{% block page_title %}WhatsApp Leads{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <p class="text-gray-500">All leads captured from WhatsApp Business Platform</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <a href="{% url 'integrations:whatsapp_dashboard' %}" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                <i class="fas fa-cog mr-2"></i>Setup
+            </a>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-2">
+                <span class="text-sm text-gray-500">Source:</span>
+                <select class="border border-gray-300 rounded-lg px-3 py-2 text-sm" onchange="filterBySource(this.value)">
+                    <option value="all">All</option>
+                    <option value="ad">From Ads</option>
+                    <option value="organic">Organic</option>
+                </select>
+            </div>
+            <div class="flex-1">
+                <input type="text" placeholder="Search by name or phone..." 
+                       class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Leads Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        {% if customers %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Message</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Messages</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Channels</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Seen</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for customer in customers %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center mr-3">
+                                    <span class="text-primary-600 font-bold">{{ customer.profile_name|slice:":1"|upper|default:"?" }}</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">{{ customer.profile_name|default:"Unknown" }}</div>
+                                    <div class="text-sm text-gray-500">+{{ customer.wa_id }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if customer.is_from_ad %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                <i class="fas fa-ad mr-1"></i> Ad
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <i class="fas fa-leaf mr-1"></i> Organic
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-900 max-w-xs truncate">{{ customer.last_message_preview|default:"-"|truncatechars:40 }}</div>
+                            <div class="text-xs text-gray-500">{{ customer.last_message_at|timesince }} ago</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ customer.total_messages }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ customer.total_channels_contacted }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ customer.assigned_sales_user.username|default:"-" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ customer.first_seen|date:"d M Y" }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <a href="{{ customer.get_absolute_url }}" class="text-primary-500 hover:text-primary-600">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="px-6 py-4 border-t border-gray-200">
+            <nav class="flex items-center justify-between">
+                <div class="text-sm text-gray-500">
+                    Showing {{ page_obj.start_index }} - {{ page_obj.end_index }} of {{ page_obj.paginator.count }}
+                </div>
+                <div class="flex space-x-2">
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 border rounded hover:bg-gray-50">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 border rounded hover:bg-gray-50">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </nav>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <div class="p-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fab fa-whatsapp text-gray-400 text-2xl"></i>
+            </div>
+            <h4 class="text-lg font-medium text-gray-900 mb-2">No WhatsApp Leads Yet</h4>
+            <p class="text-gray-500 mb-4">Leads will appear here when customers message your WhatsApp numbers.</p>
+            <a href="{% url 'integrations:whatsapp_dashboard' %}" class="inline-flex items-center px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors">
+                <i class="fas fa-cog mr-2"></i>Configure WhatsApp
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
