@@ -239,6 +239,30 @@ def extract_message_events(payload):
                 except (ValueError, TypeError):
                     timestamp_utc = timezone.now()
                 
+                # Extract referral data (for Click-to-WhatsApp ads)
+                referral = msg.get('referral', {})
+                referral_data = None
+                if referral:
+                    referral_data = {
+                        'source_url': referral.get('source_url'),
+                        'source_type': referral.get('source_type'),
+                        'source_id': referral.get('source_id'),
+                        'headline': referral.get('headline'),
+                        'body': referral.get('body'),
+                        'ctwa_clid': referral.get('ctwa_clid'),
+                        'media_type': referral.get('media_type'),
+                        'image_url': referral.get('image', {}).get('link') if referral.get('image') else None,
+                        'video_url': referral.get('video', {}).get('link') if referral.get('video') else None,
+                    }
+                
+                # Also check context for referral (some webhook versions)
+                context = msg.get('context', {})
+                if not referral_data and context.get('referral_from_message_id'):
+                    referral_data = {
+                        'source_type': 'referral',
+                        'referral_message_id': context.get('referral_from_message_id')
+                    }
+                
                 events.append({
                     'phone_number_id': phone_number_id,
                     'display_phone_number': display_phone_number,
@@ -249,7 +273,8 @@ def extract_message_events(payload):
                     'body': body,
                     'media_id': media_id,
                     'timestamp_utc': timestamp_utc,
-                    'raw_message': msg
+                    'raw_message': msg,
+                    'referral': referral_data,  # Ad attribution data
                 })
     
     return events
