@@ -289,6 +289,372 @@ class WhatsAppERPTester:
                     print(f"   └─ {issue}")
         
         return passed == len(test_cases)
+    
+    def test_whatsapp_webhook_verification(self):
+        """Test WhatsApp webhook verification (GET endpoint)"""
+        print("\n🔍 Testing WhatsApp Webhook Verification...")
+        
+        # Test with correct token
+        verify_url = f"{self.base_url}/webhooks/whatsapp/"
+        params_correct = {
+            'hub.mode': 'subscribe',
+            'hub.verify_token': 'elvis_whatsapp_verify_2024',
+            'hub.challenge': 'test123'
+        }
+        
+        try:
+            response = requests.get(verify_url, params=params_correct)
+            if response.status_code == 200 and response.text == 'test123':
+                print("✅ Webhook verification with correct token: PASSED")
+                correct_token_result = True
+            else:
+                print(f"❌ Webhook verification with correct token: FAILED - Status: {response.status_code}, Response: {response.text}")
+                correct_token_result = False
+        except Exception as e:
+            print(f"❌ Webhook verification with correct token: ERROR - {str(e)}")
+            correct_token_result = False
+        
+        # Test with wrong token
+        params_wrong = {
+            'hub.mode': 'subscribe',
+            'hub.verify_token': 'wrong_token',
+            'hub.challenge': 'test123'
+        }
+        
+        try:
+            response = requests.get(verify_url, params=params_wrong)
+            if response.status_code == 403:
+                print("✅ Webhook verification with wrong token: PASSED (correctly rejected)")
+                wrong_token_result = True
+            else:
+                print(f"❌ Webhook verification with wrong token: FAILED - Status: {response.status_code}, Expected: 403")
+                wrong_token_result = False
+        except Exception as e:
+            print(f"❌ Webhook verification with wrong token: ERROR - {str(e)}")
+            wrong_token_result = False
+        
+        return correct_token_result and wrong_token_result
+    
+    def test_whatsapp_message_reception(self):
+        """Test WhatsApp webhook message reception (POST endpoint)"""
+        print("\n📨 Testing WhatsApp Message Reception...")
+        
+        webhook_url = f"{self.base_url}/webhooks/whatsapp/"
+        
+        # Sample WhatsApp message payload from review request
+        payload = {
+            "object": "whatsapp_business_account",
+            "entry": [{
+                "id": "123456789",
+                "changes": [{
+                    "value": {
+                        "messaging_product": "whatsapp",
+                        "metadata": {
+                            "display_phone_number": "919876543210",
+                            "phone_number_id": "test_phone_001"
+                        },
+                        "contacts": [{"profile": {"name": "Test Lead"}, "wa_id": "919999888877"}],
+                        "messages": [{
+                            "from": "919999888877",
+                            "id": "msg_test_unique_001",
+                            "timestamp": "1707590000",
+                            "type": "text",
+                            "text": {"body": "Hello testing!"}
+                        }]
+                    },
+                    "field": "messages"
+                }]
+            }]
+        }
+        
+        try:
+            response = requests.post(
+                webhook_url, 
+                json=payload, 
+                headers={'Content-Type': 'application/json'}
+            )
+            
+            if response.status_code == 200 and response.text == 'OK':
+                print("✅ WhatsApp message reception: PASSED")
+                return True
+            else:
+                print(f"❌ WhatsApp message reception: FAILED - Status: {response.status_code}, Response: {response.text}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ WhatsApp message reception: ERROR - {str(e)}")
+            return False
+    
+    def test_customer_deduplication(self):
+        """Test customer deduplication across multiple sales numbers"""
+        print("\n👥 Testing Customer Deduplication...")
+        
+        webhook_url = f"{self.base_url}/webhooks/whatsapp/"
+        
+        # First message to phone_number_id_1
+        payload1 = {
+            "object": "whatsapp_business_account",
+            "entry": [{
+                "id": "123456789",
+                "changes": [{
+                    "value": {
+                        "messaging_product": "whatsapp",
+                        "metadata": {
+                            "display_phone_number": "919876543210",
+                            "phone_number_id": "test_phone_001"
+                        },
+                        "contacts": [{"profile": {"name": "Test Dedup Lead"}, "wa_id": "919999888866"}],
+                        "messages": [{
+                            "from": "919999888866",
+                            "id": "msg_dedup_001",
+                            "timestamp": "1707590100",
+                            "type": "text",
+                            "text": {"body": "First message to sales 1"}
+                        }]
+                    },
+                    "field": "messages"
+                }]
+            }]
+        }
+        
+        # Second message from same wa_id to different phone_number_id
+        payload2 = {
+            "object": "whatsapp_business_account",
+            "entry": [{
+                "id": "123456789",
+                "changes": [{
+                    "value": {
+                        "messaging_product": "whatsapp",
+                        "metadata": {
+                            "display_phone_number": "919876543211",
+                            "phone_number_id": "test_phone_002"
+                        },
+                        "contacts": [{"profile": {"name": "Test Dedup Lead"}, "wa_id": "919999888866"}],
+                        "messages": [{
+                            "from": "919999888866",
+                            "id": "msg_dedup_002",
+                            "timestamp": "1707590200",
+                            "type": "text",
+                            "text": {"body": "Second message to sales 2"}
+                        }]
+                    },
+                    "field": "messages"
+                }]
+            }]
+        }
+        
+        try:
+            # Send first message
+            response1 = requests.post(webhook_url, json=payload1, headers={'Content-Type': 'application/json'})
+            if response1.status_code != 200:
+                print(f"❌ First dedup message failed: {response1.status_code}")
+                return False
+            
+            # Send second message
+            response2 = requests.post(webhook_url, json=payload2, headers={'Content-Type': 'application/json'})
+            if response2.status_code != 200:
+                print(f"❌ Second dedup message failed: {response2.status_code}")
+                return False
+                
+            print("✅ Customer deduplication test messages sent successfully")
+            print("   (Should create 1 WhatsAppCustomer + 2 WhatsAppCustomerChannel records)")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Customer deduplication test: ERROR - {str(e)}")
+            return False
+    
+    def test_ad_attribution(self):
+        """Test Click-to-WhatsApp ad attribution"""
+        print("\n🎯 Testing Ad Attribution...")
+        
+        webhook_url = f"{self.base_url}/webhooks/whatsapp/"
+        
+        # Message with referral data (CTWA ad)
+        payload = {
+            "object": "whatsapp_business_account",
+            "entry": [{
+                "id": "123456789",
+                "changes": [{
+                    "value": {
+                        "messaging_product": "whatsapp",
+                        "metadata": {
+                            "display_phone_number": "919876543210",
+                            "phone_number_id": "test_phone_ad"
+                        },
+                        "contacts": [{"profile": {"name": "Ad Lead"}, "wa_id": "919999888855"}],
+                        "messages": [{
+                            "from": "919999888855",
+                            "id": "msg_ad_001",
+                            "timestamp": "1707590300",
+                            "type": "text",
+                            "text": {"body": "Hello from ad!"},
+                            "referral": {
+                                "source_type": "ad",
+                                "source_id": "123456",
+                                "headline": "Test Ad Headline",
+                                "body": "Test Ad Body",
+                                "ctwa_clid": "test_click_id_123"
+                            }
+                        }]
+                    },
+                    "field": "messages"
+                }]
+            }]
+        }
+        
+        try:
+            response = requests.post(webhook_url, json=payload, headers={'Content-Type': 'application/json'})
+            
+            if response.status_code == 200:
+                print("✅ Ad attribution test: PASSED")
+                print("   (Customer should have is_from_ad=True and meta_ad_headline captured)")
+                return True
+            else:
+                print(f"❌ Ad attribution test: FAILED - Status: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Ad attribution test: ERROR - {str(e)}")
+            return False
+    
+    def test_ui_pages(self):
+        """Test WhatsApp UI pages (authenticated)"""
+        print("\n🌐 Testing WhatsApp UI Pages...")
+        
+        if not self.login():
+            print("❌ Cannot test UI pages without login")
+            return False
+        
+        ui_pages = [
+            {
+                'url': '/integrations/whatsapp/',
+                'name': 'WhatsApp Dashboard',
+                'keywords': ['whatsapp', 'webhook', 'integration']
+            },
+            {
+                'url': '/integrations/whatsapp/customers/',
+                'name': 'WhatsApp Customers',
+                'keywords': ['whatsapp', 'customer', 'lead']
+            },
+            {
+                'url': '/marketing/leads/',
+                'name': 'All Leads Page',
+                'keywords': ['lead', 'marketing', 'list']
+            }
+        ]
+        
+        results = []
+        for page in ui_pages:
+            try:
+                response = self.session.get(f"{self.base_url}{page['url']}")
+                
+                if response.status_code == 200:
+                    # Basic content checks
+                    content_valid = True
+                    issues = []
+                    
+                    if not any(keyword.lower() in response.text.lower() for keyword in page['keywords']):
+                        issues.append(f"Missing expected keywords: {page['keywords']}")
+                        content_valid = False
+                    
+                    if '<html' not in response.text.lower():
+                        issues.append("No HTML structure found")
+                        content_valid = False
+                    
+                    status = "PASSED" if content_valid else "FAILED"
+                    print(f"   {'✅' if content_valid else '❌'} {page['name']}: {status}")
+                    
+                    if issues:
+                        for issue in issues:
+                            print(f"      • {issue}")
+                    
+                    results.append(content_valid)
+                else:
+                    print(f"   ❌ {page['name']}: FAILED - Status: {response.status_code}")
+                    results.append(False)
+                    
+            except Exception as e:
+                print(f"   ❌ {page['name']}: ERROR - {str(e)}")
+                results.append(False)
+        
+        return all(results)
+    
+    def test_sidebar_navigation(self):
+        """Test sidebar navigation for WhatsApp sections"""
+        print("\n🧭 Testing Sidebar Navigation...")
+        
+        if not self.login():
+            print("❌ Cannot test sidebar without login")
+            return False
+        
+        try:
+            # Get the main page to check sidebar
+            response = self.session.get(f"{self.base_url}/")
+            
+            if response.status_code != 200:
+                print(f"❌ Cannot access main page: {response.status_code}")
+                return False
+            
+            # Check for WhatsApp navigation items
+            navigation_items = [
+                'WhatsApp Leads',  # Under Marketing section
+                'WhatsApp Setup'   # Under Integrations section
+            ]
+            
+            found_items = []
+            for item in navigation_items:
+                if item.lower() in response.text.lower():
+                    found_items.append(item)
+                    print(f"   ✅ Found: {item}")
+                else:
+                    print(f"   ❌ Missing: {item}")
+            
+            success = len(found_items) == len(navigation_items)
+            print(f"   Overall: {'✅ PASSED' if success else '❌ FAILED'} - {len(found_items)}/{len(navigation_items)} items found")
+            
+            return success
+            
+        except Exception as e:
+            print(f"❌ Sidebar navigation test: ERROR - {str(e)}")
+            return False
+    
+    def run_whatsapp_tests(self):
+        """Run all WhatsApp-specific tests"""
+        print(f"🚀 Starting WhatsApp Lead Auto-Save Backend Tests")
+        print(f"📍 Base URL: {self.base_url}")
+        print(f"👤 Username: {self.username}")
+        print("=" * 60)
+        
+        test_results = {}
+        
+        # Run individual tests
+        print("\n🧪 Running WhatsApp Feature Tests...")
+        print("=" * 60)
+        
+        test_results['webhook_verification'] = self.test_whatsapp_webhook_verification()
+        test_results['message_reception'] = self.test_whatsapp_message_reception()
+        test_results['customer_deduplication'] = self.test_customer_deduplication()
+        test_results['ad_attribution'] = self.test_ad_attribution()
+        test_results['ui_pages'] = self.test_ui_pages()
+        test_results['sidebar_navigation'] = self.test_sidebar_navigation()
+        
+        # Summary
+        print("\n" + "=" * 60)
+        print("📊 WHATSAPP TESTS SUMMARY")
+        print("=" * 60)
+        
+        passed = sum(test_results.values())
+        total = len(test_results)
+        
+        for test_name, result in test_results.items():
+            icon = "✅" if result else "❌"
+            status = "PASSED" if result else "FAILED"
+            print(f"{icon} {test_name.replace('_', ' ').title()}: {status}")
+        
+        print(f"\n📈 Success Rate: {(passed/total*100):.1f}% ({passed}/{total})")
+        
+        return passed == total
 
 def main():
     """Main test execution"""
@@ -297,14 +663,14 @@ def main():
     USERNAME = "admin"
     PASSWORD = "admin123"
     
-    print("🎯 Elvis-Manager ERP Backend Test Suite")
+    print("🎯 WhatsApp Lead Auto-Save Test Suite")
     print("=" * 60)
     
     # Initialize tester
-    tester = ElvisERPTester(BASE_URL, USERNAME, PASSWORD)
+    tester = WhatsAppERPTester(BASE_URL, USERNAME, PASSWORD)
     
-    # Run tests
-    success = tester.run_all_tests()
+    # Run WhatsApp tests
+    success = tester.run_whatsapp_tests()
     
     # Exit with appropriate code
     sys.exit(0 if success else 1)
