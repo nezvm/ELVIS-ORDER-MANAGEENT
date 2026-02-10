@@ -11,17 +11,29 @@ from .models import (
 @admin.register(WhatsAppCustomer)
 class WhatsAppCustomerAdmin(admin.ModelAdmin):
     list_display = [
-        'wa_id', 'profile_name', 'total_messages', 
-        'total_channels_contacted', 'last_seen', 'assigned_sales_user'
+        'wa_id', 'profile_name', 'attribution_source', 'is_from_ad',
+        'total_messages', 'total_channels_contacted', 'last_seen', 'assigned_sales_user'
     ]
-    list_filter = ['assigned_sales_user', 'created']
-    search_fields = ['wa_id', 'profile_name']
+    list_filter = ['is_from_ad', 'attribution_source', 'assigned_sales_user', 'created']
+    search_fields = ['wa_id', 'profile_name', 'meta_ad_headline']
     readonly_fields = ['id', 'created', 'modified', 'first_seen', 'last_seen']
     raw_id_fields = ['linked_customer', 'linked_lead', 'assigned_sales_user']
     
     fieldsets = (
         ('Customer Info', {
             'fields': ('wa_id', 'profile_name')
+        }),
+        ('Attribution & Ads', {
+            'fields': (
+                'is_from_ad', 'attribution_source', 'tags',
+                'meta_ad_source_type', 'meta_ad_source_id', 'meta_ad_source_url',
+                'meta_ad_headline', 'meta_ad_body', 'meta_ctwa_clid',
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Conversion Tracking', {
+            'fields': ('meta_fbclid', 'conversion_sent_to_meta', 'conversion_sent_at'),
+            'classes': ('collapse',)
         }),
         ('Timestamps', {
             'fields': ('first_seen', 'last_seen', 'last_message_at', 'last_message_preview')
