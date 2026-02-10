@@ -10,6 +10,19 @@ class WhatsAppCustomer(BaseModel):
     Global WhatsApp customer - deduplicated by wa_id (customer's phone number).
     If the same customer messages multiple sales numbers, only ONE record exists here.
     """
+    
+    # Attribution source choices
+    ATTRIBUTION_SOURCE_CHOICES = [
+        ('organic', 'Organic / Direct'),
+        ('ctwa_ad', 'Click-to-WhatsApp Ad'),
+        ('fb_ad', 'Facebook Ad'),
+        ('ig_ad', 'Instagram Ad'),
+        ('meta_ad', 'Meta Ad (Unspecified)'),
+        ('google_ad', 'Google Ad'),
+        ('referral', 'Referral'),
+        ('unknown', 'Unknown'),
+    ]
+    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     
     # Unique identifier - customer's WhatsApp number (without +)
@@ -31,6 +44,91 @@ class WhatsAppCustomer(BaseModel):
     last_message_preview = models.TextField(blank=True, null=True)
     last_message_at = models.DateTimeField(null=True, blank=True)
     
+    # =============================================================================
+    # ATTRIBUTION & AD TRACKING
+    # =============================================================================
+    is_from_ad = models.BooleanField(
+        default=False, 
+        db_index=True,
+        help_text="True if first contact was from a Click-to-WhatsApp ad"
+    )
+    attribution_source = models.CharField(
+        max_length=30, 
+        choices=ATTRIBUTION_SOURCE_CHOICES, 
+        default='unknown',
+        db_index=True,
+        help_text="How the customer discovered us"
+    )
+    
+    # Meta Ads specific fields (from referral data in webhook)
+    meta_ad_id = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        help_text="Meta Ad ID (from CTWA referral)"
+    )
+    meta_ad_source_id = models.CharField(
+        max_length=100, 
+        blank=True, 
+        null=True,
+        help_text="Source ID (Post/Creative ID)"
+    )
+    meta_ad_source_type = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True,
+        help_text="Source type (ad, post, etc.)"
+    )
+    meta_ad_source_url = models.URLField(
+        blank=True, 
+        null=True,
+        help_text="Source URL (ad link)"
+    )
+    meta_ad_headline = models.CharField(
+        max_length=500, 
+        blank=True, 
+        null=True,
+        help_text="Ad headline text"
+    )
+    meta_ad_body = models.TextField(
+        blank=True, 
+        null=True,
+        help_text="Ad body text"
+    )
+    meta_ctwa_clid = models.CharField(
+        max_length=200, 
+        blank=True, 
+        null=True,
+        help_text="Click-to-WhatsApp Click ID (for conversion tracking)"
+    )
+    
+    # For Meta Conversions API (CAPI) tracking
+    meta_fbclid = models.CharField(
+        max_length=200, 
+        blank=True, 
+        null=True,
+        help_text="Facebook Click ID"
+    )
+    conversion_sent_to_meta = models.BooleanField(
+        default=False,
+        help_text="Whether conversion event was sent to Meta CAPI"
+    )
+    conversion_sent_at = models.DateTimeField(
+        null=True, 
+        blank=True,
+        help_text="When conversion was sent to Meta"
+    )
+    
+    # Custom tags for manual categorization
+    tags = models.JSONField(
+        default=list, 
+        blank=True,
+        help_text="Custom tags for categorization"
+    )
+    
+    # =============================================================================
+    # ASSIGNMENT & LINKING
+    # =============================================================================
     # Assignment - sticky owner
     assigned_sales_user = models.ForeignKey(
         'accounts.User',
