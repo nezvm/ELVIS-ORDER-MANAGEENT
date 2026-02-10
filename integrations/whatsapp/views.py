@@ -467,7 +467,7 @@ def create_or_update_lead(customer, event):
             if customer.is_from_ad:
                 update_note += f" (From Click-to-WhatsApp Ad)"
             lead.notes = (lead.notes or '') + update_note
-            lead.save(update_fields=['notes', 'tags', 'modified'])
+            lead.save(update_fields=['notes', 'tags', 'updated'])
         
         # Link customer to lead
         customer.linked_lead = lead
