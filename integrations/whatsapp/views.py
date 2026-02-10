@@ -412,10 +412,28 @@ def process_message_event(event):
 def create_or_update_lead(customer, event):
     """
     Create or update a Lead record for unified lead management.
+    Includes attribution data for ad tracking.
     """
     try:
         # Format phone number
         phone_no = f"+{customer.wa_id}" if customer.wa_id else None
+        
+        # Determine lead source based on attribution
+        if customer.is_from_ad:
+            lead_source = 'whatsapp_ctwa_ad'
+        else:
+            lead_source = 'whatsapp_inbound'
+        
+        # Build tags for the lead
+        tags = []
+        if customer.is_from_ad:
+            tags.append('from_ad')
+            tags.append('ctwa')
+        else:
+            tags.append('organic')
+        
+        if customer.attribution_source:
+            tags.append(customer.attribution_source)
         
         # Check if lead already exists with this phone
         lead = Lead.objects.filter(phone_no=phone_no).first()
@@ -426,17 +444,30 @@ def create_or_update_lead(customer, event):
                 phone_no=phone_no,
                 phone_normalized=customer.wa_id,
                 name=customer.profile_name or f"WhatsApp Lead {customer.wa_id[-4:]}",
-                lead_source='whatsapp_inbound',
+                lead_source=lead_source,
                 lead_status='new',
                 captured_at=timezone.now(),
-                notes=f"Auto-created from WhatsApp inbound message. First message: {event.get('body', '')[:200] if event.get('body') else 'N/A'}"
+                tags=tags,
+                notes=f"Auto-created from WhatsApp inbound message.\n" +
+                      f"Attribution: {customer.get_attribution_source_display()}\n" +
+                      f"From Ad: {'Yes' if customer.is_from_ad else 'No'}\n" +
+                      (f"Ad Headline: {customer.meta_ad_headline}\n" if customer.meta_ad_headline else "") +
+                      f"First message: {event.get('body', '')[:200] if event.get('body') else 'N/A'}"
             )
-            logger.info(f"Created Lead from WhatsApp: {lead.id}")
+            logger.info(f"Created Lead from WhatsApp: {lead.id}, source: {lead_source}")
         else:
-            # Update existing lead if it was from a different source
-            if lead.lead_source != 'whatsapp_inbound':
-                lead.notes = (lead.notes or '') + f"\n\n[{timezone.now()}] Also contacted via WhatsApp."
-                lead.save(update_fields=['notes', 'modified'])
+            # Update existing lead with WhatsApp contact info
+            existing_tags = lead.tags or []
+            for tag in tags:
+                if tag not in existing_tags:
+                    existing_tags.append(tag)
+            lead.tags = existing_tags
+            
+            update_note = f"\n\n[{timezone.now()}] Also contacted via WhatsApp."
+            if customer.is_from_ad:
+                update_note += f" (From Click-to-WhatsApp Ad)"
+            lead.notes = (lead.notes or '') + update_note
+            lead.save(update_fields=['notes', 'tags', 'modified'])
         
         # Link customer to lead
         customer.linked_lead = lead
