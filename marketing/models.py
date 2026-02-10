@@ -28,11 +28,17 @@ class Lead(BaseModel):
     LEAD_SOURCES = [
         ('manual', 'Manual Entry'),
         ('whatsapp_vcf_import', 'WhatsApp VCF Import'),
+        ('whatsapp_inbound', 'WhatsApp Inbound (Organic)'),
+        ('whatsapp_ctwa_ad', 'WhatsApp Click-to-Ad'),
         ('google_contacts_sync', 'Google Contacts Sync'),
         ('shopify_abandoned_checkout', 'Shopify Abandoned Checkout'),
         ('shopify_abandoned_cart', 'Shopify Abandoned Cart'),
         ('website_form', 'Website Form'),
         ('referral', 'Referral'),
+        ('facebook_ad', 'Facebook Ad'),
+        ('instagram_ad', 'Instagram Ad'),
+        ('google_ad', 'Google Ad'),
+        ('csv_import', 'CSV Import'),
     ]
     
     LOCATION_STATUS = [
