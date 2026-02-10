@@ -171,6 +171,8 @@ class WhatsAppCustomer(BaseModel):
             models.Index(fields=['wa_id']),
             models.Index(fields=['last_seen']),
             models.Index(fields=['-last_message_at']),
+            models.Index(fields=['is_from_ad']),
+            models.Index(fields=['attribution_source']),
         ]
     
     def __str__(self):
