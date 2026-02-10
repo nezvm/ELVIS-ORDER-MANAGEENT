@@ -146,12 +146,16 @@
                 </div>
                 <a href="{% url 'marketing:lead_list' %}" data-testid="nav-leads" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/marketing/leads' in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
                     <i class="fas fa-user-plus w-5 mr-4 text-lg"></i>
-                    <span>Leads</span>
+                    <span>All Leads</span>
                     <span class="ml-auto bg-primary-500 text-white text-xs px-2.5 py-1 rounded-full font-semibold">New</span>
+                </a>
+                <a href="{% url 'integrations:whatsapp_customer_list' %}" data-testid="nav-whatsapp-leads" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/integrations/whatsapp/customers' in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200 pl-8">
+                    <i class="fab fa-whatsapp w-5 mr-4 text-lg text-green-400"></i>
+                    <span>WhatsApp Leads</span>
                 </a>
                 <a href="{% url 'marketing:whatsapp_dashboard' %}" data-testid="nav-whatsapp" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/marketing/whatsapp' in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
                     <i class="fab fa-whatsapp w-5 mr-4 text-lg"></i>
-                    <span>WhatsApp</span>
+                    <span>WhatsApp Broadcast</span>
                 </a>
                 <a href="{% url 'marketing:campaign_list' %}" data-testid="nav-campaigns" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/marketing/campaign' in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
                     <i class="fas fa-bullhorn w-5 mr-4 text-lg"></i>
