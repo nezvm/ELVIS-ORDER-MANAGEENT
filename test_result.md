@@ -564,7 +564,7 @@ agent_communication:
         comment: "✅ SIDEBAR NAVIGATION VERIFIED: Both 'WhatsApp Leads' (Marketing section) and 'WhatsApp Setup' (Integrations section) navigation items found in sidebar. Navigation structure correct and accessible."
 
 test_plan:
-  current_focus: []
+  current_focus: ["WhatsApp Lead Auto-Save - UI Dashboard", "WhatsApp Lead Auto-Save - Sidebar Navigation"]
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
