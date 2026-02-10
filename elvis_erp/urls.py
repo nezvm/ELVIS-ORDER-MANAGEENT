@@ -5,6 +5,9 @@ from django.conf.urls.static import static
 
 from registration.backends.default import urls as registration_urls
 
+# Import WhatsApp webhook for root-level access
+from integrations.whatsapp.views import whatsapp_webhook
+
 urlpatterns = [
     path("", include("core.urls")),
     path("master/", include("master.urls")),
@@ -20,6 +23,9 @@ urlpatterns = [
     path("segmentation/", include("segmentation.urls")),
     path("integrations/", include("integrations.urls")),
     path("marketing/", include("marketing.urls")),
+    
+    # WhatsApp Webhook at root level for easy Meta configuration
+    path("webhooks/whatsapp/", whatsapp_webhook, name='whatsapp_webhook_root'),
     
     # REST API
     path("api/v1/", include("api.urls")),
