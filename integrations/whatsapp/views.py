@@ -375,7 +375,7 @@ def process_message_event(event):
     )
     channel.message_count = (channel.message_count or 0) + 1
     channel.last_contact_at = event['timestamp_utc']
-    channel.save(update_fields=['message_count', 'last_contact_at', 'modified'])
+    channel.save(update_fields=['message_count', 'last_contact_at', 'updated'])
     
     # Update customer's channel count if new channel
     if channel_created:
