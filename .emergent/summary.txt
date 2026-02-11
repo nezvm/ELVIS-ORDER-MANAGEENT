@@ -1,139 +1,171 @@
 <analysis>**original_problem_statement:**
-The user wants to extend their Django-based ERP system, Elvis-Manager.
-
-**Initial & Revised Requirements:**
-*   **UI/UX Overhaul:** A complete replacement of the legacy UI with a modern, responsive layout (sidebar + top bar), consistent design system, and improved components. All pages must use a single, unified theme.
-*   **New 'Marketing' Module:**
-    *   **Leads Management:** Sync Google contacts into a new  model. Automatically classify leads as 'WIN' (matches existing customer/order) or 'LOSS'. Sync improved lead names back to Google.
-    *   **Shopify Abandoned Cart Recovery:** Sync abandoned checkouts from Shopify into the  model. This includes capturing cart details, recovery URLs, and customer info. Implement merge logic to avoid duplicate leads and track when an abandoned cart is successfully converted into an order.
-    *   **WhatsApp Broadcasting:** Create a plug-and-play system for WhatsApp providers (specifically Meta Cloud API). Implement event-driven notifications and a campaign broadcasting system. A key campaign type is Abandoned Recovery which sends automated follow-ups to leads from Shopify.
-    *   **Market Insights:** Build dashboards showing geo-intelligence data (by State -> District -> Pincode) for both orders and leads. This includes metrics like lead counts, conversion rates, revenue, and RTO share. The dashboard must differentiate between accurate data from orders and enriched data from leads, and track metrics related to abandoned carts.
+The user wants to automate saving WhatsApp leads into their Django-based ERP system, named Elvis. The core requirements are:
+1.  Integrate WhatsApp lead capture into the existing ERP.
+2.  All WhatsApp leads should be organized under a main Leads section, with a dedicated WhatsApp Leads subsection.
+3.  Leads must be tagged with their source: Ad (from Click-to-WhatsApp ads) or Organic/Direct. This requires parsing referral data from the Meta webhook.
+4.  The system should support connecting multiple WhatsApp Business numbers, which are currently active on Android phones using the WhatsApp Business App (Coexistence mode).
+5.  The user initially struggled with the manual setup in the Meta Developer dashboard and later provided an Embedded Signup script to be integrated.
+6.  The user has 12 existing WhatsApp Business numbers under their Elvis Co Meta Business Portfolio, some of which already have s. The goal is to connect all of them to the ERP.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The project is set up with Django, PostgreSQL, and Redis. The agent has successfully implemented two major feature sets:
-1.  **Initial Marketing Module:** Created the  Django app with a new UI based on the user's specified color scheme (Black, White, #AE1F25). This included pages for Leads, WhatsApp, Campaigns, and Market Insights, all inheriting from a new base template ().
-2.  **Shopify Abandoned Cart Feature:** Extended the  and  models to support abandoned cart data. Implemented mock services to handle the sync logic, lead merging, and conversion tracking. The Market Insights dashboard was updated with new tabs and KPIs for abandoned cart analysis.
-
-Both of these milestones were successfully tested using the testing agent. The agent is now in the middle of a third major task: unifying the UI theme across the entire application.
+A comprehensive WhatsApp integration module has been built as a new Django app (). This includes:
+-   **Backend:** Models for , , , etc. A webhook endpoint () correctly processes incoming messages, creates leads, handles customer deduplication, and attributes the lead source (Ad vs. Organic).
+-   **Frontend:** UI pages for a WhatsApp Setup dashboard, a WhatsApp Leads list, and a Lead Detail view. These are integrated into the main application's navigation and the unified All Leads page.
+-   **Legal Pages:** Publicly accessible URLs for Privacy Policy, Terms of Service, and Data Deletion have been created as required by Meta.
+-   **Embedded Signup:** An initial version of the Meta Embedded Signup flow has been integrated. However, this flow is currently blocked for the user due to a Meta restriction that prevents the app-owning Business Portfolio from onboarding its own numbers.
+-   **Testing:** Unit tests, backend testing agent, and frontend testing agent have been run successfully on the implemented features. Manual  tests confirmed webhook functionality.
 
 **Last working item**:
-- **Last item agent was working:** UI Theme Unification. The agent was systematically migrating all legacy templates to inherit from the new, unified base template (). Templates for the Dashboard, Orders, Customers, Products, and Logistics modules have been overwritten. The agent was about to create new templates for the , , and  modules.
-- **Status:** IN PROGRESS
-- **Agent Testing Done:** N
-- **Which testing method agent to use?** Frontend testing agent. This is crucial to visually verify that all pages across the application have been successfully and consistently migrated to the new theme.
-- **User Testing Done:** N
+*   **Last item agent was working:** The agent was addressing the failure of the Embedded Signup flow. The user reported an error preventing them from selecting their main Elvis Co Business Portfolio. After the user provided an Excel sheet of their 12 existing WhatsApp numbers under that same portfolio, the agent realized the Embedded Signup flow was the wrong approach for this use case. The agent then pivoted and proposed a new solution: building a Direct Import feature to allow the user to add their existing s manually.
+*   **Status:** IN PROGRESS
+*   **Agent Testing Done:** N
+*   **Which testing method agent to use?** both
+*   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
-- **Issue 1: UI Theme is inconsistent across the application (Priority: P0)**
-    - **Description:** Many pages still extend old base templates (, ), creating a jarring and inconsistent user experience. The user has mandated that 100% of the application must use the new, unified theme defined in .
-    - **Attempted fixes:** The agent has audited all templates and has already migrated several key modules (Core, Order, Master, Logistics) by overwriting their templates to extend .
-    - **Next debug checklist:**
-        1.  Create/overwrite templates for the remaining modules: , , , , and , ensuring they all extend .
-        2.  Update the corresponding  files to render these new templates if necessary.
-        3.  Perform a global search-and-replace to change any remaining instances of  or  to .
-        4.  Delete the old, now-unused base templates and partials (e.g., , ) to prevent future use.
-        5.  Once migration is complete, run the frontend testing agent to spot-check all major pages for visual consistency.
-    - **Why fix this issue and what will be achieved with the fix?** This is a mandatory requirement to provide a professional, modern, and cohesive user experience, which is a primary acceptance criterion for the user.
-    - **Status:** IN PROGRESS
-    - **Is recurring issue?** Y
-    - **Should Test frontend/backend/both after fix?** Frontend
-    - **Blocked on other issue:** None. This is the highest priority task.
+*   **Issue 1:** Embedded Signup flow is unusable for the user's main goal. (Priority: P0)
+
+*   **Issues Detail:**
+    *   **Issue 1: Embedded Signup flow is unusable for the user's main goal.**
+        *   **Attempted fixes:** The agent implemented the Embedded Signup flow as requested. When the user hit a roadblock (Meta error: This business portfolio owns WALS. You can only select other business portfolios.), the agent suggested creating a new Business Portfolio. This was not a viable solution as the user's numbers are already tied to their main portfolio.
+        *   **Next debug checklist:** The current plan is to abandon this flow for connecting the user's existing numbers. The agent will instead build a new Direct Import feature. The existing Embedded Signup code can be kept for potential future use (e.g., onboarding third-party clients).
+        *   **Why fix this issue and what will be achieved with the fix?** The user cannot connect their existing 12 WhatsApp numbers with the current implementation. The new Direct Import feature will unblock the user and fulfill their core requirement.
+        *   **Status:** BLOCKED
+        *   **Is recurring issue?** N
+        *   **Should Test frontend/backend/both after fix?** both
+        *   **Blocked on other issue:** None. This issue is being superseded by In progress Task 1.
 
 **In progress Task List**:
-- **Task 1: Complete the UI Theme Unification (Priority: P0)**
-    - **Where to resume:** The agent has just finished creating templates for the Logistics module. The immediate next step is to create the new, unified templates for the , , and  modules.
-    - **What will be achieved with this?** A single, consistent, modern theme will be applied across the entire ERP, fulfilling a critical user requirement and eliminating the broken, mixed-theme experience.
-    - **Status:** IN PROGRESS
-    - **Should Test frontend/backend/both after fix?** Frontend
+*   **Task 1:** Implement Direct Import for Existing WhatsApp Numbers. (Priority: P0)
+
+*   **Task Detail:**
+    *   **Task 1: Implement Direct Import for Existing WhatsApp Numbers.**
+        *   **Where to resume:** The task has not been started. The agent needs to begin by designing the UI and backend logic for this new feature. The plan is to:
+            1.  Create a form in the WhatsApp Setup dashboard ().
+            2.  The form should allow the user to enter a  and a friendly name.
+            3.  Create a view in  to process this form and save the data to the  model.
+            4.  Ensure the main webhook logic can handle messages from these manually added numbers.
+            5.  Update the dashboard to list all imported numbers and their status.
+        *   **What will be achieved with this?** This will allow the user to connect all their existing WhatsApp numbers that already have a , bypassing the failed Embedded Signup flow.
+        *   **Status:** NOT STARTED
+        *   **Should Test frontend/backend/both after fix?** both
+        *   **Blocked on something:** No.
 
 **Upcoming and Future Tasks**
-- **Upcoming Tasks (P0):**
-    - **Implement Live Google Contacts Sync:** Replace the mock service with a real implementation using the Google People API and OAuth for authentication.
-    - **Implement Live Shopify Abandoned Checkout Sync:** Replace the mock service with a real cron job or webhook-based integration to fetch data from the Shopify Admin API.
-    - **Implement Live WhatsApp Integration:** Build the real integration with the Meta Cloud API to send Abandoned Recovery messages.
-- **Future Tasks (P1):**
-    - **Refine Shopify Integration:** Implement the logic to split Shopify orders into  and  dynamic channels.
-    - **Enhance Logistics UI:** Polish the logistics panel to a ClickPost-level experience with more advanced features like bulk actions and drawers.
+*   **Upcoming Tasks:**
+    *   **(P1) Guide User on Acquiring Missing s:** The user's provided Excel sheet shows that several of their numbers do not have a . After the import feature is built, the next agent must create a guide or provide steps on how to migrate these numbers to the Meta Cloud API to obtain their s.
+*   **Future Tasks:**
+    *   **(P2) Shopify Integration:** The user mentioned a future requirement to integrate Shopify leads.
+    *   **(P3) Custom Lead Importing:** The user mentioned a future need for a custom lead import feature.
 
 **Completed work in this session**
-- **Marketing Module & UI Foundation:** Built and tested the core marketing pages (Leads, WhatsApp, Campaigns, Insights) with the new UI theme.
-- **Abandoned Cart Recovery Feature:** Implemented the complete (mocked) backend logic and frontend UI for tracking Shopify abandoned carts, including model extensions, services for sync/conversion, and new dashboards. This work was validated by the testing agent.
-- **UI Unification Progress:** Audited all application templates and began the migration process, successfully updating the templates for the Dashboard, Orders, Customers, Products, and Logistics modules.
+-   **WhatsApp Integration Module ( app):**
+    -   Created models for all necessary WhatsApp data (, , etc.).
+    -   Built and tested the core webhook endpoint () for message processing, lead creation, ad attribution, and customer deduplication.
+    -   Developed UI pages for the WhatsApp dashboard, leads list, and lead details.
+    -   Integrated WhatsApp leads into the main application sidebar and the unified  page.
+-   **Legal Compliance:**
+    -   Created and exposed public URLs for Privacy Policy, Terms of Service, and Data Deletion pages (, , ).
+-   **Initial Embedded Signup Flow:**
+    -   Implemented the frontend and backend for the Meta Embedded Signup flow, including the connect page and callback handler.
+-   **Testing & Documentation:**
+    -   Created backend unit tests ().
+    -   Wrote a detailed setup guide ().
+    -   Generated numerous screenshots of all developed frontend modules.
 
 **Earlier issues found/mentioned but not fixed**
-- None. The primary issue was the inconsistent UI, which is currently being fixed.
+*   **Issue 1: Supervisor Configuration Mismatch**
+    *   **Debug checklist:** The  file is configured for a FastAPI application, not Django. The agent worked around this by running  manually. To fix this, the supervisor configuration file (likely at ) needs to be updated to use a WSGI server like Gunicorn to run the Django application.
+    *   **Why to solve this issue and what will be achieved with this?** For the application to run robustly and automatically restart in a production or staging environment, the supervisor must be configured correctly.
+    *   **Should Test frontend/backend/both after fix:** Backend (verify the server runs via backend                          BACKOFF   Exited too quickly (process log may have details)
+code-server                      STOPPED   Not started
+frontend                         STOPPED   Feb 11 11:44 AM
+mongodb                          RUNNING   pid 52, uptime 0:00:04
+nginx-code-proxy                 RUNNING   pid 45, uptime 0:00:04
+supervisor> ).
+    *   **Is recurring issue?** N
 
 **Known issue recurrence from previous fork**
-- N/A
+*   N/A
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Backend:** Django, Django REST Framework
--   **Database:** PostgreSQL
--   **Async Tasks:** Celery with a Redis broker
--   **Frontend:** Django Template Language (DTL), Tailwind CSS (via CDN in )
+-   **Backend:** Django
+-   **Database:** SQLite (Default for development)
+-   **Frontend:** Django Template Language, HTML, CSS, JavaScript
+-   **Third-Party Integration:** Meta WhatsApp Business Cloud API (Webhooks, Embedded Signup)
 
 **key DB schema**
--   ****: Extended with , , , , , , , , , and  ('WIN', 'LOSS', 'CONVERTED').
--   ****: Extended with  ('Standard', 'Abandoned Recovery').
--   ****: Extended with .
--   ****: New model for geo-location enrichment.
--   ****, ****, ****: New models for analytics.
+-   ****:  (unique), , 
+-   ****: Stores details of the business's connected WhatsApp numbers.
+-   ****: Maps a customer to a specific business number they contacted, enabling multi-channel tracking.
+-   ****: Stores credentials from the Embedded Signup flow (, ).
+-   ****: Extended with  and .
 
 **changes in tech stack**
-- The project has standardized on PostgreSQL.
+-   None.
 
 **All files of reference**
--   **/app/templates/ui/base.html**: The single source of truth for the application's layout and design.
--   **/app/marketing/models.py**: Contains the extended schema for Leads, Campaigns, and new analytics models.
--   **/app/marketing/services.py**: Contains the (currently mock) business logic for syncing Shopify data and lead management.
--   **/app/marketing/views.py**: Contains the view logic for the new tabbed Market Insights dashboard.
--   All template files within  are relevant to the ongoing UI unification task.
+-   : Contains all business logic for webhook handling, UI views, and the Embedded Signup flow.
+-   : Defines the database schema for the WhatsApp integration.
+-   : Contains the core logic for processing a message event and creating/updating leads.
+-   : Defines the root URL for the webhook ().
+-   : The main UI for the WhatsApp setup and dashboard.
+-   : A user-provided file listing their 12 existing WhatsApp numbers and associated IDs.
 
-**Areas that need refactoring**:
-- After the UI migration is complete, all legacy template directories (, ) and files (, etc.) must be deleted to eliminate technical debt.
-- Legacy CSS and JS assets associated with the old themes should be removed from the static files and their references removed from the project.
+**Areas that need refactoring**
+-   The Embedded Signup feature ( view and template) is currently dead code for the user's immediate need. It should be disabled or hidden from the main UI to avoid confusion, pending a decision on its future use for onboarding new clients.
 
 **key api endpoints**
--   No new API endpoints were created in this session, but existing views and services were heavily modified. The core API endpoints remain under .
+-   : Main endpoint to receive webhook notifications from Meta.
+-   : Endpoint for Meta to verify the webhook.
+-   : Displays the WhatsApp Setup and Dashboard page.
+-   : Initiates the (currently blocked) Embedded Signup flow.
+-   , , : Public URLs for legal documents.
 
 **Critical Info for New Agent**
--   **Complete UI Unification First:** Your immediate priority is to finish the UI migration task. Do not start any new feature work until every single page extends  and the application has a consistent look and feel.
--   **Integrations are Mocked:** The core logic for Google Contacts, Shopify Abandoned Checkouts, and the WhatsApp Meta Cloud API is currently placeholder code. These are the next major implementation tasks once the UI is stable.
--   **Adhere to User Specifications:** The user's detailed requirements in messages #115 and #190 are the source of truth for the marketing and UI features. Refer to them for all implementation details.
+-   **Pivot away from Embedded Signup:** The user's primary goal is to connect their **12 existing WhatsApp numbers**. The Embedded Signup flow is blocked due to a Meta restriction. **Do not** attempt to fix the Embedded Signup flow for this purpose.
+-   **Focus on Direct Import:** The highest priority is to build the new **Direct Import feature**. This will allow the user to manually enter their s from the provided Excel sheet ().
+-   **Use User's Data:** Refer to the  artifact for the list of numbers and their existing IDs.
+-   **Next Step:** After the import feature is done, the next task will be to guide the user on how to obtain s for the numbers that currently lack one.
 
 **documents and test reports created in this job**
--   /app/memory/PRD.md
--   /app/test_reports/iteration_1.json
--   /app/test_reports/iteration_2.json
+-   
+-   
+-   Multiple screenshots of the UI are available in the message history.
 
 **Last 10 User Messages and any pending HUMAN messages**
--   **User Message #190:** Provided detailed mandatory requirements for a complete UI/UX theme unification. Stated that all pages must use a single modern theme and all old base templates and assets must be removed. This initiated the current 
-wtmp begins Mon Jan 12 11:39:31 2026.
--   **User Message #115:** Provided a very comprehensive list of new features and updates, primarily focused on implementing a Shopify Abandoned Cart recovery pipeline, enhancing the Market Insights dashboard with new tabs and metrics, and defining lead merge/conversion rules. This work has been completed (with mock integrations).
+1.  **User:** Shared a script () and asked what it was.
+2.  **Agent:** Identified it as the WhatsApp Embedded Signup script and offered to integrate it.
+3.  **User:** Agreed, confirming the goal is to connect multiple WA Business App numbers.
+4.  **Agent:** Proceeded with implementation.
+5.  **User:** Gave the go-ahead.
+6.  **Agent:** Completed the implementation.
+7.  **User:** Reported an error with a screenshot showing they couldn't select their business portfolio.
+8.  **Agent:** Explained the Meta restriction and suggested creating a new portfolio.
+9.  **User:** Clarified that all their numbers are in the main Elvis Co portfolio and shared an Excel sheet with the details.
+10. **Agent:** Analyzed the Excel sheet and proposed a new solution: pivot to a Direct Import feature to bypass the Embedded Signup flow for these existing numbers.
 
 **Project Health Check:**
--   **Broken:** The UI is in a broken, transitional state due to the ongoing theme unification. Some pages render the new modern theme while others render a legacy one. This is the top priority to fix.
--   **Mocked:** The backend logic for all key third-party integrations (Google, Shopify, WhatsApp) is currently placeholder code in the  files. The features are not functional in a live environment.
+-   **Broken:** The Embedded Signup flow is non-functional for the user's specific context (connecting numbers from the app-owning portfolio).
+-   **Mocked:** None.
 
 **3rd Party Integrations**
--   **Google Workspace (People API):** Planned, but implementation is currently mocked.
--   **Shopify (Admin API):** Partially implemented. Order sync exists, but the new Abandoned Checkout sync is mocked.
--   **WhatsApp (Meta Cloud API):** Planned, but implementation is currently mocked.
+-   **Meta WhatsApp Business Cloud API:** For receiving messages via webhooks and potentially managing numbers. This integration requires user-provided credentials (App ID, secrets, tokens) and does not use an Emergent LLM Key.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES. The agent was used successfully after the initial marketing module implementation and after the abandoned cart feature implementation.
--   **Test files created:** None.
+-   **Testing agent used after significant changes:** YES
+-   **Troubleshoot agent used after agent stuck in loop:** NO
+-   **Test files created:** []
 -   **Known regressions:** None.
 
 **Credentials to test flow:**
--   **ERP Superuser Login:**
-    -   Username: 
-    -   Password: 
+-   **Webhook Testing:** Use  with the sample JSON payloads from the agent's message history to simulate messages, ad referrals, and new customer events.
+-   **Embedded Signup (Future):** Testing this would require a valid Meta Developer App ID () and Config ID () from the user's script, along with a configured test environment.
 
 **What agent forgot to execute**
-- The agent has been following user instructions sequentially. The implementation of live third-party integrations was intentionally deferred in favor of building out the UI and business logic with placeholders, as per the user's focus. Nothing has been forgotten.</analysis>
+-   The agent identified that the  file is incorrect for a Django application but did not fix it, opting for a manual  workaround. This is a pending infrastructure task that needs to be addressed for stable deployment.</analysis>
