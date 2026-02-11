@@ -977,3 +977,179 @@ def lookup_pincode(request):
     
     # Fallback - let frontend handle external API call
     return JsonResponse({'success': False, 'error': 'Not found locally'})
+
+
+
+# =============================================================================
+# WhatsApp Notification API Endpoints
+# =============================================================================
+
+@login_required
+@require_http_methods(["POST"])
+def send_order_whatsapp_notification(request, pk):
+    """
+    Send WhatsApp notification for an order.
+    
+    POST /master/order/<pk>/notify-whatsapp/
+    Body: {"notification_type": "confirmation|shipped|delivered"}
+    """
+    try:
+        from notifications.whatsapp import WhatsAppNotificationService
+        
+        order = get_object_or_404(Order, pk=pk)
+        data = json.loads(request.body) if request.body else {}
+        notification_type = data.get('notification_type', 'confirmation')
+        
+        # Get customer phone
+        phone = order.phone or order.mobile or (order.customer.phone_no if order.customer else None)
+        if not phone:
+            return JsonResponse({'success': False, 'error': 'No phone number found for order'})
+        
+        # Get customer name
+        name = order.name or (order.customer.customer_name if order.customer else 'Customer')
+        
+        # Get order items as string
+        items_list = [f"{item.product.product_name} x{item.quantity}" for item in order.orderitem_set.all()]
+        items_str = ', '.join(items_list) if items_list else 'Items'
+        
+        # Send based on notification type
+        if notification_type == 'confirmation':
+            result = WhatsAppNotificationService.send_order_confirmation(
+                order_id=order.order_no or str(order.pk),
+                customer_phone=phone,
+                customer_name=name,
+                items=items_str[:200],  # Truncate for template
+                total=f"{order.total_amount:,.0f}"
+            )
+        elif notification_type == 'shipped':
+            tracking_url = f"https://track.delhivery.com/{order.tracking_id}" if order.tracking_id else "N/A"
+            courier = order.courier_partner.name if order.courier_partner else "Courier"
+            result = WhatsAppNotificationService.send_order_shipped(
+                order_id=order.order_no or str(order.pk),
+                customer_phone=phone,
+                customer_name=name,
+                tracking_id=order.tracking_id or "N/A",
+                courier=courier,
+                tracking_url=tracking_url
+            )
+        elif notification_type == 'delivered':
+            result = WhatsAppNotificationService.send_order_delivered(
+                order_id=order.order_no or str(order.pk),
+                customer_phone=phone,
+                customer_name=name
+            )
+        else:
+            return JsonResponse({'success': False, 'error': f'Unknown notification type: {notification_type}'})
+        
+        return JsonResponse(result)
+        
+    except ImportError:
+        return JsonResponse({'success': False, 'error': 'WhatsApp notification service not configured'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+@require_http_methods(["POST"])
+def send_bulk_whatsapp_notification(request):
+    """
+    Send WhatsApp notifications to multiple orders.
+    
+    POST /master/orders/notify-whatsapp-bulk/
+    Body: {"order_ids": [1, 2, 3], "notification_type": "confirmation|shipped|delivered"}
+    """
+    try:
+        from notifications.whatsapp import WhatsAppNotificationService
+        
+        data = json.loads(request.body)
+        order_ids = data.get('order_ids', [])
+        notification_type = data.get('notification_type', 'confirmation')
+        
+        if not order_ids:
+            return JsonResponse({'success': False, 'error': 'No order IDs provided'})
+        
+        results = {'sent': 0, 'failed': 0, 'errors': []}
+        
+        for order_id in order_ids:
+            try:
+                order = Order.objects.get(pk=order_id)
+                phone = order.phone or order.mobile or (order.customer.phone_no if order.customer else None)
+                
+                if not phone:
+                    results['failed'] += 1
+                    results['errors'].append(f"Order {order_id}: No phone")
+                    continue
+                
+                name = order.name or (order.customer.customer_name if order.customer else 'Customer')
+                items_list = [f"{item.product.product_name} x{item.quantity}" for item in order.orderitem_set.all()]
+                items_str = ', '.join(items_list)[:200] if items_list else 'Items'
+                
+                if notification_type == 'confirmation':
+                    result = WhatsAppNotificationService.send_order_confirmation(
+                        order_id=order.order_no or str(order.pk),
+                        customer_phone=phone,
+                        customer_name=name,
+                        items=items_str,
+                        total=f"{order.total_amount:,.0f}"
+                    )
+                elif notification_type == 'shipped':
+                    tracking_url = f"https://track.delhivery.com/{order.tracking_id}" if order.tracking_id else "N/A"
+                    courier = order.courier_partner.name if order.courier_partner else "Courier"
+                    result = WhatsAppNotificationService.send_order_shipped(
+                        order_id=order.order_no or str(order.pk),
+                        customer_phone=phone,
+                        customer_name=name,
+                        tracking_id=order.tracking_id or "N/A",
+                        courier=courier,
+                        tracking_url=tracking_url
+                    )
+                elif notification_type == 'delivered':
+                    result = WhatsAppNotificationService.send_order_delivered(
+                        order_id=order.order_no or str(order.pk),
+                        customer_phone=phone,
+                        customer_name=name
+                    )
+                
+                if result.get('success'):
+                    results['sent'] += 1
+                else:
+                    results['failed'] += 1
+                    results['errors'].append(f"Order {order_id}: {result.get('error', 'Unknown')}")
+                    
+            except Order.DoesNotExist:
+                results['failed'] += 1
+                results['errors'].append(f"Order {order_id}: Not found")
+            except Exception as e:
+                results['failed'] += 1
+                results['errors'].append(f"Order {order_id}: {str(e)}")
+        
+        return JsonResponse({
+            'success': True,
+            'sent': results['sent'],
+            'failed': results['failed'],
+            'errors': results['errors'][:10]  # Limit error messages
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+@require_http_methods(["GET"])
+def whatsapp_notification_status(request):
+    """
+    Check WhatsApp notification service status.
+    
+    GET /master/whatsapp-status/
+    """
+    from django.conf import settings
+    
+    configured = bool(
+        getattr(settings, 'LIBROMI_API_TOKEN', '') and 
+        getattr(settings, 'LIBROMI_PHONE_NUMBER_ID', '')
+    )
+    
+    return JsonResponse({
+        'configured': configured,
+        'phone_number_id': getattr(settings, 'LIBROMI_PHONE_NUMBER_ID', '')[-4:] if configured else None,
+    })
