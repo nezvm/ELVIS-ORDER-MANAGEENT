@@ -20,7 +20,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://wa-lead-intake.preview.emergentagent.com",
-    "https://wa-lead-intake.preview.emergentagent.com",
+    "https://7f973dec-33c3-46f9-b69b-691493ab228d.preview.emergentagent.com",
+    "https://*.preview.emergentagent.com",
 ]
 
 # Application definition
