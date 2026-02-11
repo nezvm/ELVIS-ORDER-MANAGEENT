@@ -1,8 +1,8 @@
 {% extends 'ui/base.html' %}
 {% load static %}
 
-{% block title %}Leads{% endblock %}
-{% block page_title %}Leads{% endblock %}
+{% block title %}All Leads{% endblock %}
+{% block page_title %}All Leads{% endblock %}
 
 {% block page_subtitle %}
 <span class="ml-4 px-3 py-1 bg-gray-100 rounded-full text-sm font-medium text-gray-600">{{ total_count }} total</span>
@@ -10,6 +10,69 @@
 
 {% block content %}
 <div class="space-y-6" data-testid="leads-page">
+    <!-- Source Summary Cards -->
+    <div class="grid grid-cols-6 gap-4">
+        <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm cursor-pointer hover:border-green-300 transition-colors {% if request.GET.lead_source == 'whatsapp' %}border-green-500 ring-2 ring-green-200{% endif %}" onclick="filterBySource('whatsapp')" data-testid="source-whatsapp">
+            <div class="flex items-center justify-between">
+                <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                    <i class="fab fa-whatsapp text-xl text-green-600"></i>
+                </div>
+                <span class="text-2xl font-bold text-gray-900">{{ source_counts.whatsapp|default:0 }}</span>
+            </div>
+            <p class="text-sm text-gray-600 mt-2">WhatsApp</p>
+        </div>
+        
+        <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm cursor-pointer hover:border-purple-300 transition-colors {% if request.GET.lead_source == 'shopify' %}border-purple-500 ring-2 ring-purple-200{% endif %}" onclick="filterBySource('shopify')" data-testid="source-shopify">
+            <div class="flex items-center justify-between">
+                <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                    <i class="fab fa-shopify text-xl text-purple-600"></i>
+                </div>
+                <span class="text-2xl font-bold text-gray-900">{{ source_counts.shopify|default:0 }}</span>
+            </div>
+            <p class="text-sm text-gray-600 mt-2">Shopify</p>
+        </div>
+        
+        <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm cursor-pointer hover:border-blue-300 transition-colors {% if request.GET.lead_source == 'google' %}border-blue-500 ring-2 ring-blue-200{% endif %}" onclick="filterBySource('google')" data-testid="source-google">
+            <div class="flex items-center justify-between">
+                <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                    <i class="fab fa-google text-xl text-blue-600"></i>
+                </div>
+                <span class="text-2xl font-bold text-gray-900">{{ source_counts.google|default:0 }}</span>
+            </div>
+            <p class="text-sm text-gray-600 mt-2">Google</p>
+        </div>
+        
+        <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm cursor-pointer hover:border-orange-300 transition-colors {% if request.GET.lead_source == 'ads' %}border-orange-500 ring-2 ring-orange-200{% endif %}" onclick="filterBySource('ads')" data-testid="source-ads">
+            <div class="flex items-center justify-between">
+                <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                    <i class="fas fa-ad text-xl text-orange-600"></i>
+                </div>
+                <span class="text-2xl font-bold text-gray-900">{{ source_counts.ads|default:0 }}</span>
+            </div>
+            <p class="text-sm text-gray-600 mt-2">Ads</p>
+        </div>
+        
+        <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm cursor-pointer hover:border-gray-300 transition-colors {% if request.GET.lead_source == 'manual' %}border-gray-500 ring-2 ring-gray-200{% endif %}" onclick="filterBySource('manual')" data-testid="source-manual">
+            <div class="flex items-center justify-between">
+                <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                    <i class="fas fa-user-plus text-xl text-gray-600"></i>
+                </div>
+                <span class="text-2xl font-bold text-gray-900">{{ source_counts.manual|default:0 }}</span>
+            </div>
+            <p class="text-sm text-gray-600 mt-2">Manual</p>
+        </div>
+        
+        <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm cursor-pointer hover:border-gray-300 transition-colors {% if not request.GET.lead_source %}border-primary-500 ring-2 ring-primary-200{% endif %}" onclick="filterBySource('')" data-testid="source-all">
+            <div class="flex items-center justify-between">
+                <div class="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
+                    <i class="fas fa-layer-group text-xl text-primary-600"></i>
+                </div>
+                <span class="text-2xl font-bold text-gray-900">{{ total_count }}</span>
+            </div>
+            <p class="text-sm text-gray-600 mt-2">All Sources</p>
+        </div>
+    </div>
+    
     <!-- Stats Row -->
     <div class="grid grid-cols-4 gap-6">
         <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm" data-testid="stat-total">
@@ -52,7 +115,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-primary-500 uppercase tracking-wide">Conversion Rate</p>
-                    <p class="text-4xl font-bold text-primary-500 mt-2">{% if total_count > 0 %}{{ win_count|floatformat:0 }}%{% else %}0%{% endif %}</p>
+                    <p class="text-4xl font-bold text-primary-500 mt-2">{{ conversion_rate|floatformat:1 }}%</p>
                 </div>
                 <div class="w-14 h-14 rounded-xl bg-primary-100 flex items-center justify-center">
                     <i class="fas fa-percentage text-2xl text-primary-500"></i>
@@ -64,7 +127,10 @@
     <!-- Filters & Actions -->
     <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
         <div class="flex items-center justify-between">
-            <form method="GET" class="flex items-center space-x-4" data-testid="leads-filter-form">
+            <form method="GET" class="flex items-center space-x-4 flex-wrap gap-y-3" data-testid="leads-filter-form" id="filterForm">
+                <!-- Hidden source filter -->
+                <input type="hidden" name="lead_source" value="{{ request.GET.lead_source }}" id="leadSourceInput">
+                
                 <!-- Search -->
                 <div class="relative">
                     <input type="text" name="search" value="{{ request.GET.search }}" placeholder="Search by name or phone..." class="w-72 pl-12 pr-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:bg-white">
@@ -76,6 +142,7 @@
                     <option value="">All Status</option>
                     <option value="win" {% if request.GET.match_status == 'win' %}selected{% endif %}>WIN (Matched)</option>
                     <option value="loss" {% if request.GET.match_status == 'loss' %}selected{% endif %}>LOSS (Not Matched)</option>
+                    <option value="converted" {% if request.GET.match_status == 'converted' %}selected{% endif %}>Converted</option>
                     <option value="pending" {% if request.GET.match_status == 'pending' %}selected{% endif %}>Pending</option>
                 </select>
                 
@@ -89,6 +156,14 @@
                     <option value="converted" {% if request.GET.lead_status == 'converted' %}selected{% endif %}>Converted</option>
                 </select>
                 
+                <!-- Location Status Filter -->
+                <select name="location_status" onchange="this.form.submit()" class="px-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500" data-testid="filter-location-status">
+                    <option value="">All Locations</option>
+                    <option value="enriched" {% if request.GET.location_status == 'enriched' %}selected{% endif %}>Enriched (Known)</option>
+                    <option value="verified" {% if request.GET.location_status == 'verified' %}selected{% endif %}>Verified</option>
+                    <option value="unknown" {% if request.GET.location_status == 'unknown' %}selected{% endif %}>Unknown</option>
+                </select>
+                
                 <!-- State Filter -->
                 <select name="state" onchange="this.form.submit()" class="px-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500" data-testid="filter-state">
                     <option value="">All States</option>
@@ -100,12 +175,18 @@
                 <button type="submit" class="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
                     <i class="fas fa-filter mr-2"></i>Filter
                 </button>
+                
+                {% if request.GET.lead_source or request.GET.match_status or request.GET.lead_status or request.GET.state or request.GET.search %}
+                <a href="{% url 'marketing:lead_list' %}" class="px-4 py-3 text-red-600 hover:text-red-700 font-medium">
+                    <i class="fas fa-times mr-1"></i>Clear
+                </a>
+                {% endif %}
             </form>
             
             <div class="flex items-center space-x-3">
-                <button onclick="syncGoogleLeads()" data-testid="sync-google-btn" class="px-5 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors flex items-center">
-                    <i class="fab fa-google mr-2"></i>Sync Google Contacts
-                </button>
+                <a href="{% url 'integrations:whatsapp_customer_list' %}" data-testid="whatsapp-leads-btn" class="px-5 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center">
+                    <i class="fab fa-whatsapp mr-2"></i>WhatsApp Leads
+                </a>
                 <a href="{% url 'marketing:lead_create' %}" data-testid="add-lead-btn" class="px-5 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors flex items-center">
                     <i class="fas fa-plus mr-2"></i>Add Lead
                 </a>
@@ -119,11 +200,12 @@
             <thead class="bg-gray-50 border-b border-gray-200">
                 <tr>
                     <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Lead</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Source</th>
                     <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Match Status</th>
                     <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Lead Status</th>
                     <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Location</th>
                     <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Order History</th>
-                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Last Synced</th>
+                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Captured</th>
                     <th class="px-6 py-4 text-right text-sm font-bold text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
             </thead>
@@ -142,6 +224,30 @@
                         </div>
                     </td>
                     <td class="px-6 py-5">
+                        {% if 'whatsapp' in lead.lead_source %}
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <i class="fab fa-whatsapp mr-1"></i>
+                            {% if lead.lead_source == 'whatsapp_ctwa_ad' %}Ad{% else %}Organic{% endif %}
+                        </span>
+                        {% elif 'shopify' in lead.lead_source %}
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            <i class="fab fa-shopify mr-1"></i>Shopify
+                        </span>
+                        {% elif 'google' in lead.lead_source %}
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            <i class="fab fa-google mr-1"></i>Google
+                        </span>
+                        {% elif lead.lead_source in 'facebook_ad,instagram_ad,google_ad' %}
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                            <i class="fas fa-ad mr-1"></i>{{ lead.get_lead_source_display }}
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            {{ lead.get_lead_source_display }}
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-5">
                         {% if lead.match_status == 'win' %}
                         <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold badge-win">
                             <i class="fas fa-check-circle mr-1.5"></i>WIN
@@ -149,6 +255,10 @@
                         {% elif lead.match_status == 'loss' %}
                         <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold badge-loss">
                             <i class="fas fa-times-circle mr-1.5"></i>LOSS
+                        </span>
+                        {% elif lead.match_status == 'converted' %}
+                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold bg-purple-100 text-purple-800">
+                            <i class="fas fa-star mr-1.5"></i>CONVERTED
                         </span>
                         {% else %}
                         <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold badge-pending">
@@ -162,16 +272,25 @@
                         </span>
                     </td>
                     <td class="px-6 py-5">
-                        <p class="text-base text-gray-900">{{ lead.city|default:"-" }}</p>
-                        <p class="text-sm text-gray-500">{{ lead.state|default:"-" }}</p>
+                        {% if lead.location_status == 'enriched' or lead.location_status == 'verified' %}
+                        <div>
+                            <p class="text-base text-gray-900">{{ lead.city|default:"-" }}{% if lead.district %}, {{ lead.district }}{% endif %}</p>
+                            <p class="text-sm text-gray-500">{{ lead.state|default:"-" }} {% if lead.pincode %}- {{ lead.pincode }}{% endif %}</p>
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium {% if lead.location_status == 'verified' %}bg-green-100 text-green-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                                <i class="fas fa-{% if lead.location_status == 'verified' %}check{% else %}map-marker-alt{% endif %} mr-1"></i>{{ lead.location_status|title }}
+                            </span>
+                        </div>
+                        {% else %}
+                        <span class="text-gray-400 text-sm"><i class="fas fa-question-circle mr-1"></i>Unknown</span>
+                        {% endif %}
                     </td>
                     <td class="px-6 py-5">
                         <p class="text-base font-semibold text-gray-900">{{ lead.lifetime_order_count }} orders</p>
                         <p class="text-sm text-gray-500">₹{{ lead.lifetime_revenue|floatformat:0|default:"0" }}</p>
                     </td>
                     <td class="px-6 py-5">
-                        <p class="text-sm text-gray-500">{{ lead.last_synced_at|date:"d M Y" }}</p>
-                        <p class="text-xs text-gray-400">{{ lead.last_synced_at|time:"h:i A" }}</p>
+                        <p class="text-sm text-gray-500">{{ lead.captured_at|date:"d M Y"|default:lead.created|date:"d M Y" }}</p>
+                        <p class="text-xs text-gray-400">{{ lead.captured_at|time:"h:i A"|default:lead.created|time:"h:i A" }}</p>
                     </td>
                     <td class="px-6 py-5 text-right">
                         <div class="flex items-center justify-end space-x-2">
@@ -189,16 +308,21 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="px-6 py-16 text-center">
+                    <td colspan="8" class="px-6 py-16 text-center">
                         <div class="flex flex-col items-center">
                             <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                                 <i class="fas fa-user-plus text-3xl text-gray-400"></i>
                             </div>
                             <p class="text-lg font-semibold text-gray-700">No leads found</p>
-                            <p class="text-gray-500 mt-1">Sync from Google Contacts or add leads manually</p>
-                            <button onclick="syncGoogleLeads()" class="mt-4 px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors">
-                                <i class="fab fa-google mr-2"></i>Sync Google Contacts
-                            </button>
+                            <p class="text-gray-500 mt-1">Connect WhatsApp, Shopify, or add leads manually</p>
+                            <div class="flex space-x-3 mt-4">
+                                <a href="{% url 'integrations:whatsapp_dashboard' %}" class="px-5 py-2.5 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors">
+                                    <i class="fab fa-whatsapp mr-2"></i>Connect WhatsApp
+                                </a>
+                                <a href="{% url 'marketing:lead_create' %}" class="px-5 py-2.5 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-colors">
+                                    <i class="fas fa-plus mr-2"></i>Add Lead
+                                </a>
+                            </div>
                         </div>
                     </td>
                 </tr>
@@ -206,89 +330,33 @@
             </tbody>
         </table>
     </div>
-</div>
-
-<!-- Sync Modal -->
-<div id="syncModal" class="fixed inset-0 z-50 modal-backdrop bg-black/50 flex items-center justify-center" onclick="if(event.target===this)closeSyncModal()">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 transform scale-95 opacity-0 transition-all" id="syncModalContent">
-        <h3 class="text-xl font-bold mb-4">Sync Google Contacts</h3>
-        <p class="text-gray-600 mb-6">This will fetch contacts from your connected Google Workspace account and create leads.</p>
-        <div id="syncStatus" class="hidden mb-4 p-4 rounded-xl bg-blue-50 text-blue-700">
-            <i class="fas fa-spinner fa-spin mr-2"></i>Syncing contacts...
-        </div>
-        <div id="syncResult" class="hidden mb-4 p-4 rounded-xl"></div>
-        <div class="flex space-x-3">
-            <button onclick="performSync()" id="syncBtn" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors">
-                Start Sync
-            </button>
-            <button onclick="closeSyncModal()" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
-                Cancel
-            </button>
-        </div>
+    
+    <!-- Pagination -->
+    {% if leads.has_other_pages %}
+    <div class="flex items-center justify-center space-x-2">
+        {% if leads.has_previous %}
+        <a href="?page={{ leads.previous_page_number }}&{{ request.GET.urlencode }}" class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50">
+            <i class="fas fa-chevron-left mr-1"></i>Previous
+        </a>
+        {% endif %}
+        
+        <span class="px-4 py-2 text-gray-600">Page {{ leads.number }} of {{ leads.paginator.num_pages }}</span>
+        
+        {% if leads.has_next %}
+        <a href="?page={{ leads.next_page_number }}&{{ request.GET.urlencode }}" class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50">
+            Next<i class="fas fa-chevron-right ml-1"></i>
+        </a>
+        {% endif %}
     </div>
+    {% endif %}
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
 <script>
-function syncGoogleLeads() {
-    const modal = document.getElementById('syncModal');
-    const content = document.getElementById('syncModalContent');
-    modal.classList.add('active');
-    setTimeout(() => {
-        content.classList.remove('scale-95', 'opacity-0');
-        content.classList.add('scale-100', 'opacity-100');
-    }, 10);
-}
-
-function closeSyncModal() {
-    const modal = document.getElementById('syncModal');
-    const content = document.getElementById('syncModalContent');
-    content.classList.add('scale-95', 'opacity-0');
-    content.classList.remove('scale-100', 'opacity-100');
-    setTimeout(() => modal.classList.remove('active'), 200);
-}
-
-async function performSync() {
-    const status = document.getElementById('syncStatus');
-    const result = document.getElementById('syncResult');
-    const btn = document.getElementById('syncBtn');
-    
-    status.classList.remove('hidden');
-    result.classList.add('hidden');
-    btn.disabled = true;
-    
-    try {
-        const formData = new FormData();
-        formData.append('config_id', '1'); // Mock config ID
-        
-        const response = await fetch('{% url "marketing:sync_leads" %}', {
-            method: 'POST',
-            headers: {'X-CSRFToken': csrftoken},
-            body: formData
-        });
-        const data = await response.json();
-        
-        status.classList.add('hidden');
-        result.classList.remove('hidden');
-        
-        if (data.success) {
-            result.className = 'mb-4 p-4 rounded-xl bg-green-50 text-green-700';
-            result.innerHTML = `<i class="fas fa-check-circle mr-2"></i>Successfully synced ${data.created} new leads, updated ${data.updated} existing leads.`;
-            setTimeout(() => location.reload(), 2000);
-        } else {
-            result.className = 'mb-4 p-4 rounded-xl bg-red-50 text-red-700';
-            result.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i>${data.error}`;
-        }
-    } catch (error) {
-        status.classList.add('hidden');
-        result.classList.remove('hidden');
-        result.className = 'mb-4 p-4 rounded-xl bg-red-50 text-red-700';
-        result.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i>Failed to sync: ${error.message}`;
-    }
-    
-    btn.disabled = false;
+function filterBySource(source) {
+    document.getElementById('leadSourceInput').value = source;
+    document.getElementById('filterForm').submit();
 }
 
 async function matchLead(leadId) {
