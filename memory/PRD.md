@@ -140,7 +140,7 @@ Access at `/admin/` with enhanced management for:
 - **Frontend**: ✅ All templates implemented with refined UI
 - **Admin Panel**: ✅ Enhanced with credential management
 - **Testing**: ✅ Comprehensive backend tests passing
-- **WhatsApp Integration**: ✅ Complete with Direct Import feature
+- **WhatsApp Integration**: ✅ Complete with Embedded Signup flow
 
 ---
 
@@ -150,17 +150,18 @@ Access at `/admin/` with enhanced management for:
 The WhatsApp integration module (`integrations/whatsapp/`) enables automated lead capture from WhatsApp Business numbers via Meta Cloud API webhooks.
 
 ### Key Features
-1. **Webhook Processing** - Receives and processes incoming WhatsApp messages
-2. **Lead Attribution** - Tags leads as "Ad" (from Click-to-WhatsApp ads) or "Organic/Direct"
-3. **Customer Deduplication** - Single customer record across multiple business numbers
-4. **Direct Import** - Import existing WhatsApp numbers by Phone Number ID (bypasses Embedded Signup)
+1. **Embedded Signup** - Connect WhatsApp numbers from your Elvis Co portfolio via Meta's OAuth flow
+2. **Webhook Processing** - Receives and processes incoming WhatsApp messages
+3. **Lead Attribution** - Tags leads as "Ad" (from Click-to-WhatsApp ads) or "Organic/Direct"
+4. **Customer Deduplication** - Single customer record across multiple business numbers
+5. **Coexistence Mode** - Keep using WhatsApp Business App while also capturing leads in ERP
 
 ### Models
 | Model | Purpose |
 |-------|---------|
 | `WhatsAppCustomer` | Global customer record with attribution data |
-| `WhatsAppNumberConfig` | Business number configuration (stores imported numbers) |
-| `WhatsAppConnectedNumber` | Connected numbers with WABA credentials |
+| `WhatsAppNumberConfig` | Business number webhook tracking |
+| `WhatsAppConnectedNumber` | Numbers connected via Embedded Signup |
 | `WhatsAppCustomerChannel` | Tracks which numbers a customer contacted |
 | `WhatsAppMessage` | Message history |
 | `WhatsAppWebhookLog` | Webhook audit log |
@@ -171,19 +172,26 @@ The WhatsApp integration module (`integrations/whatsapp/`) enables automated lea
 | `/webhooks/whatsapp/` | GET | Meta webhook verification |
 | `/webhooks/whatsapp/` | POST | Receive incoming messages |
 | `/integrations/whatsapp/` | GET | Dashboard & setup page |
-| `/integrations/whatsapp/import/` | GET | Import numbers UI |
-| `/integrations/whatsapp/import-number/` | POST | Import single number API |
-| `/integrations/whatsapp/customers/` | GET | WhatsApp leads list |
-| `/integrations/whatsapp/customer/<uuid>/` | GET | Lead detail view |
+| `/integrations/whatsapp/connect/` | GET | Embedded Signup UI |
+| `/integrations/whatsapp/save-connection/` | POST | Save connected number |
+| `/integrations/whatsapp/disconnect/<id>/` | POST | Disconnect a number |
+| `/integrations/whatsapp/leads/` | GET | WhatsApp leads list |
+| `/integrations/whatsapp/lead/<uuid>/` | GET | Lead detail view |
 
-### Imported Numbers (Elvis Co Portfolio)
-All 12 WhatsApp Business numbers have been imported:
-- Sales 1-12 with Phone Number IDs from user's Meta Business Portfolio
-- WABA ID: 946871127168555
+### Setup Requirements
+1. **Create a NEW Meta Business Portfolio** (separate from Elvis Co)
+2. **Create a Meta App** under the new portfolio at developers.facebook.com
+3. **Add WhatsApp product** and configure Embedded Signup
+4. **Set FB_APP_ID and FB_CONFIG_ID** in `elvis_erp/settings.py`
+5. **Configure webhook** with URL and verify token from dashboard
+6. **Connect numbers** - Select Elvis Co portfolio during Embedded Signup
 
-### Configuration
-- Verify Token: `elvis_whatsapp_verify_2024` (in settings.py `WA_VERIFY_TOKEN`)
-- Webhook URL: `{APP_URL}/webhooks/whatsapp/`
+### Configuration (settings.py)
+```python
+WA_VERIFY_TOKEN = 'elvis_whatsapp_verify_2024'  # For webhook verification
+FB_APP_ID = 'your_app_id'                        # From Meta Developer App
+FB_CONFIG_ID = 'your_config_id'                  # From WhatsApp Embedded Signup config
+```
 
 ### Attribution Logic
 Messages from Click-to-WhatsApp ads include `referral` data in webhook payload:
