@@ -71,6 +71,121 @@ class LeadService:
         return lead
     
     @staticmethod
+    def enrich_from_whatsapp_tags(lead, message_text):
+        """
+        Parse WhatsApp message for location tags.
+        Sales staff sends #state #pincode #district to enrich lead location.
+        
+        Supported formats:
+        - #TN or #tamilnadu or #TAMIL NADU (state)
+        - #600001 or #pin600001 (pincode - 6 digits)
+        - #chennai or #district:chennai (district/city)
+        
+        Example message: "Customer confirmed: #TN #600001 #Chennai"
+        """
+        import re
+        
+        if not message_text:
+            return lead, False
+        
+        message_upper = message_text.upper()
+        changes_made = False
+        
+        # State mapping (common abbreviations)
+        STATE_MAP = {
+            'TN': 'Tamil Nadu', 'TAMILNADU': 'Tamil Nadu', 'TAMIL NADU': 'Tamil Nadu',
+            'KA': 'Karnataka', 'KARNATAKA': 'Karnataka',
+            'KL': 'Kerala', 'KERALA': 'Kerala',
+            'AP': 'Andhra Pradesh', 'ANDHRA': 'Andhra Pradesh', 'ANDHRA PRADESH': 'Andhra Pradesh',
+            'TS': 'Telangana', 'TELANGANA': 'Telangana',
+            'MH': 'Maharashtra', 'MAHARASHTRA': 'Maharashtra',
+            'GJ': 'Gujarat', 'GUJARAT': 'Gujarat',
+            'RJ': 'Rajasthan', 'RAJASTHAN': 'Rajasthan',
+            'UP': 'Uttar Pradesh', 'UTTAR PRADESH': 'Uttar Pradesh',
+            'MP': 'Madhya Pradesh', 'MADHYA PRADESH': 'Madhya Pradesh',
+            'WB': 'West Bengal', 'WEST BENGAL': 'West Bengal',
+            'BR': 'Bihar', 'BIHAR': 'Bihar',
+            'OR': 'Odisha', 'ODISHA': 'Odisha', 'ORISSA': 'Odisha',
+            'PB': 'Punjab', 'PUNJAB': 'Punjab',
+            'HR': 'Haryana', 'HARYANA': 'Haryana',
+            'DL': 'Delhi', 'DELHI': 'Delhi',
+            'JK': 'Jammu and Kashmir', 'JAMMU': 'Jammu and Kashmir',
+            'GA': 'Goa', 'GOA': 'Goa',
+            'HP': 'Himachal Pradesh', 'HIMACHAL': 'Himachal Pradesh',
+            'UK': 'Uttarakhand', 'UTTARAKHAND': 'Uttarakhand',
+            'JH': 'Jharkhand', 'JHARKHAND': 'Jharkhand',
+            'CG': 'Chhattisgarh', 'CHHATTISGARH': 'Chhattisgarh',
+            'AS': 'Assam', 'ASSAM': 'Assam',
+            'NE': 'North East', 'NORTHEAST': 'North East',
+        }
+        
+        # Extract hashtags
+        hashtags = re.findall(r'#(\w+)', message_text)
+        
+        for tag in hashtags:
+            tag_upper = tag.upper()
+            
+            # Check for pincode (6 digits)
+            pincode_match = re.match(r'^(?:PIN)?(\d{6})$', tag_upper)
+            if pincode_match:
+                pincode = pincode_match.group(1)
+                lead.pincode = pincode
+                changes_made = True
+                
+                # Auto-enrich from PincodeMaster
+                pincode_data = PincodeMaster.objects.filter(pincode=pincode).first()
+                if pincode_data:
+                    lead.state = pincode_data.state
+                    lead.district = pincode_data.district
+                    lead.city = pincode_data.city or lead.city
+                continue
+            
+            # Check for state
+            if tag_upper in STATE_MAP:
+                lead.state = STATE_MAP[tag_upper]
+                changes_made = True
+                continue
+            
+            # Check for district prefix
+            if tag_upper.startswith('DISTRICT:') or tag_upper.startswith('D:'):
+                district = tag.split(':')[1].strip().title()
+                lead.district = district
+                changes_made = True
+                continue
+            
+            # Check for city prefix
+            if tag_upper.startswith('CITY:') or tag_upper.startswith('C:'):
+                city = tag.split(':')[1].strip().title()
+                lead.city = city
+                changes_made = True
+                continue
+        
+        # Update location status
+        if changes_made:
+            if lead.pincode and lead.state:
+                lead.location_status = 'verified'  # Verified by sales staff
+            elif lead.state or lead.pincode:
+                lead.location_status = 'enriched'
+            
+            # Add to tags for tracking
+            tags = lead.tags or []
+            if 'location_enriched_wa' not in tags:
+                tags.append('location_enriched_wa')
+                lead.tags = tags
+            
+            lead.save()
+            
+            # Log activity
+            LeadActivity.objects.create(
+                lead=lead,
+                activity_type='status_changed',
+                description=f'Location enriched from WhatsApp: {lead.state or ""} {lead.district or ""} {lead.pincode or ""}',
+                metadata={'source': 'whatsapp_tag', 'message': message_text[:200]}
+            )
+        
+        return lead, changes_made
+    
+    @staticmethod
     def find_existing_lead(phone=None, email=None, source_ref_id=None, lead_source=None):
         """Find existing lead by phone, email, or source reference."""
         # Priority 1: Exact source_ref_id match for same lead_source
