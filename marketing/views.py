@@ -26,32 +26,64 @@ class LeadListView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Leads'
+        context['title'] = 'All Leads'
         
         # Get filters
         match_status = self.request.GET.get('match_status')
         lead_status = self.request.GET.get('lead_status')
+        lead_source = self.request.GET.get('lead_source')
+        location_status = self.request.GET.get('location_status')
         state = self.request.GET.get('state')
         search = self.request.GET.get('search')
         
         leads = Lead.objects.filter(is_active=True).select_related('assigned_to', 'matched_customer')
         
+        # Source counts for cards (before filtering)
+        all_leads = Lead.objects.filter(is_active=True)
+        context['source_counts'] = {
+            'whatsapp': all_leads.filter(lead_source__icontains='whatsapp').count(),
+            'shopify': all_leads.filter(lead_source__icontains='shopify').count(),
+            'google': all_leads.filter(lead_source__icontains='google').count(),
+            'ads': all_leads.filter(lead_source__in=['facebook_ad', 'instagram_ad', 'google_ad', 'whatsapp_ctwa_ad']).count(),
+            'manual': all_leads.filter(lead_source='manual').count(),
+        }
+        
+        # Apply source filter
+        if lead_source:
+            if lead_source == 'whatsapp':
+                leads = leads.filter(lead_source__icontains='whatsapp')
+            elif lead_source == 'shopify':
+                leads = leads.filter(lead_source__icontains='shopify')
+            elif lead_source == 'google':
+                leads = leads.filter(lead_source__icontains='google')
+            elif lead_source == 'ads':
+                leads = leads.filter(lead_source__in=['facebook_ad', 'instagram_ad', 'google_ad', 'whatsapp_ctwa_ad'])
+            elif lead_source == 'manual':
+                leads = leads.filter(lead_source='manual')
+        
         if match_status:
             leads = leads.filter(match_status=match_status)
         if lead_status:
             leads = leads.filter(lead_status=lead_status)
+        if location_status:
+            leads = leads.filter(location_status=location_status)
         if state:
             leads = leads.filter(state=state)
         if search:
             leads = leads.filter(
-                Q(name__icontains=search) | Q(phone_no__icontains=search)
+                Q(name__icontains=search) | Q(phone_no__icontains=search) | Q(email__icontains=search)
             )
         
-        context['leads'] = leads[:100]
+        context['leads'] = leads.order_by('-created')[:100]
         context['total_count'] = leads.count()
         context['win_count'] = leads.filter(match_status='win').count()
         context['loss_count'] = leads.filter(match_status='loss').count()
-        context['states'] = Lead.objects.filter(is_active=True, state__isnull=False).values_list('state', flat=True).distinct()
+        
+        # Conversion rate
+        total = context['total_count']
+        context['conversion_rate'] = (context['win_count'] / total * 100) if total > 0 else 0
+        
+        context['states'] = Lead.objects.filter(is_active=True, state__isnull=False).exclude(state='').values_list('state', flat=True).distinct().order_by('state')
         
         return context
 
