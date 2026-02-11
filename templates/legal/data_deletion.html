@@ -1,0 +1,140 @@
+{% extends 'ui/base_public.html' %}
+{% load static %}
+
+{% block title %}Data Deletion - Elvis Beauty{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-8 border-b border-gray-100 bg-gradient-to-r from-red-500 to-red-600">
+                <h1 class="text-3xl font-bold text-white">Data Deletion Instructions</h1>
+                <p class="text-red-100 mt-2">How to request deletion of your data</p>
+            </div>
+            
+            <div class="p-8">
+                <div class="bg-blue-50 rounded-xl p-6 mb-8">
+                    <h2 class="text-lg font-semibold text-blue-800 mb-3">
+                        <i class="fas fa-info-circle mr-2"></i>Your Data Rights
+                    </h2>
+                    <p class="text-blue-700">
+                        Under applicable data protection laws, you have the right to request deletion of your personal data. We are committed to honoring your data deletion requests promptly.
+                    </p>
+                </div>
+
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">What Data Can Be Deleted</h2>
+                <p class="text-gray-600 mb-4">You can request deletion of:</p>
+                <ul class="list-disc list-inside text-gray-600 mb-6 space-y-2">
+                    <li>Your account and login information</li>
+                    <li>WhatsApp lead data associated with your business</li>
+                    <li>Message history and conversation logs</li>
+                    <li>Customer contact information stored in our system</li>
+                    <li>Any other personal data we hold about you</li>
+                </ul>
+
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">How to Request Data Deletion</h2>
+                
+                <div class="space-y-6">
+                    <!-- Method 1 -->
+                    <div class="bg-gray-50 rounded-xl p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary-500 text-white text-sm font-bold mr-2">1</span>
+                            Email Request
+                        </h3>
+                        <p class="text-gray-600 mb-4">
+                            Send an email to our data protection team with your deletion request:
+                        </p>
+                        <div class="bg-white rounded-lg p-4 border border-gray-200">
+                            <p class="text-gray-700"><strong>Email:</strong> admin@elvisbeauty.com</p>
+                            <p class="text-gray-700"><strong>Subject:</strong> Data Deletion Request</p>
+                            <p class="text-gray-600 mt-2">Please include:</p>
+                            <ul class="list-disc list-inside text-gray-600 mt-2 space-y-1">
+                                <li>Your full name</li>
+                                <li>Email address associated with your account</li>
+                                <li>WhatsApp Business phone number (if applicable)</li>
+                                <li>Specific data you want deleted (or "all data")</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Method 2 -->
+                    <div class="bg-gray-50 rounded-xl p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary-500 text-white text-sm font-bold mr-2">2</span>
+                            In-App Request (For Account Holders)
+                        </h3>
+                        <p class="text-gray-600 mb-4">
+                            If you have an active account, you can request data deletion from within the platform:
+                        </p>
+                        <ol class="list-decimal list-inside text-gray-600 space-y-2">
+                            <li>Log in to your Elvis Manager account</li>
+                            <li>Go to <strong>Settings → Account Settings</strong></li>
+                            <li>Click on <strong>"Delete My Data"</strong> or <strong>"Delete Account"</strong></li>
+                            <li>Confirm your request</li>
+                        </ol>
+                    </div>
+
+                    <!-- Method 3 -->
+                    <div class="bg-gray-50 rounded-xl p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-primary-500 text-white text-sm font-bold mr-2">3</span>
+                            Facebook/Meta Login Users
+                        </h3>
+                        <p class="text-gray-600 mb-4">
+                            If you connected via Facebook/Meta login, you can also revoke access:
+                        </p>
+                        <ol class="list-decimal list-inside text-gray-600 space-y-2">
+                            <li>Go to Facebook Settings → Apps and Websites</li>
+                            <li>Find "WALS" or "Elvis Manager" in the list</li>
+                            <li>Click "Remove" to revoke access</li>
+                            <li>This will trigger automatic data deletion on our end</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <h2 class="text-xl font-semibold text-gray-900 mt-8 mb-4">What Happens After Your Request</h2>
+                <div class="bg-yellow-50 rounded-xl p-6 mb-6">
+                    <ul class="space-y-3 text-gray-700">
+                        <li class="flex items-start">
+                            <i class="fas fa-clock text-yellow-500 mt-1 mr-3"></i>
+                            <span><strong>Processing Time:</strong> We will process your request within 30 days</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-envelope text-yellow-500 mt-1 mr-3"></i>
+                            <span><strong>Confirmation:</strong> You will receive email confirmation once deletion is complete</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-database text-yellow-500 mt-1 mr-3"></i>
+                            <span><strong>Backup Removal:</strong> Data may persist in backups for up to 90 days before complete removal</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-balance-scale text-yellow-500 mt-1 mr-3"></i>
+                            <span><strong>Legal Retention:</strong> Some data may be retained if required by law</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <h2 class="text-xl font-semibold text-gray-900 mt-8 mb-4">Data We Cannot Delete</h2>
+                <p class="text-gray-600 mb-4">Certain data may be retained for legal or legitimate business reasons:</p>
+                <ul class="list-disc list-inside text-gray-600 mb-6 space-y-2">
+                    <li>Transaction records required for tax/accounting purposes</li>
+                    <li>Data needed for legal claims or disputes</li>
+                    <li>Aggregated, anonymized data that cannot identify you</li>
+                    <li>Data shared with WhatsApp/Meta (subject to their policies)</li>
+                </ul>
+
+                <div class="bg-gray-100 rounded-xl p-6 mt-8">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Contact Us</h3>
+                    <p class="text-gray-600 mb-4">
+                        If you have questions about data deletion or need assistance:
+                    </p>
+                    <div class="space-y-2">
+                        <p class="text-gray-700"><i class="fas fa-envelope mr-2 text-gray-500"></i>admin@elvisbeauty.com</p>
+                        <p class="text-gray-700"><i class="fas fa-globe mr-2 text-gray-500"></i>elvisbeauty.com</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
