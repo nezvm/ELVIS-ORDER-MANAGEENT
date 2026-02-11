@@ -690,3 +690,143 @@ def disconnect_whatsapp_number(request, number_id):
             'success': False,
             'error': str(e)
         }, status=500)
+
+
+# =============================================================================
+# DIRECT IMPORT FEATURE
+# =============================================================================
+
+class WhatsAppImportView(LoginRequiredMixin, TemplateView):
+    """Page to manually import existing WhatsApp Business numbers."""
+    template_name = 'integrations/whatsapp/import.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Import WhatsApp Numbers'
+        context['is_integrations'] = True
+        context['is_whatsapp'] = True
+        
+        # Get already imported numbers (phone_number_ids)
+        imported_ids = set(
+            WhatsAppNumberConfig.objects.filter(is_active=True).values_list('phone_number_id', flat=True)
+        )
+        context['imported_ids'] = imported_ids
+        
+        # Pre-defined numbers from user's Excel sheet (all 12)
+        context['known_numbers'] = [
+            {'phone': '+91 99458 66028', 'phone_number_id': '3999161807018814', 'name': 'Sales 1'},
+            {'phone': '+91 99459 41723', 'phone_number_id': '1063162962024283', 'name': 'Sales 2'},
+            {'phone': '+91 63643 96362', 'phone_number_id': '502043062980927', 'name': 'Sales 3'},
+            {'phone': '+91 97784 63737', 'phone_number_id': '437136959488223', 'name': 'Sales 4'},
+            {'phone': '+91 81234 89760', 'phone_number_id': '473194365866614', 'name': 'Sales 5'},
+            {'phone': '+91 90098 98630', 'phone_number_id': '1112607280694762', 'name': 'Sales 6'},
+            {'phone': '+91 93803 19107', 'phone_number_id': '598532996010675', 'name': 'Sales 7'},
+            {'phone': '+91 72041 83737', 'phone_number_id': '684398864548878', 'name': 'Sales 8'},
+            {'phone': '+91 79076 83737', 'phone_number_id': '322135380981802', 'name': 'Sales 9'},
+            {'phone': '+91 79070 17613', 'phone_number_id': '278178735374976', 'name': 'Sales 10'},
+            {'phone': '+91 63669 78965', 'phone_number_id': '1314705419875488', 'name': 'Sales 11'},
+            {'phone': '+91 63669 78966', 'phone_number_id': '1690042391951895', 'name': 'Sales 12'},
+        ]
+        
+        return context
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def import_whatsapp_number(request):
+    """
+    API endpoint to import an existing WhatsApp number by Phone Number ID.
+    This bypasses Embedded Signup and allows direct import.
+    """
+    try:
+        data = json.loads(request.body)
+        phone_number_id = data.get('phone_number_id', '').strip()
+        waba_id = data.get('waba_id', '').strip()
+        display_phone_number = data.get('display_phone_number', '').strip()
+        display_name = data.get('display_name', '').strip()
+        
+        if not phone_number_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Phone Number ID is required'
+            }, status=400)
+        
+        # Check if already exists in WhatsAppNumberConfig
+        existing_config = WhatsAppNumberConfig.objects.filter(
+            phone_number_id=phone_number_id
+        ).first()
+        
+        if existing_config:
+            # Update existing
+            if display_phone_number:
+                existing_config.display_phone_number = display_phone_number
+            if display_name:
+                existing_config.name = display_name
+            existing_config.is_active = True
+            existing_config.save()
+            
+            logger.info(f"Updated existing WhatsApp number config: {phone_number_id}")
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Number updated successfully',
+                'data': {
+                    'id': str(existing_config.id),
+                    'phone_number_id': existing_config.phone_number_id,
+                    'display_phone_number': existing_config.display_phone_number,
+                    'name': existing_config.name,
+                    'is_new': False
+                }
+            })
+        
+        # Create new WhatsAppNumberConfig
+        number_config = WhatsAppNumberConfig.objects.create(
+            phone_number_id=phone_number_id,
+            display_phone_number=display_phone_number or None,
+            name=display_name or f'Number {phone_number_id[-4:]}',
+        )
+        
+        # Optionally create a WhatsAppConnectedNumber entry for tracking
+        if waba_id:
+            connected, _ = WhatsAppConnectedNumber.objects.get_or_create(
+                phone_number_id=phone_number_id,
+                defaults={
+                    'waba_id': waba_id,
+                    'display_phone_number': display_phone_number,
+                    'display_name': display_name,
+                    'status': 'active',
+                    'connected_by': request.user if request.user.is_authenticated else None,
+                    'meta_data': {
+                        'import_method': 'direct_import',
+                        'imported_at': timezone.now().isoformat()
+                    }
+                }
+            )
+            number_config.connected_number = connected
+            number_config.save()
+        
+        logger.info(f"Imported new WhatsApp number: {phone_number_id}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Number imported successfully',
+            'data': {
+                'id': str(number_config.id),
+                'phone_number_id': number_config.phone_number_id,
+                'display_phone_number': number_config.display_phone_number,
+                'name': number_config.name,
+                'is_new': True
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON'
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Error importing WhatsApp number: {e}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
