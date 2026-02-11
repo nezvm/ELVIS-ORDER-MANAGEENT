@@ -87,21 +87,30 @@
                             </li>
                             <li class="flex items-start space-x-3">
                                 <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">2</span>
-                                <span>Add WhatsApp product and configure webhook with the URL and token above</span>
+                                <span>Click <strong>"Add Product"</strong> → Find <strong>"WhatsApp"</strong> → Click <strong>"Set Up"</strong></span>
                             </li>
                             <li class="flex items-start space-x-3">
                                 <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">3</span>
-                                <span>Subscribe to <strong>messages</strong> webhook field</span>
+                                <span>Go to <strong>WhatsApp → Configuration</strong> (NOT Facebook Login!)</span>
                             </li>
                             <li class="flex items-start space-x-3">
                                 <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">4</span>
-                                <span>On each WhatsApp Business phone: <strong>Settings → Linked Devices → Link a device → Connect to Business Platform</strong></span>
+                                <span>In Webhook section: Enter <strong>Callback URL</strong> and <strong>Verify Token</strong> from above, click <strong>Verify and Save</strong></span>
                             </li>
                             <li class="flex items-start space-x-3">
                                 <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">5</span>
-                                <span>Scan the QR code shown in Meta dashboard</span>
+                                <span>Toggle <strong>Subscribe</strong> for the <strong>"messages"</strong> webhook field</span>
+                            </li>
+                            <li class="flex items-start space-x-3">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">6</span>
+                                <span>On each WhatsApp Business phone: <strong>Settings → Linked Devices → Link a device → Connect to Business Platform</strong></span>
                             </li>
                         </ol>
+                    </div>
+                    
+                    <div class="text-xs text-red-600 bg-red-50 rounded-lg p-3">
+                        <i class="fas fa-exclamation-triangle text-red-500 mr-1"></i>
+                        <strong>Important:</strong> Configure webhook under <strong>WhatsApp → Configuration</strong>, NOT under Facebook Login. The "messages" field only appears in WhatsApp webhook settings.
                     </div>
                     
                     <div class="text-xs text-gray-500 bg-yellow-50 rounded-lg p-3">
