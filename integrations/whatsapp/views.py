@@ -346,6 +346,20 @@ def process_message_event(event):
     if customer_created:
         create_or_update_lead(customer, event)
     
+    # 6. Check for location enrichment tags in message
+    # Sales staff can send #state #pincode #district to enrich lead location
+    message_body = event.get('body', '')
+    if message_body and '#' in message_body:
+        try:
+            from marketing.services import LeadService
+            lead = Lead.objects.filter(phone_normalized=wa_id).first()
+            if lead:
+                lead, enriched = LeadService.enrich_from_whatsapp_tags(lead, message_body)
+                if enriched:
+                    logger.info(f"Lead location enriched from WhatsApp tags: {lead.state} {lead.pincode}")
+        except Exception as e:
+            logger.error(f"Error enriching lead from WhatsApp tags: {e}")
+    
     return customer_created, customer_updated
 
 
