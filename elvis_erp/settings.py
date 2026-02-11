@@ -191,6 +191,20 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 ACCOUNT_EMAIL_VERIFICATION = "none"
 SITE_ID = 1
 
+# =============================================================================
+# WhatsApp Cloud API Configuration (Libromi Provider)
+# =============================================================================
+LIBROMI_API_TOKEN = config("LIBROMI_API_TOKEN", default="")
+LIBROMI_PHONE_NUMBER_ID = config("LIBROMI_PHONE_NUMBER_ID", default="")
+LIBROMI_WABA_ID = config("LIBROMI_WABA_ID", default="")
+
+# WhatsApp Webhook verification token
+WA_VERIFY_TOKEN = config("WA_VERIFY_TOKEN", default="elvis_whatsapp_verify_2024")
+
+# Facebook/Meta App credentials for Embedded Signup
+FB_APP_ID = config("FB_APP_ID", default="")
+FB_CONFIG_ID = config("FB_CONFIG_ID", default="")
+
 if DEBUG is False:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
