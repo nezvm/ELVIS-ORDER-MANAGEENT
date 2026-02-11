@@ -12,4 +12,9 @@ urlpatterns = [
     path('', views.WhatsAppDashboardView.as_view(), name='whatsapp_dashboard'),
     path('customers/', views.WhatsAppCustomerListView.as_view(), name='whatsapp_customer_list'),
     path('customer/<uuid:pk>/', views.WhatsAppCustomerDetailView.as_view(), name='whatsapp_customer_detail'),
+    
+    # Embedded Signup - Connect Numbers
+    path('connect/', views.WhatsAppConnectView.as_view(), name='whatsapp_connect'),
+    path('save-connection/', views.save_whatsapp_connection, name='whatsapp_save_connection'),
+    path('disconnect/<uuid:number_id>/', views.disconnect_whatsapp_number, name='whatsapp_disconnect'),
 ]
