@@ -4,7 +4,8 @@ from .models import (
     WhatsAppNumberConfig, 
     WhatsAppCustomerChannel, 
     WhatsAppMessage,
-    WhatsAppWebhookLog
+    WhatsAppWebhookLog,
+    WhatsAppConnectedNumber
 )
 
 
@@ -49,6 +50,42 @@ class WhatsAppCustomerAdmin(admin.ModelAdmin):
         }),
         ('System', {
             'fields': ('id', 'created', 'updated', 'is_active'),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(WhatsAppConnectedNumber)
+class WhatsAppConnectedNumberAdmin(admin.ModelAdmin):
+    list_display = [
+        'display_name', 'display_phone_number', 'phone_number_id', 'waba_id',
+        'status', 'webhook_verified', 'total_leads_captured', 'created'
+    ]
+    list_filter = ['status', 'webhook_verified', 'created']
+    search_fields = ['display_name', 'display_phone_number', 'phone_number_id', 'waba_id']
+    readonly_fields = ['id', 'created', 'updated', 'last_webhook_at', 'webhook_count']
+    raw_id_fields = ['connected_by']
+    
+    fieldsets = (
+        ('Number Info', {
+            'fields': ('display_name', 'display_phone_number', 'phone_number_id', 'waba_id')
+        }),
+        ('Status', {
+            'fields': ('status', 'webhook_verified', 'is_active')
+        }),
+        ('Auth', {
+            'fields': ('access_token', 'token_expires_at'),
+            'classes': ('collapse',)
+        }),
+        ('Stats', {
+            'fields': ('last_webhook_at', 'webhook_count', 'total_messages_received', 'total_leads_captured')
+        }),
+        ('Meta', {
+            'fields': ('connected_by', 'meta_data'),
+            'classes': ('collapse',)
+        }),
+        ('System', {
+            'fields': ('id', 'created', 'updated'),
             'classes': ('collapse',)
         }),
     )
