@@ -555,3 +555,138 @@ class WhatsAppCustomerDetailView(LoginRequiredMixin, DetailView):
         context['channels'] = self.object.channels.all()
         
         return context
+
+
+
+class WhatsAppConnectView(LoginRequiredMixin, TemplateView):
+    """Page to connect WhatsApp Business numbers via Embedded Signup."""
+    template_name = 'integrations/whatsapp/connect.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Connect WhatsApp Number'
+        context['is_integrations'] = True
+        context['is_whatsapp'] = True
+        
+        # Facebook App credentials from settings
+        context['fb_app_id'] = getattr(settings, 'FB_APP_ID', '1612261483351391')
+        context['fb_config_id'] = getattr(settings, 'FB_CONFIG_ID', '1714776409680646')
+        
+        # Connected numbers
+        context['connected_numbers'] = WhatsAppConnectedNumber.objects.filter(
+            is_active=True
+        ).order_by('-created')
+        
+        return context
+
+
+@require_http_methods(["POST"])
+def save_whatsapp_connection(request):
+    """
+    API endpoint to save WhatsApp connection from Embedded Signup.
+    Receives phone_number_id and waba_id from the frontend.
+    """
+    try:
+        data = json.loads(request.body)
+        phone_number_id = data.get('phone_number_id')
+        waba_id = data.get('waba_id')
+        auth_code = data.get('auth_code')
+        
+        if not phone_number_id or not waba_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Missing phone_number_id or waba_id'
+            }, status=400)
+        
+        # Check if already exists
+        existing = WhatsAppConnectedNumber.objects.filter(
+            phone_number_id=phone_number_id
+        ).first()
+        
+        if existing:
+            # Update existing
+            existing.waba_id = waba_id
+            existing.status = 'active'
+            existing.is_active = True
+            existing.save()
+            connected_number = existing
+            logger.info(f"Updated existing WhatsApp connection: {phone_number_id}")
+        else:
+            # Create new
+            connected_number = WhatsAppConnectedNumber.objects.create(
+                phone_number_id=phone_number_id,
+                waba_id=waba_id,
+                status='active',
+                connected_by=request.user if request.user.is_authenticated else None,
+                meta_data={
+                    'auth_code': auth_code,
+                    'connected_at': timezone.now().isoformat()
+                }
+            )
+            logger.info(f"Created new WhatsApp connection: {phone_number_id}")
+        
+        # Also create/update WhatsAppNumberConfig for webhook tracking
+        number_config, created = WhatsAppNumberConfig.objects.get_or_create(
+            phone_number_id=phone_number_id,
+            defaults={
+                'name': f'Connected Number {phone_number_id[-4:]}',
+            }
+        )
+        
+        # Link the config to connected number
+        number_config.connected_number = connected_number
+        number_config.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'WhatsApp number connected successfully',
+            'data': {
+                'id': str(connected_number.id),
+                'phone_number_id': connected_number.phone_number_id,
+                'waba_id': connected_number.waba_id,
+                'status': connected_number.status
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON'
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Error saving WhatsApp connection: {e}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@require_http_methods(["POST"])
+def disconnect_whatsapp_number(request, number_id):
+    """
+    API endpoint to disconnect a WhatsApp number.
+    """
+    try:
+        connected_number = WhatsAppConnectedNumber.objects.get(id=number_id)
+        connected_number.status = 'disconnected'
+        connected_number.is_active = False
+        connected_number.save()
+        
+        logger.info(f"Disconnected WhatsApp number: {connected_number.phone_number_id}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Number disconnected successfully'
+        })
+        
+    except WhatsAppConnectedNumber.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Number not found'
+        }, status=404)
+    except Exception as e:
+        logger.error(f"Error disconnecting WhatsApp number: {e}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
