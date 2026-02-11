@@ -1,0 +1,572 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}Connect WhatsApp Number{% endblock %}
+{% block page_title %}Connect WhatsApp Number{% endblock %}
+
+{% block extra_head %}
+<style>
+    .fb-login-btn {
+        background-color: #1877f2;
+        border: 0;
+        border-radius: 8px;
+        color: #fff;
+        cursor: pointer;
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 16px;
+        font-weight: bold;
+        height: 48px;
+        padding: 0 32px;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.2s;
+    }
+    .fb-login-btn:hover {
+        background-color: #166fe5;
+        transform: translateY(-1px);
+    }
+    .fb-login-btn:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+    }
+    .status-card {
+        transition: all 0.3s ease;
+    }
+    .status-card.success {
+        border-color: #10b981;
+        background-color: #ecfdf5;
+    }
+    .status-card.error {
+        border-color: #ef4444;
+        background-color: #fef2f2;
+    }
+    .status-card.processing {
+        border-color: #3b82f6;
+        background-color: #eff6ff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Back Link -->
+    <div>
+        <a href="{% url 'integrations:whatsapp_dashboard' %}" class="text-gray-500 hover:text-gray-700">
+            <i class="fas fa-arrow-left mr-2"></i>Back to WhatsApp Integration
+        </a>
+    </div>
+
+    <!-- Header Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-6 bg-gradient-to-r from-green-500 to-green-600">
+            <div class="flex items-center space-x-4">
+                <div class="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center">
+                    <i class="fab fa-whatsapp text-4xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-white">Connect WhatsApp Business Number</h1>
+                    <p class="text-green-100 mt-1">Use Embedded Signup to connect your WhatsApp Business App</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Left: Connect Button -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Step 1: Connect Your Number</h2>
+            
+            <div class="bg-blue-50 rounded-xl p-4 mb-6">
+                <h3 class="text-sm font-semibold text-blue-800 mb-2"><i class="fas fa-info-circle mr-1"></i> What happens when you click:</h3>
+                <ol class="text-sm text-blue-700 space-y-2">
+                    <li>1. Facebook login popup will open</li>
+                    <li>2. Select your Meta Business Portfolio</li>
+                    <li>3. Choose "Use existing WhatsApp Business App number"</li>
+                    <li>4. Enable Coexistence mode</li>
+                    <li>5. Scan QR code with your WhatsApp Business App</li>
+                    <li>6. Your number will be connected automatically!</li>
+                </ol>
+            </div>
+
+            <!-- Facebook Login Button -->
+            <div class="text-center py-6">
+                <div id="fb-root"></div>
+                <button id="connectBtn" onclick="launchWhatsAppSignup()" class="fb-login-btn">
+                    <i class="fab fa-facebook text-xl"></i>
+                    <span>Connect WhatsApp Number</span>
+                </button>
+                <p class="text-sm text-gray-500 mt-3">You'll be redirected to Facebook to complete the setup</p>
+            </div>
+
+            <!-- Status Card -->
+            <div id="statusCard" class="status-card hidden border-2 rounded-xl p-4 mt-4">
+                <div id="statusContent"></div>
+            </div>
+        </div>
+
+        <!-- Right: Instructions & Requirements -->
+        <div class="space-y-6">
+            <!-- Requirements -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Requirements</h2>
+                <ul class="space-y-3">
+                    <li class="flex items-start space-x-3">
+                        <span class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i class="fas fa-check text-xs"></i>
+                        </span>
+                        <span class="text-gray-600">WhatsApp Business App installed on your phone</span>
+                    </li>
+                    <li class="flex items-start space-x-3">
+                        <span class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i class="fas fa-check text-xs"></i>
+                        </span>
+                        <span class="text-gray-600">App version 2.24.17 or higher</span>
+                    </li>
+                    <li class="flex items-start space-x-3">
+                        <span class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i class="fas fa-check text-xs"></i>
+                        </span>
+                        <span class="text-gray-600">Phone number active on WhatsApp for 7+ days</span>
+                    </li>
+                    <li class="flex items-start space-x-3">
+                        <span class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i class="fas fa-check text-xs"></i>
+                        </span>
+                        <span class="text-gray-600">Facebook/Meta account for your business</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- How It Works -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">How It Works</h2>
+                <div class="space-y-4">
+                    <div class="flex items-start space-x-3">
+                        <div class="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center flex-shrink-0 font-bold">1</div>
+                        <div>
+                            <p class="font-medium text-gray-900">Connect via Facebook</p>
+                            <p class="text-sm text-gray-500">Authenticate and link your WhatsApp Business</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center flex-shrink-0 font-bold">2</div>
+                        <div>
+                            <p class="font-medium text-gray-900">Scan QR Code</p>
+                            <p class="text-sm text-gray-500">Use WhatsApp Business App to scan and confirm</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center flex-shrink-0 font-bold">3</div>
+                        <div>
+                            <p class="font-medium text-gray-900">Leads Auto-Captured</p>
+                            <p class="text-sm text-gray-500">All incoming messages become leads automatically</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start space-x-3">
+                        <div class="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center flex-shrink-0 font-bold">4</div>
+                        <div>
+                            <p class="font-medium text-gray-900">Keep Using Your App</p>
+                            <p class="text-sm text-gray-500">Continue using WhatsApp Business App normally</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connected Numbers -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-100">
+            <h2 class="text-xl font-semibold text-gray-900">Connected Numbers</h2>
+            <p class="text-sm text-gray-500">Numbers connected via Embedded Signup</p>
+        </div>
+        
+        {% if connected_numbers %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Number</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">WABA ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone Number ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Connected At</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for num in connected_numbers %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                    <i class="fab fa-whatsapp text-green-600"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">{{ num.display_name|default:num.display_phone_number }}</div>
+                                    <div class="text-sm text-gray-500">{{ num.display_phone_number }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <code class="text-xs bg-gray-100 px-2 py-1 rounded">{{ num.waba_id }}</code>
+                        </td>
+                        <td class="px-6 py-4">
+                            <code class="text-xs bg-gray-100 px-2 py-1 rounded">{{ num.phone_number_id }}</code>
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if num.is_active %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></span>Active
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                <span class="w-1.5 h-1.5 bg-gray-500 rounded-full mr-1.5"></span>Inactive
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ num.created|date:"d M Y, H:i" }}</td>
+                        <td class="px-6 py-4">
+                            <button onclick="disconnectNumber('{{ num.id }}')" class="text-red-500 hover:text-red-700" title="Disconnect">
+                                <i class="fas fa-unlink"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fab fa-whatsapp text-gray-400 text-2xl"></i>
+            </div>
+            <h4 class="text-lg font-medium text-gray-900 mb-2">No Numbers Connected Yet</h4>
+            <p class="text-gray-500 mb-4">Click the button above to connect your first WhatsApp Business number.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Debug Info (hidden by default) -->
+    <div id="debugSection" class="hidden bg-gray-900 rounded-2xl p-6 text-white">
+        <h3 class="text-lg font-semibold mb-4"><i class="fas fa-bug mr-2"></i>Debug Information</h3>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <p class="text-gray-400 text-sm mb-1">Session Info Response:</p>
+                <pre id="session-info-response" class="bg-gray-800 rounded p-3 text-xs overflow-auto max-h-48"></pre>
+            </div>
+            <div>
+                <p class="text-gray-400 text-sm mb-1">SDK Response:</p>
+                <pre id="sdk-response" class="bg-gray-800 rounded p-3 text-xs overflow-auto max-h-48"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Facebook SDK -->
+<script>
+    // Configuration
+    const FB_APP_ID = '{{ fb_app_id }}';
+    const FB_CONFIG_ID = '{{ fb_config_id }}';
+    const CSRF_TOKEN = '{{ csrf_token }}';
+    const SAVE_URL = '{% url "integrations:whatsapp_save_connection" %}';
+
+    // Initialize Facebook SDK
+    window.fbAsyncInit = function() {
+        FB.init({
+            appId: FB_APP_ID,
+            autoLogAppEvents: true,
+            xfbml: true,
+            version: 'v22.0'
+        });
+        console.log('Facebook SDK initialized');
+    };
+
+    // Message Event Listener for Embedded Signup flow results
+    window.addEventListener('message', (event) => {
+        // Origin check
+        if (event.origin !== "https://www.facebook.com" && event.origin !== "https://web.facebook.com") {
+            return;
+        }
+        
+        try {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'WA_EMBEDDED_SIGNUP') {
+                console.log('Received WA_EMBEDDED_SIGNUP event:', data);
+                
+                if (data.event === 'FINISH') {
+                    const { phone_number_id, waba_id } = data.data;
+                    console.log("Success! Phone ID:", phone_number_id, "WABA ID:", waba_id);
+                    
+                    // Show success status
+                    showStatus('success', `
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
+                                <i class="fas fa-check text-white"></i>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-green-800">WhatsApp Number Connected!</p>
+                                <p class="text-sm text-green-600">Phone ID: ${phone_number_id}</p>
+                            </div>
+                        </div>
+                    `);
+                    
+                    // Save to backend
+                    saveConnection(phone_number_id, waba_id);
+                    
+                } else if (data.event === 'CANCEL') {
+                    const { current_step } = data.data;
+                    console.warn("Cancelled at step:", current_step);
+                    showStatus('error', `
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center">
+                                <i class="fas fa-times text-white"></i>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-yellow-800">Setup Cancelled</p>
+                                <p class="text-sm text-yellow-600">Cancelled at: ${current_step || 'Unknown step'}</p>
+                            </div>
+                        </div>
+                    `);
+                    enableButton();
+                    
+                } else if (data.event === 'ERROR') {
+                    const { error_message } = data.data;
+                    console.error("Error:", error_message);
+                    showStatus('error', `
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center">
+                                <i class="fas fa-exclamation text-white"></i>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-red-800">Connection Error</p>
+                                <p class="text-sm text-red-600">${error_message || 'An error occurred'}</p>
+                            </div>
+                        </div>
+                    `);
+                    enableButton();
+                }
+            }
+            
+            // Debug output
+            document.getElementById("session-info-response").textContent = JSON.stringify(data, null, 2);
+            
+        } catch (e) {
+            console.log('Non-JSON response:', event.data);
+        }
+    });
+
+    // Facebook Login Callback
+    const fbLoginCallback = (response) => {
+        console.log('FB Login callback:', response);
+        document.getElementById("sdk-response").textContent = JSON.stringify(response, null, 2);
+        
+        if (response.authResponse) {
+            const code = response.authResponse.code;
+            console.log('Authorization code received');
+            
+            // Show processing status
+            showStatus('processing', `
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
+                        <i class="fas fa-spinner fa-spin text-white"></i>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-blue-800">Processing...</p>
+                        <p class="text-sm text-blue-600">Please complete the WhatsApp Business setup</p>
+                    </div>
+                </div>
+            `);
+        } else {
+            enableButton();
+        }
+    };
+
+    // Launch WhatsApp Signup Flow
+    const launchWhatsAppSignup = () => {
+        console.log('Launching WhatsApp Embedded Signup...');
+        disableButton();
+        
+        // Show processing
+        showStatus('processing', `
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
+                    <i class="fas fa-spinner fa-spin text-white"></i>
+                </div>
+                <div>
+                    <p class="font-semibold text-blue-800">Opening Facebook Login...</p>
+                    <p class="text-sm text-blue-600">Please complete the authentication</p>
+                </div>
+            </div>
+        `);
+        
+        FB.login(fbLoginCallback, {
+            config_id: FB_CONFIG_ID,
+            response_type: 'code',
+            override_default_response_type: true,
+            extras: {
+                "feature_type": "coexistence",
+                "version": "v3",
+                "setup": {
+                    "business": {
+                        "id": null,
+                        "name": null,
+                        "email": null,
+                        "phone": {
+                            "code": null,
+                            "number": null
+                        },
+                        "website": null,
+                        "address": {
+                            "streetAddress1": null,
+                            "streetAddress2": null,
+                            "city": null,
+                            "state": null,
+                            "zipPostal": null,
+                            "country": null
+                        },
+                        "timezone": null
+                    },
+                    "phone": {
+                        "displayName": null,
+                        "category": null,
+                        "description": null
+                    },
+                    "preVerifiedPhone": {
+                        "ids": null
+                    },
+                    "solutionID": null,
+                    "whatsAppBusinessAccount": {
+                        "ids": null
+                    }
+                }
+            }
+        });
+    };
+
+    // Save connection to backend
+    async function saveConnection(phoneNumberId, wabaId, authCode = null) {
+        try {
+            const response = await fetch(SAVE_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': CSRF_TOKEN
+                },
+                body: JSON.stringify({
+                    phone_number_id: phoneNumberId,
+                    waba_id: wabaId,
+                    auth_code: authCode
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showStatus('success', `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
+                            <i class="fas fa-check text-white"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-green-800">Number Saved Successfully!</p>
+                            <p class="text-sm text-green-600">Refreshing page...</p>
+                        </div>
+                    </div>
+                `);
+                
+                // Reload page after 2 seconds
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                showStatus('error', `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center">
+                            <i class="fas fa-exclamation text-white"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-red-800">Save Failed</p>
+                            <p class="text-sm text-red-600">${data.error || 'Unknown error'}</p>
+                        </div>
+                    </div>
+                `);
+                enableButton();
+            }
+        } catch (error) {
+            console.error('Save error:', error);
+            showStatus('error', `
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center">
+                        <i class="fas fa-exclamation text-white"></i>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-red-800">Connection Error</p>
+                        <p class="text-sm text-red-600">Failed to save to server</p>
+                    </div>
+                </div>
+            `);
+            enableButton();
+        }
+    }
+
+    // Disconnect number
+    async function disconnectNumber(numberId) {
+        if (!confirm('Are you sure you want to disconnect this number?')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/integrations/whatsapp/disconnect/${numberId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': CSRF_TOKEN
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Failed to disconnect: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            alert('Error disconnecting number');
+        }
+    }
+
+    // UI Helpers
+    function showStatus(type, html) {
+        const card = document.getElementById('statusCard');
+        const content = document.getElementById('statusContent');
+        
+        card.classList.remove('hidden', 'success', 'error', 'processing');
+        card.classList.add(type);
+        content.innerHTML = html;
+    }
+
+    function disableButton() {
+        const btn = document.getElementById('connectBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Connecting...</span>';
+    }
+
+    function enableButton() {
+        const btn = document.getElementById('connectBtn');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fab fa-facebook text-xl"></i> <span>Connect WhatsApp Number</span>';
+    }
+
+    // Toggle debug section
+    function toggleDebug() {
+        document.getElementById('debugSection').classList.toggle('hidden');
+    }
+</script>
+
+<!-- Load Facebook SDK -->
+<script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+{% endblock %}

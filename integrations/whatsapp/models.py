@@ -193,6 +193,100 @@ class WhatsAppCustomer(BaseModel):
         return self.wa_id
 
 
+class WhatsAppConnectedNumber(BaseModel):
+    """
+    Stores WhatsApp Business numbers connected via Embedded Signup.
+    Each record represents a number connected to the ERP for lead capture.
+    """
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending Setup'),
+        ('active', 'Active'),
+        ('disconnected', 'Disconnected'),
+        ('error', 'Error'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Meta identifiers from Embedded Signup
+    waba_id = models.CharField(
+        max_length=64,
+        db_index=True,
+        help_text="WhatsApp Business Account ID from Meta"
+    )
+    phone_number_id = models.CharField(
+        max_length=64,
+        unique=True,
+        db_index=True,
+        help_text="Phone Number ID from Meta"
+    )
+    
+    # Display info
+    display_phone_number = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text="Human-readable phone number"
+    )
+    display_name = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Business display name"
+    )
+    
+    # Connection status
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='active'
+    )
+    
+    # Auth tokens (encrypted in production)
+    access_token = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Meta access token for this number"
+    )
+    token_expires_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+    
+    # Connected by user
+    connected_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='connected_whatsapp_numbers'
+    )
+    
+    # Webhook tracking
+    webhook_verified = models.BooleanField(default=False)
+    last_webhook_at = models.DateTimeField(null=True, blank=True)
+    webhook_count = models.IntegerField(default=0)
+    
+    # Stats
+    total_messages_received = models.IntegerField(default=0)
+    total_leads_captured = models.IntegerField(default=0)
+    
+    # Metadata
+    meta_data = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Additional metadata from Embedded Signup"
+    )
+    
+    class Meta:
+        verbose_name = "Connected WhatsApp Number"
+        verbose_name_plural = "Connected WhatsApp Numbers"
+        ordering = ['-created']
+    
+    def __str__(self):
+        return f"{self.display_name or self.display_phone_number or self.phone_number_id}"
+
+
 class WhatsAppNumberConfig(BaseModel):
     """
     Configuration for each WhatsApp Business number connected.
@@ -220,6 +314,15 @@ class WhatsAppNumberConfig(BaseModel):
         blank=True, 
         null=True,
         help_text="Friendly name (e.g., 'Sales Team 1', 'Support')"
+    )
+    
+    # Link to connected number (if connected via Embedded Signup)
+    connected_number = models.OneToOneField(
+        WhatsAppConnectedNumber,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='config'
     )
     
     # Webhook activity tracking
