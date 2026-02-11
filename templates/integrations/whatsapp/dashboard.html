@@ -80,42 +80,58 @@
                     <h3 class="text-lg font-semibold text-gray-900">Setup Instructions</h3>
                     
                     <div class="bg-blue-50 rounded-xl p-4">
+                        <p class="text-sm font-semibold text-blue-800 mb-3">📍 Navigate to: developers.facebook.com → Your App → WhatsApp → Configuration</p>
                         <ol class="space-y-3 text-sm text-gray-700">
                             <li class="flex items-start space-x-3">
                                 <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">1</span>
-                                <span>Go to <a href="https://developers.facebook.com/apps" target="_blank" class="text-blue-600 hover:underline">Meta for Developers</a> and create/select your app</span>
+                                <span>Go to <a href="https://developers.facebook.com/apps" target="_blank" class="text-blue-600 hover:underline font-medium">developers.facebook.com/apps</a></span>
                             </li>
                             <li class="flex items-start space-x-3">
                                 <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">2</span>
-                                <span>Click <strong>"Add Product"</strong> → Find <strong>"WhatsApp"</strong> → Click <strong>"Set Up"</strong></span>
+                                <span>Create App → Select <strong>"Other"</strong> → Then <strong>"Business"</strong> type</span>
                             </li>
                             <li class="flex items-start space-x-3">
                                 <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">3</span>
-                                <span>Go to <strong>WhatsApp → Configuration</strong> (NOT Facebook Login!)</span>
+                                <span>In App Dashboard, find <strong>"WhatsApp"</strong> card → Click <strong>"Set Up"</strong></span>
                             </li>
                             <li class="flex items-start space-x-3">
                                 <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">4</span>
-                                <span>In Webhook section: Enter <strong>Callback URL</strong> and <strong>Verify Token</strong> from above, click <strong>Verify and Save</strong></span>
+                                <span>Left sidebar: Click <strong>WhatsApp → Configuration</strong></span>
                             </li>
                             <li class="flex items-start space-x-3">
                                 <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">5</span>
-                                <span>Toggle <strong>Subscribe</strong> for the <strong>"messages"</strong> webhook field</span>
+                                <span>Scroll to <strong>"Webhook"</strong> section → Click <strong>"Edit"</strong></span>
                             </li>
                             <li class="flex items-start space-x-3">
                                 <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">6</span>
-                                <span>On each WhatsApp Business phone: <strong>Settings → Linked Devices → Link a device → Connect to Business Platform</strong></span>
+                                <span>Paste <strong>Callback URL</strong> and <strong>Verify Token</strong> from left → Click <strong>"Verify and Save"</strong></span>
                             </li>
+                            <li class="flex items-start space-x-3">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">7</span>
+                                <span>Under "Webhook fields" → Click <strong>"Manage"</strong> → Toggle <strong>"messages"</strong> to Subscribe</span>
+                            </li>
+                        </ol>
+                    </div>
+                    
+                    <div class="bg-green-50 rounded-xl p-4">
+                        <p class="text-sm font-semibold text-green-800 mb-2">📱 For Coexistence (Keep using WhatsApp Business App):</p>
+                        <ol class="space-y-2 text-sm text-gray-700">
+                            <li>1. Update WhatsApp Business App to v2.24.17+</li>
+                            <li>2. During setup, select <strong>"Use existing WhatsApp Business App number"</strong></li>
+                            <li>3. Choose <strong>"WhatsApp Coexistence"</strong> option</li>
+                            <li>4. Scan QR code from app: <strong>Settings → Linked Devices → Link a Device</strong></li>
                         </ol>
                     </div>
                     
                     <div class="text-xs text-red-600 bg-red-50 rounded-lg p-3">
                         <i class="fas fa-exclamation-triangle text-red-500 mr-1"></i>
-                        <strong>Important:</strong> Configure webhook under <strong>WhatsApp → Configuration</strong>, NOT under Facebook Login. The "messages" field only appears in WhatsApp webhook settings.
+                        <strong>Common Mistake:</strong> The "messages" field is ONLY under <strong>WhatsApp → Configuration</strong>. It will NOT appear under Facebook Login or Instagram webhooks!
                     </div>
                     
-                    <div class="text-xs text-gray-500 bg-yellow-50 rounded-lg p-3">
-                        <i class="fas fa-info-circle text-yellow-600 mr-1"></i>
-                        <strong>Coexistence Mode:</strong> You can continue using WhatsApp Business mobile app normally while leads are auto-captured.
+                    <div class="text-xs text-gray-600 bg-gray-50 rounded-lg p-3">
+                        <i class="fas fa-book mr-1"></i>
+                        <a href="/static/docs/WHATSAPP_SETUP_GUIDE.md" target="_blank" class="text-blue-600 hover:underline">View Full Setup Guide</a> | 
+                        <a href="https://developers.facebook.com/docs/whatsapp/" target="_blank" class="text-blue-600 hover:underline">Meta Official Docs</a>
                     </div>
                 </div>
             </div>
