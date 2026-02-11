@@ -321,3 +321,7 @@ WA_APP_SECRET = config('WA_APP_SECRET', default='')
 
 # Meta Access Token for API calls (for outbound messages - optional)
 META_ACCESS_TOKEN = config('META_ACCESS_TOKEN', default='')
+
+# Facebook App credentials for Embedded Signup
+FB_APP_ID = config('FB_APP_ID', default='1612261483351391')
+FB_CONFIG_ID = config('FB_CONFIG_ID', default='1714776409680646')
