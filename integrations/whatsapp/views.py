@@ -16,7 +16,8 @@ from .models import (
     WhatsAppNumberConfig,
     WhatsAppCustomerChannel,
     WhatsAppMessage,
-    WhatsAppWebhookLog
+    WhatsAppWebhookLog,
+    WhatsAppConnectedNumber
 )
 from marketing.models import Lead
 
