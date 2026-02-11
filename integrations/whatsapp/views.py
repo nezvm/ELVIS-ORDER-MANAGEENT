@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods, require_GET
+from django.views.decorators.http import require_http_methods
 from django.conf import settings
 from django.utils import timezone
 from django.db import transaction
@@ -22,6 +22,7 @@ from .models import (
 from marketing.models import Lead
 
 logger = logging.getLogger(__name__)
+
 
 # =============================================================================
 # WEBHOOK ENDPOINTS
@@ -51,7 +52,6 @@ def webhook_verify(request):
     token = request.GET.get('hub.verify_token')
     challenge = request.GET.get('hub.challenge')
     
-    # Get verify token from settings
     verify_token = getattr(settings, 'WA_VERIFY_TOKEN', 'elvis_whatsapp_verify_2024')
     
     logger.info(f"Webhook verification: mode={mode}, token_match={token == verify_token}")
@@ -71,20 +71,17 @@ def webhook_receive(request):
     """
     webhook_log = None
     try:
-        # Parse payload
         try:
             payload = json.loads(request.body)
         except json.JSONDecodeError:
             logger.error("Invalid JSON in webhook payload")
             return HttpResponse('OK', status=200)
         
-        # Create webhook log
         webhook_log = WhatsAppWebhookLog.objects.create(
             payload=payload,
             event_type='webhook_received'
         )
         
-        # Extract and process events
         events = extract_message_events(payload)
         
         if not events:
@@ -93,7 +90,6 @@ def webhook_receive(request):
             webhook_log.save()
             return HttpResponse('OK', status=200)
         
-        # Process each event
         customers_created = 0
         customers_updated = 0
         messages_processed = 0
@@ -109,7 +105,6 @@ def webhook_receive(request):
             except Exception as e:
                 logger.error(f"Error processing event: {e}", exc_info=True)
         
-        # Update webhook log
         webhook_log.phone_number_id = events[0].get('phone_number_id') if events else None
         webhook_log.event_type = 'messages'
         webhook_log.processed = True
@@ -127,43 +122,12 @@ def webhook_receive(request):
             webhook_log.error_message = str(e)
             webhook_log.save()
     
-    # Always return 200
     return HttpResponse('OK', status=200)
 
 
 def extract_message_events(payload):
     """
     Extract message events from Meta webhook payload.
-    
-    Payload structure:
-    {
-        "object": "whatsapp_business_account",
-        "entry": [{
-            "id": "<WABA_ID>",
-            "changes": [{
-                "value": {
-                    "messaging_product": "whatsapp",
-                    "metadata": {
-                        "display_phone_number": "...",
-                        "phone_number_id": "..."
-                    },
-                    "contacts": [{"profile": {"name": "..."}, "wa_id": "..."}],
-                    "messages": [{...}]
-                },
-                "field": "messages"
-            }]
-        }]
-    }
-    
-    Referral structure (for Click-to-WhatsApp ads):
-    "referral": {
-        "source_url": "https://...",
-        "source_type": "ad",
-        "source_id": "123456789",
-        "headline": "Ad headline",
-        "body": "Ad body text",
-        "ctwa_clid": "click_tracking_id"
-    }
     """
     events = []
     
@@ -186,7 +150,6 @@ def extract_message_events(payload):
             contacts = value.get('contacts', [])
             messages = value.get('messages', [])
             
-            # Build contact lookup
             contact_map = {}
             for contact in contacts:
                 wa_id = contact.get('wa_id')
@@ -196,7 +159,6 @@ def extract_message_events(payload):
                         'wa_id': wa_id
                     }
             
-            # Process each message
             for msg in messages:
                 wa_id = msg.get('from')
                 if not wa_id:
@@ -204,7 +166,6 @@ def extract_message_events(payload):
                 
                 contact_info = contact_map.get(wa_id, {'wa_id': wa_id})
                 
-                # Extract message content
                 msg_type = msg.get('type', 'unknown')
                 body = None
                 media_id = None
@@ -232,7 +193,6 @@ def extract_message_events(payload):
                 elif msg_type == 'reaction':
                     body = msg.get('reaction', {}).get('emoji')
                 
-                # Parse timestamp
                 timestamp_str = msg.get('timestamp')
                 try:
                     timestamp_utc = datetime.utcfromtimestamp(int(timestamp_str))
@@ -251,17 +211,6 @@ def extract_message_events(payload):
                         'headline': referral.get('headline'),
                         'body': referral.get('body'),
                         'ctwa_clid': referral.get('ctwa_clid'),
-                        'media_type': referral.get('media_type'),
-                        'image_url': referral.get('image', {}).get('link') if referral.get('image') else None,
-                        'video_url': referral.get('video', {}).get('link') if referral.get('video') else None,
-                    }
-                
-                # Also check context for referral (some webhook versions)
-                context = msg.get('context', {})
-                if not referral_data and context.get('referral_from_message_id'):
-                    referral_data = {
-                        'source_type': 'referral',
-                        'referral_message_id': context.get('referral_from_message_id')
                     }
                 
                 events.append({
@@ -275,7 +224,7 @@ def extract_message_events(payload):
                     'media_id': media_id,
                     'timestamp_utc': timestamp_utc,
                     'raw_message': msg,
-                    'referral': referral_data,  # Ad attribution data
+                    'referral': referral_data,
                 })
     
     return events
@@ -291,17 +240,17 @@ def process_message_event(event):
     phone_number_id = event['phone_number_id']
     profile_name = event.get('profile_name')
     message_id = event.get('message_id')
-    referral = event.get('referral')  # Ad attribution data
+    referral = event.get('referral')
     
     customer_created = False
     customer_updated = False
     
-    # Check if message already processed (dedup by message_id)
+    # Check if message already processed
     if message_id and WhatsAppMessage.objects.filter(message_id=message_id).exists():
         logger.debug(f"Message {message_id} already processed, skipping")
         return False, False
     
-    # Determine attribution source from referral data
+    # Determine attribution source
     is_from_ad = False
     attribution_source = 'organic'
     
@@ -310,12 +259,10 @@ def process_message_event(event):
         if source_type == 'ad':
             is_from_ad = True
             attribution_source = 'ctwa_ad'
-        elif source_type == 'post':
-            attribution_source = 'organic'  # Organic post click
         elif source_type:
             attribution_source = 'meta_ad'
     
-    # 1. Upsert WhatsAppCustomer (global dedup by wa_id)
+    # 1. Upsert WhatsAppCustomer
     customer, created = WhatsAppCustomer.objects.get_or_create(
         wa_id=wa_id,
         defaults={
@@ -324,7 +271,6 @@ def process_message_event(event):
             'last_message_at': event['timestamp_utc'],
             'is_from_ad': is_from_ad,
             'attribution_source': attribution_source,
-            # Ad-specific fields (only on first contact)
             'meta_ad_source_id': referral.get('source_id') if referral else None,
             'meta_ad_source_type': referral.get('source_type') if referral else None,
             'meta_ad_source_url': referral.get('source_url') if referral else None,
@@ -336,9 +282,8 @@ def process_message_event(event):
     
     if created:
         customer_created = True
-        logger.info(f"New WhatsApp customer: {wa_id}, source: {attribution_source}, from_ad: {is_from_ad}")
+        logger.info(f"New WhatsApp customer: {wa_id}, source: {attribution_source}")
     else:
-        # Update existing customer
         customer_updated = True
         update_fields = ['last_seen', 'last_message_at', 'total_messages']
         
@@ -354,36 +299,30 @@ def process_message_event(event):
         customer.total_messages = (customer.total_messages or 0) + 1
         customer.save(update_fields=update_fields)
     
-    # 2. Upsert WhatsAppNumberConfig (track the sales number)
+    # 2. Upsert WhatsAppNumberConfig
     number_config, _ = WhatsAppNumberConfig.objects.get_or_create(
         phone_number_id=phone_number_id,
-        defaults={
-            'display_phone_number': event.get('display_phone_number'),
-        }
+        defaults={'display_phone_number': event.get('display_phone_number')}
     )
     number_config.last_webhook_at = timezone.now()
     number_config.webhook_count = (number_config.webhook_count or 0) + 1
     number_config.total_messages_received = (number_config.total_messages_received or 0) + 1
     number_config.save(update_fields=['last_webhook_at', 'webhook_count', 'total_messages_received', 'updated'])
     
-    # 3. Upsert WhatsAppCustomerChannel (touchpoint)
+    # 3. Upsert WhatsAppCustomerChannel
     channel, channel_created = WhatsAppCustomerChannel.objects.get_or_create(
         customer=customer,
         phone_number_id=phone_number_id,
-        defaults={
-            'number_config': number_config,
-        }
+        defaults={'number_config': number_config}
     )
     channel.message_count = (channel.message_count or 0) + 1
     channel.last_contact_at = event['timestamp_utc']
     channel.save(update_fields=['message_count', 'last_contact_at', 'updated'])
     
-    # Update customer's channel count if new channel
     if channel_created:
         customer.total_channels_contacted = customer.channels.count()
         customer.save(update_fields=['total_channels_contacted'])
         
-        # Update number config's customer count
         number_config.total_customers = WhatsAppCustomerChannel.objects.filter(
             phone_number_id=phone_number_id
         ).values('customer').distinct().count()
@@ -403,7 +342,7 @@ def process_message_event(event):
             raw_payload=event.get('raw_message', {})
         )
     
-    # 5. Create/Update Lead in marketing app for unified lead management
+    # 5. Create/Update Lead
     if customer_created:
         create_or_update_lead(customer, event)
     
@@ -413,34 +352,27 @@ def process_message_event(event):
 def create_or_update_lead(customer, event):
     """
     Create or update a Lead record for unified lead management.
-    Includes attribution data for ad tracking.
     """
     try:
-        # Format phone number
         phone_no = f"+{customer.wa_id}" if customer.wa_id else None
         
-        # Determine lead source based on attribution
         if customer.is_from_ad:
             lead_source = 'whatsapp_ctwa_ad'
         else:
             lead_source = 'whatsapp_inbound'
         
-        # Build tags for the lead
         tags = []
         if customer.is_from_ad:
-            tags.append('from_ad')
-            tags.append('ctwa')
+            tags.extend(['from_ad', 'ctwa'])
         else:
             tags.append('organic')
         
         if customer.attribution_source:
             tags.append(customer.attribution_source)
         
-        # Check if lead already exists with this phone
         lead = Lead.objects.filter(phone_no=phone_no).first()
         
         if not lead:
-            # Create new lead
             lead = Lead.objects.create(
                 phone_no=phone_no,
                 phone_normalized=customer.wa_id,
@@ -449,7 +381,7 @@ def create_or_update_lead(customer, event):
                 lead_status='new',
                 captured_at=timezone.now(),
                 tags=tags,
-                notes=f"Auto-created from WhatsApp inbound message.\n" +
+                notes=f"Auto-created from WhatsApp.\n" +
                       f"Attribution: {customer.get_attribution_source_display()}\n" +
                       f"From Ad: {'Yes' if customer.is_from_ad else 'No'}\n" +
                       (f"Ad Headline: {customer.meta_ad_headline}\n" if customer.meta_ad_headline else "") +
@@ -457,7 +389,6 @@ def create_or_update_lead(customer, event):
             )
             logger.info(f"Created Lead from WhatsApp: {lead.id}, source: {lead_source}")
         else:
-            # Update existing lead with WhatsApp contact info
             existing_tags = lead.tags or []
             for tag in tags:
                 if tag not in existing_tags:
@@ -466,11 +397,10 @@ def create_or_update_lead(customer, event):
             
             update_note = f"\n\n[{timezone.now()}] Also contacted via WhatsApp."
             if customer.is_from_ad:
-                update_note += f" (From Click-to-WhatsApp Ad)"
+                update_note += " (From Click-to-WhatsApp Ad)"
             lead.notes = (lead.notes or '') + update_note
             lead.save(update_fields=['notes', 'tags', 'updated'])
         
-        # Link customer to lead
         customer.linked_lead = lead
         customer.save(update_fields=['linked_lead'])
         
@@ -500,7 +430,12 @@ class WhatsAppDashboardView(LoginRequiredMixin, TemplateView):
         # Verify token
         context['verify_token'] = getattr(settings, 'WA_VERIFY_TOKEN', 'elvis_whatsapp_verify_2024')
         
-        # Connected numbers with stats
+        # Connected numbers
+        context['connected_numbers'] = WhatsAppConnectedNumber.objects.filter(
+            is_active=True
+        ).order_by('-created')
+        
+        # Numbers with activity (from webhooks)
         context['numbers'] = WhatsAppNumberConfig.objects.filter(is_active=True).order_by('-last_webhook_at')
         
         # Recent customers
@@ -509,7 +444,8 @@ class WhatsAppDashboardView(LoginRequiredMixin, TemplateView):
         # Stats
         context['total_customers'] = WhatsAppCustomer.objects.filter(is_active=True).count()
         context['total_messages'] = WhatsAppMessage.objects.count()
-        context['total_numbers'] = WhatsAppNumberConfig.objects.filter(is_active=True).count()
+        context['total_numbers'] = WhatsAppConnectedNumber.objects.filter(is_active=True).count()
+        context['ad_leads_count'] = WhatsAppCustomer.objects.filter(is_active=True, is_from_ad=True).count()
         
         # Recent webhook logs
         context['recent_webhooks'] = WhatsAppWebhookLog.objects.all()[:5]
@@ -547,15 +483,9 @@ class WhatsAppCustomerDetailView(LoginRequiredMixin, DetailView):
         context['title'] = f'WhatsApp: {self.object.profile_name or self.object.wa_id}'
         context['is_integrations'] = True
         context['is_whatsapp'] = True
-        
-        # Messages
         context['messages'] = self.object.messages.all()[:100]
-        
-        # Channels (touchpoints)
         context['channels'] = self.object.channels.all()
-        
         return context
-
 
 
 class WhatsAppConnectView(LoginRequiredMixin, TemplateView):
@@ -569,8 +499,8 @@ class WhatsAppConnectView(LoginRequiredMixin, TemplateView):
         context['is_whatsapp'] = True
         
         # Facebook App credentials from settings
-        context['fb_app_id'] = getattr(settings, 'FB_APP_ID', '1612261483351391')
-        context['fb_config_id'] = getattr(settings, 'FB_CONFIG_ID', '1714776409680646')
+        context['fb_app_id'] = getattr(settings, 'FB_APP_ID', '')
+        context['fb_config_id'] = getattr(settings, 'FB_CONFIG_ID', '')
         
         # Connected numbers
         context['connected_numbers'] = WhatsAppConnectedNumber.objects.filter(
@@ -584,7 +514,6 @@ class WhatsAppConnectView(LoginRequiredMixin, TemplateView):
 def save_whatsapp_connection(request):
     """
     API endpoint to save WhatsApp connection from Embedded Signup.
-    Receives phone_number_id and waba_id from the frontend.
     """
     try:
         data = json.loads(request.body)
@@ -598,13 +527,11 @@ def save_whatsapp_connection(request):
                 'error': 'Missing phone_number_id or waba_id'
             }, status=400)
         
-        # Check if already exists
         existing = WhatsAppConnectedNumber.objects.filter(
             phone_number_id=phone_number_id
         ).first()
         
         if existing:
-            # Update existing
             existing.waba_id = waba_id
             existing.status = 'active'
             existing.is_active = True
@@ -612,7 +539,6 @@ def save_whatsapp_connection(request):
             connected_number = existing
             logger.info(f"Updated existing WhatsApp connection: {phone_number_id}")
         else:
-            # Create new
             connected_number = WhatsAppConnectedNumber.objects.create(
                 phone_number_id=phone_number_id,
                 waba_id=waba_id,
@@ -625,15 +551,11 @@ def save_whatsapp_connection(request):
             )
             logger.info(f"Created new WhatsApp connection: {phone_number_id}")
         
-        # Also create/update WhatsAppNumberConfig for webhook tracking
-        number_config, created = WhatsAppNumberConfig.objects.get_or_create(
+        # Also create WhatsAppNumberConfig for webhook tracking
+        number_config, _ = WhatsAppNumberConfig.objects.get_or_create(
             phone_number_id=phone_number_id,
-            defaults={
-                'name': f'Connected Number {phone_number_id[-4:]}',
-            }
+            defaults={'name': f'Connected Number {phone_number_id[-4:]}'}
         )
-        
-        # Link the config to connected number
         number_config.connected_number = connected_number
         number_config.save()
         
@@ -649,16 +571,10 @@ def save_whatsapp_connection(request):
         })
         
     except json.JSONDecodeError:
-        return JsonResponse({
-            'success': False,
-            'error': 'Invalid JSON'
-        }, status=400)
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
     except Exception as e:
         logger.error(f"Error saving WhatsApp connection: {e}", exc_info=True)
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=500)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 @require_http_methods(["POST"])
@@ -680,153 +596,7 @@ def disconnect_whatsapp_number(request, number_id):
         })
         
     except WhatsAppConnectedNumber.DoesNotExist:
-        return JsonResponse({
-            'success': False,
-            'error': 'Number not found'
-        }, status=404)
+        return JsonResponse({'success': False, 'error': 'Number not found'}, status=404)
     except Exception as e:
         logger.error(f"Error disconnecting WhatsApp number: {e}", exc_info=True)
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=500)
-
-
-# =============================================================================
-# DIRECT IMPORT FEATURE
-# =============================================================================
-
-class WhatsAppImportView(LoginRequiredMixin, TemplateView):
-    """Page to manually import existing WhatsApp Business numbers."""
-    template_name = 'integrations/whatsapp/import.html'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Import WhatsApp Numbers'
-        context['is_integrations'] = True
-        context['is_whatsapp'] = True
-        
-        # Get already imported numbers (phone_number_ids)
-        imported_ids = set(
-            WhatsAppNumberConfig.objects.filter(is_active=True).values_list('phone_number_id', flat=True)
-        )
-        context['imported_ids'] = imported_ids
-        
-        # Pre-defined numbers from user's Excel sheet (all 12)
-        context['known_numbers'] = [
-            {'phone': '+91 99458 66028', 'phone_number_id': '3999161807018814', 'name': 'Sales 1'},
-            {'phone': '+91 99459 41723', 'phone_number_id': '1063162962024283', 'name': 'Sales 2'},
-            {'phone': '+91 63643 96362', 'phone_number_id': '502043062980927', 'name': 'Sales 3'},
-            {'phone': '+91 97784 63737', 'phone_number_id': '437136959488223', 'name': 'Sales 4'},
-            {'phone': '+91 81234 89760', 'phone_number_id': '473194365866614', 'name': 'Sales 5'},
-            {'phone': '+91 90098 98630', 'phone_number_id': '1112607280694762', 'name': 'Sales 6'},
-            {'phone': '+91 93803 19107', 'phone_number_id': '598532996010675', 'name': 'Sales 7'},
-            {'phone': '+91 72041 83737', 'phone_number_id': '684398864548878', 'name': 'Sales 8'},
-            {'phone': '+91 79076 83737', 'phone_number_id': '322135380981802', 'name': 'Sales 9'},
-            {'phone': '+91 79070 17613', 'phone_number_id': '278178735374976', 'name': 'Sales 10'},
-            {'phone': '+91 63669 78965', 'phone_number_id': '1314705419875488', 'name': 'Sales 11'},
-            {'phone': '+91 63669 78966', 'phone_number_id': '1690042391951895', 'name': 'Sales 12'},
-        ]
-        
-        return context
-
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def import_whatsapp_number(request):
-    """
-    API endpoint to import an existing WhatsApp number by Phone Number ID.
-    This bypasses Embedded Signup and allows direct import.
-    """
-    try:
-        data = json.loads(request.body)
-        phone_number_id = data.get('phone_number_id', '').strip()
-        waba_id = data.get('waba_id', '').strip()
-        display_phone_number = data.get('display_phone_number', '').strip()
-        display_name = data.get('display_name', '').strip()
-        
-        if not phone_number_id:
-            return JsonResponse({
-                'success': False,
-                'error': 'Phone Number ID is required'
-            }, status=400)
-        
-        # Check if already exists in WhatsAppNumberConfig
-        existing_config = WhatsAppNumberConfig.objects.filter(
-            phone_number_id=phone_number_id
-        ).first()
-        
-        if existing_config:
-            # Update existing
-            if display_phone_number:
-                existing_config.display_phone_number = display_phone_number
-            if display_name:
-                existing_config.name = display_name
-            existing_config.is_active = True
-            existing_config.save()
-            
-            logger.info(f"Updated existing WhatsApp number config: {phone_number_id}")
-            
-            return JsonResponse({
-                'success': True,
-                'message': 'Number updated successfully',
-                'data': {
-                    'id': str(existing_config.id),
-                    'phone_number_id': existing_config.phone_number_id,
-                    'display_phone_number': existing_config.display_phone_number,
-                    'name': existing_config.name,
-                    'is_new': False
-                }
-            })
-        
-        # Create new WhatsAppNumberConfig
-        number_config = WhatsAppNumberConfig.objects.create(
-            phone_number_id=phone_number_id,
-            display_phone_number=display_phone_number or None,
-            name=display_name or f'Number {phone_number_id[-4:]}',
-        )
-        
-        # Optionally create a WhatsAppConnectedNumber entry for tracking
-        if waba_id:
-            connected, _ = WhatsAppConnectedNumber.objects.get_or_create(
-                phone_number_id=phone_number_id,
-                defaults={
-                    'waba_id': waba_id,
-                    'display_phone_number': display_phone_number,
-                    'display_name': display_name,
-                    'status': 'active',
-                    'connected_by': request.user if request.user.is_authenticated else None,
-                    'meta_data': {
-                        'import_method': 'direct_import',
-                        'imported_at': timezone.now().isoformat()
-                    }
-                }
-            )
-            number_config.connected_number = connected
-            number_config.save()
-        
-        logger.info(f"Imported new WhatsApp number: {phone_number_id}")
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'Number imported successfully',
-            'data': {
-                'id': str(number_config.id),
-                'phone_number_id': number_config.phone_number_id,
-                'display_phone_number': number_config.display_phone_number,
-                'name': number_config.name,
-                'is_new': True
-            }
-        })
-        
-    except json.JSONDecodeError:
-        return JsonResponse({
-            'success': False,
-            'error': 'Invalid JSON'
-        }, status=400)
-    except Exception as e:
-        logger.error(f"Error importing WhatsApp number: {e}", exc_info=True)
-        return JsonResponse({
-            'success': False,
-            'error': str(e)
-        }, status=500)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
