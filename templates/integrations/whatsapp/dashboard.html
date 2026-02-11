@@ -19,7 +19,7 @@
                         <p class="text-sm text-gray-500">Connect your WhatsApp Business numbers via Meta Cloud API</p>
                     </div>
                 </div>
-                <div class="flex items-center space-x-2">
+                <div class="flex items-center space-x-3">
                     {% if total_numbers > 0 %}
                     <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
                         <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
@@ -31,6 +31,9 @@
                         Not Connected
                     </span>
                     {% endif %}
+                    <a href="{% url 'integrations:whatsapp_connect' %}" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">
+                        <i class="fas fa-plus mr-2"></i>Connect Number
+                    </a>
                 </div>
             </div>
         </div>
