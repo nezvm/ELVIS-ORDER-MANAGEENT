@@ -22,16 +22,89 @@
                 </div>
                 <div>
                     <h1 class="text-2xl font-bold text-white">Import Existing WhatsApp Numbers</h1>
-                    <p class="text-blue-100 mt-1">Add numbers that are already connected to your Meta Business Portfolio</p>
+                    <p class="text-blue-100 mt-1">Add your 12 WhatsApp Business numbers that are already in your Meta Business Portfolio</p>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Your Numbers from Excel (Primary Section) -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-gray-900">Your WhatsApp Numbers</h2>
+                <p class="text-sm text-gray-500">All 12 numbers from your Elvis Co Business Portfolio</p>
+            </div>
+            <button onclick="importAllNumbers()" id="importAllBtn" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">
+                <i class="fas fa-check-double mr-2"></i>Import All 12 Numbers
+            </button>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full" data-testid="numbers-table">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone Number</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone Number ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for num in known_numbers %}
+                    <tr class="hover:bg-gray-50" id="row-{{ num.phone_number_id }}">
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ forloop.counter }}</td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                    <i class="fab fa-whatsapp text-green-600"></i>
+                                </div>
+                                <span class="font-medium text-gray-900">{{ num.phone }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <code class="text-xs bg-gray-100 px-2 py-1 rounded">{{ num.phone_number_id }}</code>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-gray-700">{{ num.name }}</td>
+                        <td class="px-6 py-4">
+                            {% if num.phone_number_id in imported_ids %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <i class="fas fa-check-circle mr-1"></i> Imported
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600" id="status-{{ num.phone_number_id }}">
+                                <i class="fas fa-clock mr-1"></i> Pending
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if num.phone_number_id in imported_ids %}
+                            <span class="text-gray-400"><i class="fas fa-check"></i> Done</span>
+                            {% else %}
+                            <button onclick="importSingle('{{ num.phone_number_id }}', '{{ num.phone }}', '{{ num.name }}')" 
+                                    class="text-primary-500 hover:text-primary-600 font-medium"
+                                    id="btn-{{ num.phone_number_id }}"
+                                    data-testid="import-btn-{{ forloop.counter }}">
+                                <i class="fas fa-plus-circle mr-1"></i> Import
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="importAllStatus" class="hidden p-4 border-t border-gray-100"></div>
+    </div>
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Import Form -->
+        <!-- Manual Import Form -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <h2 class="text-xl font-semibold text-gray-900 mb-4">Add Number Manually</h2>
+            <p class="text-sm text-gray-500 mb-4">For numbers not listed above, enter details manually.</p>
             
             <form id="importForm" class="space-y-4">
                 {% csrf_token %}
@@ -40,32 +113,36 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number ID *</label>
                     <input type="text" name="phone_number_id" id="phone_number_id" required
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                           placeholder="e.g., 3999161807018814">
+                           placeholder="e.g., 3999161807018814"
+                           data-testid="manual-phone-number-id">
                     <p class="text-xs text-gray-500 mt-1">From Meta Business Suite → WhatsApp Manager → Phone Numbers</p>
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">WABA ID (WhatsApp Business Account ID)</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">WABA ID</label>
                     <input type="text" name="waba_id" id="waba_id"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                           placeholder="e.g., 946871127168555" value="946871127168555">
+                           placeholder="e.g., 946871127168555" value="946871127168555"
+                           data-testid="manual-waba-id">
                 </div>
                 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Display Phone Number</label>
                     <input type="text" name="display_phone_number" id="display_phone_number"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                           placeholder="e.g., +91 99458 66028">
+                           placeholder="e.g., +91 99458 66028"
+                           data-testid="manual-display-phone">
                 </div>
                 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
                     <input type="text" name="display_name" id="display_name"
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                           placeholder="e.g., Sales Team 1">
+                           placeholder="e.g., Sales Team 1"
+                           data-testid="manual-display-name">
                 </div>
                 
-                <button type="submit" class="w-full px-4 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-medium">
+                <button type="submit" class="w-full px-4 py-3 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors font-medium" data-testid="manual-import-btn">
                     <i class="fas fa-plus mr-2"></i>Add Number
                 </button>
             </form>
@@ -75,20 +152,20 @@
 
         <!-- Bulk Import -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h2 class="text-xl font-semibold text-gray-900 mb-4">Bulk Import</h2>
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Bulk Import (Advanced)</h2>
+            <p class="text-sm text-gray-500 mb-4">Paste multiple Phone Number IDs, one per line.</p>
             
             <div class="bg-gray-50 rounded-xl p-4 mb-4">
-                <p class="text-sm text-gray-600 mb-3">Paste your Phone Number IDs (one per line):</p>
                 <textarea id="bulkImport" rows="8" 
                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-mono text-sm"
                           placeholder="3999161807018814
 1063162962024283
-1112607280694762
-1314705419875488
-1690042391951895"></textarea>
+502043062980927
+..."
+                          data-testid="bulk-import-textarea"></textarea>
             </div>
             
-            <button onclick="bulkImportNumbers()" class="w-full px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium">
+            <button onclick="bulkImportNumbers()" class="w-full px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium" data-testid="bulk-import-btn">
                 <i class="fas fa-file-import mr-2"></i>Bulk Import
             </button>
             
@@ -96,161 +173,184 @@
         </div>
     </div>
 
-    <!-- Pre-filled Numbers from Excel -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="p-6 border-b border-gray-100">
-            <h2 class="text-xl font-semibold text-gray-900">Your Known Numbers</h2>
-            <p class="text-sm text-gray-500">Numbers from your Excel sheet - click to import</p>
-        </div>
-        
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone Number</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone Number ID</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 font-medium">+91 99458 66028</td>
-                        <td class="px-6 py-4"><code class="text-xs bg-gray-100 px-2 py-1 rounded">3999161807018814</code></td>
-                        <td class="px-6 py-4"><span class="text-green-600"><i class="fas fa-check-circle"></i> Has ID</span></td>
-                        <td class="px-6 py-4">
-                            <button onclick="quickImport('3999161807018814', '+91 99458 66028', 'Sales 1')" class="text-primary-500 hover:text-primary-600">
-                                <i class="fas fa-plus-circle"></i> Import
-                            </button>
-                        </td>
-                    </tr>
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 font-medium">+91 99459 41723</td>
-                        <td class="px-6 py-4"><code class="text-xs bg-gray-100 px-2 py-1 rounded">1063162962024283</code></td>
-                        <td class="px-6 py-4"><span class="text-green-600"><i class="fas fa-check-circle"></i> Has ID</span></td>
-                        <td class="px-6 py-4">
-                            <button onclick="quickImport('1063162962024283', '+91 99459 41723', 'Sales 2')" class="text-primary-500 hover:text-primary-600">
-                                <i class="fas fa-plus-circle"></i> Import
-                            </button>
-                        </td>
-                    </tr>
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 font-medium">+91 90098 98630</td>
-                        <td class="px-6 py-4"><code class="text-xs bg-gray-100 px-2 py-1 rounded">1112607280694762</code></td>
-                        <td class="px-6 py-4"><span class="text-green-600"><i class="fas fa-check-circle"></i> Has ID</span></td>
-                        <td class="px-6 py-4">
-                            <button onclick="quickImport('1112607280694762', '+91 90098 98630', 'Sales 3')" class="text-primary-500 hover:text-primary-600">
-                                <i class="fas fa-plus-circle"></i> Import
-                            </button>
-                        </td>
-                    </tr>
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 font-medium">+91 63669 78965</td>
-                        <td class="px-6 py-4"><code class="text-xs bg-gray-100 px-2 py-1 rounded">1314705419875488</code></td>
-                        <td class="px-6 py-4"><span class="text-green-600"><i class="fas fa-check-circle"></i> Has ID</span></td>
-                        <td class="px-6 py-4">
-                            <button onclick="quickImport('1314705419875488', '+91 63669 78965', 'Sales 4')" class="text-primary-500 hover:text-primary-600">
-                                <i class="fas fa-plus-circle"></i> Import
-                            </button>
-                        </td>
-                    </tr>
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 font-medium">+91 63669 78966</td>
-                        <td class="px-6 py-4"><code class="text-xs bg-gray-100 px-2 py-1 rounded">1690042391951895</code></td>
-                        <td class="px-6 py-4"><span class="text-green-600"><i class="fas fa-check-circle"></i> Has ID</span></td>
-                        <td class="px-6 py-4">
-                            <button onclick="quickImport('1690042391951895', '+91 63669 78966', 'Sales 5')" class="text-primary-500 hover:text-primary-600">
-                                <i class="fas fa-plus-circle"></i> Import
-                            </button>
-                        </td>
-                    </tr>
-                    <tr class="hover:bg-gray-50 bg-yellow-50">
-                        <td class="px-6 py-4 font-medium">+91 63643 96362</td>
-                        <td class="px-6 py-4"><span class="text-gray-400">Not available</span></td>
-                        <td class="px-6 py-4"><span class="text-yellow-600"><i class="fas fa-exclamation-circle"></i> No ID</span></td>
-                        <td class="px-6 py-4 text-gray-400">Needs setup</td>
-                    </tr>
-                    <tr class="hover:bg-gray-50 bg-yellow-50">
-                        <td class="px-6 py-4 font-medium">+91 97784 63737</td>
-                        <td class="px-6 py-4"><span class="text-gray-400">Not available</span></td>
-                        <td class="px-6 py-4"><span class="text-yellow-600"><i class="fas fa-exclamation-circle"></i> No ID</span></td>
-                        <td class="px-6 py-4 text-gray-400">Needs setup</td>
-                    </tr>
-                    <tr class="hover:bg-gray-50 bg-yellow-50">
-                        <td class="px-6 py-4 font-medium">+91 81234 89760</td>
-                        <td class="px-6 py-4"><span class="text-gray-400">Not available</span></td>
-                        <td class="px-6 py-4"><span class="text-yellow-600"><i class="fas fa-exclamation-circle"></i> No ID</span></td>
-                        <td class="px-6 py-4 text-gray-400">Needs setup</td>
-                    </tr>
-                    <tr class="hover:bg-gray-50 bg-yellow-50">
-                        <td class="px-6 py-4 font-medium">+91 93803 19107</td>
-                        <td class="px-6 py-4"><span class="text-gray-400">Not available</span></td>
-                        <td class="px-6 py-4"><span class="text-yellow-600"><i class="fas fa-exclamation-circle"></i> No ID</span></td>
-                        <td class="px-6 py-4 text-gray-400">Needs setup</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        
-        <div class="p-4 bg-yellow-50 border-t border-yellow-100">
-            <p class="text-sm text-yellow-700">
-                <i class="fas fa-info-circle mr-1"></i>
-                Numbers without Phone Number IDs need to be set up via <strong>Meta Business Suite → WhatsApp Manager → Phone Numbers</strong> first.
-            </p>
-        </div>
-    </div>
-
-    <!-- Import All Button -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div class="flex items-center justify-between">
-            <div>
-                <h3 class="text-lg font-semibold text-gray-900">Quick Import All (5 numbers with IDs)</h3>
-                <p class="text-sm text-gray-500">Import all numbers that have Phone Number IDs</p>
-            </div>
-            <button onclick="importAllKnown()" class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">
-                <i class="fas fa-check-double mr-2"></i>Import All 5 Numbers
-            </button>
-        </div>
+    <!-- Help Section -->
+    <div class="bg-blue-50 rounded-2xl border border-blue-100 p-6">
+        <h3 class="text-lg font-semibold text-blue-900 mb-3"><i class="fas fa-info-circle mr-2"></i>How to find Phone Number IDs</h3>
+        <ol class="space-y-2 text-sm text-blue-800">
+            <li>1. Go to <a href="https://business.facebook.com/settings/whatsapp-accounts" target="_blank" class="underline font-medium">business.facebook.com/settings/whatsapp-accounts</a></li>
+            <li>2. Click on your WhatsApp Business Account (Elvis Co)</li>
+            <li>3. Go to "Phone Numbers" tab</li>
+            <li>4. Each number has a "Phone Number ID" - this is what you need</li>
+        </ol>
     </div>
 </div>
 
 <script>
 const CSRF_TOKEN = '{{ csrf_token }}';
 const WABA_ID = '946871127168555';
+const IMPORT_URL = '{% url "integrations:whatsapp_import_number" %}';
 
-// Single import
+// All known numbers for bulk import
+const ALL_NUMBERS = [
+    { phone_number_id: '3999161807018814', display_phone_number: '+91 99458 66028', display_name: 'Sales 1' },
+    { phone_number_id: '1063162962024283', display_phone_number: '+91 99459 41723', display_name: 'Sales 2' },
+    { phone_number_id: '502043062980927', display_phone_number: '+91 63643 96362', display_name: 'Sales 3' },
+    { phone_number_id: '437136959488223', display_phone_number: '+91 97784 63737', display_name: 'Sales 4' },
+    { phone_number_id: '473194365866614', display_phone_number: '+91 81234 89760', display_name: 'Sales 5' },
+    { phone_number_id: '1112607280694762', display_phone_number: '+91 90098 98630', display_name: 'Sales 6' },
+    { phone_number_id: '598532996010675', display_phone_number: '+91 93803 19107', display_name: 'Sales 7' },
+    { phone_number_id: '684398864548878', display_phone_number: '+91 72041 83737', display_name: 'Sales 8' },
+    { phone_number_id: '322135380981802', display_phone_number: '+91 79076 83737', display_name: 'Sales 9' },
+    { phone_number_id: '278178735374976', display_phone_number: '+91 79070 17613', display_name: 'Sales 10' },
+    { phone_number_id: '1314705419875488', display_phone_number: '+91 63669 78965', display_name: 'Sales 11' },
+    { phone_number_id: '1690042391951895', display_phone_number: '+91 63669 78966', display_name: 'Sales 12' },
+];
+
+// Single import from table
+async function importSingle(phoneNumberId, displayPhone, displayName) {
+    const btn = document.getElementById('btn-' + phoneNumberId);
+    const statusEl = document.getElementById('status-' + phoneNumberId);
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+    }
+    
+    try {
+        const response = await fetch(IMPORT_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': CSRF_TOKEN
+            },
+            body: JSON.stringify({
+                phone_number_id: phoneNumberId,
+                waba_id: WABA_ID,
+                display_phone_number: displayPhone,
+                display_name: displayName
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-check text-green-500"></i> Done';
+                btn.classList.remove('text-primary-500', 'hover:text-primary-600');
+                btn.classList.add('text-gray-400');
+            }
+            if (statusEl) {
+                statusEl.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800';
+                statusEl.innerHTML = '<i class="fas fa-check-circle mr-1"></i> Imported';
+            }
+        } else {
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-times text-red-500"></i> Failed';
+            }
+            alert('Failed: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        if (btn) {
+            btn.innerHTML = '<i class="fas fa-times text-red-500"></i> Error';
+        }
+        alert('Error: ' + error.message);
+    }
+}
+
+// Import all 12 numbers
+async function importAllNumbers() {
+    const btn = document.getElementById('importAllBtn');
+    const statusEl = document.getElementById('importAllStatus');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Importing...';
+    
+    statusEl.classList.remove('hidden');
+    statusEl.className = 'p-4 border-t border-gray-100 bg-blue-50';
+    statusEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Importing 12 numbers, please wait...';
+    
+    let success = 0;
+    let failed = 0;
+    
+    for (const num of ALL_NUMBERS) {
+        try {
+            const response = await fetch(IMPORT_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': CSRF_TOKEN
+                },
+                body: JSON.stringify({
+                    phone_number_id: num.phone_number_id,
+                    waba_id: WABA_ID,
+                    display_phone_number: num.display_phone_number,
+                    display_name: num.display_name
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                success++;
+                // Update UI for this row
+                const rowStatus = document.getElementById('status-' + num.phone_number_id);
+                const rowBtn = document.getElementById('btn-' + num.phone_number_id);
+                if (rowStatus) {
+                    rowStatus.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800';
+                    rowStatus.innerHTML = '<i class="fas fa-check-circle mr-1"></i> Imported';
+                }
+                if (rowBtn) {
+                    rowBtn.innerHTML = '<i class="fas fa-check text-green-500"></i> Done';
+                    rowBtn.classList.remove('text-primary-500', 'hover:text-primary-600');
+                    rowBtn.classList.add('text-gray-400');
+                    rowBtn.disabled = true;
+                }
+            } else {
+                failed++;
+            }
+            
+            // Update progress
+            statusEl.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>Importing... ${success + failed}/12 (${success} success, ${failed} failed)`;
+            
+        } catch (error) {
+            failed++;
+        }
+    }
+    
+    // Final status
+    btn.disabled = false;
+    
+    if (failed === 0) {
+        btn.innerHTML = '<i class="fas fa-check-double mr-2"></i>All Imported!';
+        btn.classList.remove('bg-green-500', 'hover:bg-green-600');
+        btn.classList.add('bg-gray-400', 'cursor-not-allowed');
+        statusEl.className = 'p-4 border-t border-gray-100 bg-green-50';
+        statusEl.innerHTML = `<i class="fas fa-check-circle text-green-600 mr-2"></i><span class="text-green-800 font-medium">All ${success} numbers imported successfully!</span> <a href="{% url 'integrations:whatsapp_dashboard' %}" class="ml-2 underline text-green-700">View Dashboard</a>`;
+    } else {
+        btn.innerHTML = '<i class="fas fa-check-double mr-2"></i>Import All 12 Numbers';
+        statusEl.className = 'p-4 border-t border-gray-100 bg-yellow-50';
+        statusEl.innerHTML = `<i class="fas fa-exclamation-circle text-yellow-600 mr-2"></i><span class="text-yellow-800">${success} imported, ${failed} failed. You can retry the failed ones individually.</span>`;
+    }
+}
+
+// Manual form submit
 document.getElementById('importForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
-    const data = {
-        phone_number_id: document.getElementById('phone_number_id').value,
-        waba_id: document.getElementById('waba_id').value || WABA_ID,
-        display_phone_number: document.getElementById('display_phone_number').value,
-        display_name: document.getElementById('display_name').value,
-    };
-    
-    await importNumber(data, 'importStatus');
-});
-
-// Quick import from table
-async function quickImport(phoneNumberId, displayPhone, displayName) {
-    await importNumber({
-        phone_number_id: phoneNumberId,
-        waba_id: WABA_ID,
-        display_phone_number: displayPhone,
-        display_name: displayName
-    }, 'importStatus');
-}
-
-// Import number API call
-async function importNumber(data, statusElementId) {
-    const statusEl = document.getElementById(statusElementId);
+    const statusEl = document.getElementById('importStatus');
     statusEl.classList.remove('hidden', 'bg-green-100', 'bg-red-100');
     statusEl.classList.add('bg-blue-100');
     statusEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Importing...';
     
+    const data = {
+        phone_number_id: document.getElementById('phone_number_id').value.trim(),
+        waba_id: document.getElementById('waba_id').value.trim() || WABA_ID,
+        display_phone_number: document.getElementById('display_phone_number').value.trim(),
+        display_name: document.getElementById('display_name').value.trim(),
+    };
+    
     try {
-        const response = await fetch('{% url "integrations:whatsapp_import_number" %}', {
+        const response = await fetch(IMPORT_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -280,7 +380,7 @@ async function importNumber(data, statusElementId) {
         statusEl.classList.add('bg-red-100');
         statusEl.innerHTML = '<i class="fas fa-times-circle mr-2 text-red-600"></i><span class="text-red-800">Error: ' + error.message + '</span>';
     }
-}
+});
 
 // Bulk import
 async function bulkImportNumbers() {
@@ -294,7 +394,7 @@ async function bulkImportNumbers() {
     
     const statusEl = document.getElementById('bulkStatus');
     statusEl.classList.remove('hidden');
-    statusEl.classList.add('bg-blue-100');
+    statusEl.className = 'mt-4 p-4 rounded-lg bg-blue-100';
     statusEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Importing ' + lines.length + ' numbers...';
     
     let success = 0;
@@ -302,7 +402,7 @@ async function bulkImportNumbers() {
     
     for (const phoneNumberId of lines) {
         try {
-            const response = await fetch('{% url "integrations:whatsapp_import_number" %}', {
+            const response = await fetch(IMPORT_URL, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -330,47 +430,6 @@ async function bulkImportNumbers() {
         statusEl.classList.add('bg-yellow-100');
         statusEl.innerHTML = '<i class="fas fa-exclamation-circle mr-2 text-yellow-600"></i><span class="text-yellow-800">' + success + ' imported, ' + failed + ' failed</span>';
     }
-}
-
-// Import all known numbers
-async function importAllKnown() {
-    const knownNumbers = [
-        { phone_number_id: '3999161807018814', display_phone_number: '+91 99458 66028', display_name: 'Sales 1' },
-        { phone_number_id: '1063162962024283', display_phone_number: '+91 99459 41723', display_name: 'Sales 2' },
-        { phone_number_id: '1112607280694762', display_phone_number: '+91 90098 98630', display_name: 'Sales 3' },
-        { phone_number_id: '1314705419875488', display_phone_number: '+91 63669 78965', display_name: 'Sales 4' },
-        { phone_number_id: '1690042391951895', display_phone_number: '+91 63669 78966', display_name: 'Sales 5' },
-    ];
-    
-    const statusEl = document.getElementById('importStatus');
-    statusEl.classList.remove('hidden');
-    statusEl.classList.add('bg-blue-100');
-    statusEl.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Importing all 5 numbers...';
-    
-    let success = 0;
-    
-    for (const num of knownNumbers) {
-        try {
-            const response = await fetch('{% url "integrations:whatsapp_import_number" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': CSRF_TOKEN
-                },
-                body: JSON.stringify({
-                    ...num,
-                    waba_id: WABA_ID
-                })
-            });
-            
-            const result = await response.json();
-            if (result.success) success++;
-        } catch {}
-    }
-    
-    statusEl.classList.remove('bg-blue-100');
-    statusEl.classList.add('bg-green-100');
-    statusEl.innerHTML = '<i class="fas fa-check-circle mr-2 text-green-600"></i><span class="text-green-800">' + success + ' of 5 numbers imported! <a href="{% url \'integrations:whatsapp_dashboard\' %}" class="underline">View Dashboard</a></span>';
 }
 </script>
 {% endblock %}
