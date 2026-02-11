@@ -51,4 +51,9 @@ urlpatterns = [
     path("new/order/", views.OrderCreateView.as_view(), name="order_create"),
     path("order/<str:pk>/update/", views.OrderUpdateView.as_view(), name="order_update"),
     path("order/<str:pk>/delete/", views.OrderDeleteView.as_view(), name="order_delete"),
+    
+    # WhatsApp Notifications
+    path("order/<str:pk>/notify-whatsapp/", views.send_order_whatsapp_notification, name="order_notify_whatsapp"),
+    path("orders/notify-whatsapp-bulk/", views.send_bulk_whatsapp_notification, name="orders_notify_whatsapp_bulk"),
+    path("whatsapp-status/", views.whatsapp_notification_status, name="whatsapp_status"),
 ]
