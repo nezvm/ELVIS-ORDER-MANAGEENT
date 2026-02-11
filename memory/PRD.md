@@ -198,4 +198,40 @@ Messages from Click-to-WhatsApp ads include `referral` data in webhook payload:
 - `source_type: "ad"` → Tagged as `ctwa_ad`, `is_from_ad=True`
 - No referral data → Tagged as `organic`
 
+### Location Enrichment from WhatsApp Tags
+Sales staff can enrich lead locations by sending messages with hashtags:
+- **Format**: `#STATE #PINCODE #CITY/DISTRICT`
+- **Example**: `Customer confirmed: #TN #600001 #Chennai`
+
+**Supported Tags**:
+- State: `#TN`, `#KA`, `#MH`, `#TAMILNADU`, `#KARNATAKA`, etc.
+- Pincode: `#600001` or `#PIN600001` (6 digits)
+- District: `#district:Chennai` or `#D:Chennai`
+- City: `#city:Chennai` or `#C:Chennai`
+
+When tags are detected, the lead's location is automatically enriched and marked as `verified`.
+
+---
+
+## Centralized Lead Management
+
+### Lead Sources
+All leads are aggregated in `/marketing/leads/` from:
+1. **WhatsApp** - Inbound messages (organic + ads)
+2. **Shopify** - Orders and abandoned checkouts
+3. **Google** - Contacts sync
+4. **Ads** - Facebook, Instagram, Google ads
+5. **Manual** - Direct entry
+
+### Lead Status Flow
+- **Match Status**: WIN (matched with customer/order) | LOSS (not matched) | CONVERTED | PENDING
+- **Lead Status**: New → Contacted → Interested → Follow Up → Converted
+- **Location Status**: Unknown | Enriched (from pincode) | Verified (from WhatsApp tags)
+
+### Win/Loss & Conversion Tracking
+- **WIN**: Lead phone matches existing Customer or Order in ERP
+- **LOSS**: No match found
+- **CONVERTED**: Abandoned cart lead who later placed an order
+- **Conversion Rate**: WIN count / Total leads × 100
+
 *Last Updated: February 2025*
