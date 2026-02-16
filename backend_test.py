@@ -1050,19 +1050,19 @@ class WhatsAppERPTester:
 
 def main():
     """Main test execution"""
-    # Configuration from review request
+    # Configuration from review request  
     BASE_URL = "http://localhost:8001"
     USERNAME = "admin"
     PASSWORD = "admin123"
     
-    print("🎯 WhatsApp Lead Auto-Save Test Suite")
-    print("=" * 60)
+    print("🎯 WhatsApp Lead Attribution & Meta Conversion Tracking Test Suite")
+    print("=" * 70)
     
     # Initialize tester
     tester = WhatsAppERPTester(BASE_URL, USERNAME, PASSWORD)
     
-    # Run WhatsApp tests
-    success = tester.run_whatsapp_tests()
+    # Run WhatsApp Lead Attribution & Conversion tests
+    success = tester.run_whatsapp_attribution_tests()
     
     # Exit with appropriate code
     sys.exit(0 if success else 1)
