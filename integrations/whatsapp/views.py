@@ -10,6 +10,9 @@ from django.db import transaction
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView, ListView, DetailView
 from django.urls import reverse
+from django.db.models import Sum, Count, Q, Avg
+from datetime import timedelta
+from decimal import Decimal
 
 from .models import (
     WhatsAppCustomer,
@@ -17,7 +20,18 @@ from .models import (
     WhatsAppCustomerChannel,
     WhatsAppMessage,
     WhatsAppWebhookLog,
-    WhatsAppConnectedNumber
+    WhatsAppConnectedNumber,
+    MetaConversionConfig,
+    MetaAdsConfig,
+    DailyLeadReport,
+    LeadConversionEvent,
+)
+from .services import (
+    LeadAttributionService,
+    LeadConversionService,
+    MetaCAPIService,
+    MetaAdsService,
+    DailyReportService,
 )
 from marketing.models import Lead
 
@@ -233,7 +247,7 @@ def extract_message_events(payload):
 @transaction.atomic
 def process_message_event(event):
     """
-    Process a single message event with proper deduplication.
+    Process a single message event with proper deduplication and attribution.
     Returns (customer_created, customer_updated) booleans.
     """
     wa_id = event['wa_id']
@@ -241,6 +255,7 @@ def process_message_event(event):
     profile_name = event.get('profile_name')
     message_id = event.get('message_id')
     referral = event.get('referral')
+    message_body = event.get('body')
     
     customer_created = False
     customer_updated = False
@@ -250,39 +265,38 @@ def process_message_event(event):
         logger.debug(f"Message {message_id} already processed, skipping")
         return False, False
     
-    # Determine attribution source
-    is_from_ad = False
-    attribution_source = 'organic'
-    
-    if referral:
-        source_type = referral.get('source_type', '').lower()
-        if source_type == 'ad':
-            is_from_ad = True
-            attribution_source = 'ctwa_ad'
-        elif source_type:
-            attribution_source = 'meta_ad'
+    # Use LeadAttributionService for enhanced attribution detection
+    attribution = LeadAttributionService.get_attribution_for_webhook(referral, message_body)
     
     # 1. Upsert WhatsAppCustomer
     customer, created = WhatsAppCustomer.objects.get_or_create(
         wa_id=wa_id,
         defaults={
             'profile_name': profile_name,
-            'last_message_preview': event.get('body', '')[:500] if event.get('body') else None,
+            'last_message_preview': message_body[:500] if message_body else None,
             'last_message_at': event['timestamp_utc'],
-            'is_from_ad': is_from_ad,
-            'attribution_source': attribution_source,
-            'meta_ad_source_id': referral.get('source_id') if referral else None,
-            'meta_ad_source_type': referral.get('source_type') if referral else None,
-            'meta_ad_source_url': referral.get('source_url') if referral else None,
-            'meta_ad_headline': referral.get('headline') if referral else None,
-            'meta_ad_body': referral.get('body') if referral else None,
-            'meta_ctwa_clid': referral.get('ctwa_clid') if referral else None,
+            'lead_created_at': event['timestamp_utc'],
+            'lead_status': 'pending',
+            # Attribution fields
+            'is_from_ad': attribution.get('is_from_ad', False),
+            'source_type': attribution.get('source_type', 'unknown'),
+            'attribution_source': attribution.get('attribution_source', 'unknown'),
+            'ad_platform': attribution.get('ad_platform'),
+            'meta_ad_source_id': attribution.get('meta_ad_source_id'),
+            'meta_ad_source_type': attribution.get('meta_ad_source_type'),
+            'meta_ad_source_url': attribution.get('meta_ad_source_url'),
+            'meta_ad_headline': attribution.get('meta_ad_headline'),
+            'meta_ad_body': attribution.get('meta_ad_body'),
+            'meta_ctwa_clid': attribution.get('meta_ctwa_clid'),
+            'meta_fbclid': attribution.get('meta_fbclid'),
+            'google_gclid': attribution.get('google_gclid'),
+            'meta_campaign_id': attribution.get('meta_campaign_id'),
         }
     )
     
     if created:
         customer_created = True
-        logger.info(f"New WhatsApp customer: {wa_id}, source: {attribution_source}")
+        logger.info(f"New WhatsApp customer: {wa_id}, source_type: {attribution.get('source_type')}")
     else:
         customer_updated = True
         update_fields = ['last_seen', 'last_message_at', 'total_messages']
@@ -291,8 +305,8 @@ def process_message_event(event):
             customer.profile_name = profile_name
             update_fields.append('profile_name')
         
-        if event.get('body'):
-            customer.last_message_preview = event['body'][:500]
+        if message_body:
+            customer.last_message_preview = message_body[:500]
             update_fields.append('last_message_preview')
         
         customer.last_message_at = event['timestamp_utc']
@@ -336,7 +350,7 @@ def process_message_event(event):
             message_id=message_id,
             direction='inbound',
             msg_type=event.get('msg_type', 'unknown'),
-            body=event.get('body'),
+            body=message_body,
             media_id=event.get('media_id'),
             timestamp_utc=event['timestamp_utc'],
             raw_payload=event.get('raw_message', {})
@@ -344,11 +358,9 @@ def process_message_event(event):
     
     # 5. Create/Update Lead
     if customer_created:
-        create_or_update_lead(customer, event)
+        create_or_update_lead(customer, event, attribution)
     
     # 6. Check for location enrichment tags in message
-    # Sales staff can send #state #pincode #district to enrich lead location
-    message_body = event.get('body', '')
     if message_body and '#' in message_body:
         try:
             from marketing.services import LeadService
@@ -363,15 +375,21 @@ def process_message_event(event):
     return customer_created, customer_updated
 
 
-def create_or_update_lead(customer, event):
+def create_or_update_lead(customer, event, attribution):
     """
     Create or update a Lead record for unified lead management.
     """
     try:
         phone_no = f"+{customer.wa_id}" if customer.wa_id else None
         
-        if customer.is_from_ad:
-            lead_source = 'whatsapp_ctwa_ad'
+        # Determine lead source based on attribution
+        if customer.source_type == 'ad':
+            if customer.ad_platform == 'instagram':
+                lead_source = 'instagram_ad'
+            elif customer.ad_platform == 'google':
+                lead_source = 'google_ad'
+            else:
+                lead_source = 'whatsapp_ctwa_ad'
         else:
             lead_source = 'whatsapp_inbound'
         
@@ -383,6 +401,9 @@ def create_or_update_lead(customer, event):
         
         if customer.attribution_source:
             tags.append(customer.attribution_source)
+        
+        if customer.ad_platform:
+            tags.append(customer.ad_platform)
         
         lead = Lead.objects.filter(phone_no=phone_no).first()
         
@@ -396,9 +417,12 @@ def create_or_update_lead(customer, event):
                 captured_at=timezone.now(),
                 tags=tags,
                 notes=f"Auto-created from WhatsApp.\n" +
+                      f"Source Type: {customer.source_type}\n" +
                       f"Attribution: {customer.get_attribution_source_display()}\n" +
                       f"From Ad: {'Yes' if customer.is_from_ad else 'No'}\n" +
+                      (f"Ad Platform: {customer.ad_platform}\n" if customer.ad_platform else "") +
                       (f"Ad Headline: {customer.meta_ad_headline}\n" if customer.meta_ad_headline else "") +
+                      (f"Campaign ID: {customer.meta_campaign_id}\n" if customer.meta_campaign_id else "") +
                       f"First message: {event.get('body', '')[:200] if event.get('body') else 'N/A'}"
             )
             logger.info(f"Created Lead from WhatsApp: {lead.id}, source: {lead_source}")
@@ -411,7 +435,7 @@ def create_or_update_lead(customer, event):
             
             update_note = f"\n\n[{timezone.now()}] Also contacted via WhatsApp."
             if customer.is_from_ad:
-                update_note += " (From Click-to-WhatsApp Ad)"
+                update_note += f" (From {customer.ad_platform or 'Meta'} Ad)"
             lead.notes = (lead.notes or '') + update_note
             lead.save(update_fields=['notes', 'tags', 'updated'])
         
@@ -464,6 +488,10 @@ class WhatsAppDashboardView(LoginRequiredMixin, TemplateView):
         # Recent webhook logs
         context['recent_webhooks'] = WhatsAppWebhookLog.objects.all()[:5]
         
+        # Meta configs
+        context['capi_config'] = MetaConversionConfig.objects.filter(is_active=True).first()
+        context['ads_config'] = MetaAdsConfig.objects.filter(is_active=True).first()
+        
         return context
 
 
@@ -499,6 +527,10 @@ class WhatsAppCustomerDetailView(LoginRequiredMixin, DetailView):
         context['is_whatsapp'] = True
         context['messages'] = self.object.messages.all()[:100]
         context['channels'] = self.object.channels.all()
+        
+        # Conversion events
+        context['conversion_events'] = self.object.conversion_events.all()[:10]
+        
         return context
 
 
@@ -516,6 +548,9 @@ class WhatsAppConnectView(LoginRequiredMixin, TemplateView):
         context['fb_app_id'] = getattr(settings, 'FB_APP_ID', '')
         context['fb_config_id'] = getattr(settings, 'FB_CONFIG_ID', '')
         
+        # Business Portfolio ID for existing portfolio
+        context['meta_business_id'] = getattr(settings, 'META_BUSINESS_ID', '')
+        
         # Connected numbers
         context['connected_numbers'] = WhatsAppConnectedNumber.objects.filter(
             is_active=True
@@ -523,6 +558,248 @@ class WhatsAppConnectView(LoginRequiredMixin, TemplateView):
         
         return context
 
+
+# =============================================================================
+# LEAD PERFORMANCE DASHBOARD
+# =============================================================================
+
+class LeadPerformanceDashboardView(LoginRequiredMixin, TemplateView):
+    """
+    Lead Performance Dashboard showing:
+    - Overall summary (leads, conversions, ROAS)
+    - Per WhatsApp Number metrics
+    - Campaign performance
+    - Customer lifecycle
+    """
+    template_name = 'integrations/whatsapp/lead_performance.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Lead Performance Dashboard'
+        context['is_integrations'] = True
+        context['is_whatsapp'] = True
+        context['is_performance'] = True
+        
+        # Date range (default last 30 days)
+        date_end = timezone.now()
+        date_start = date_end - timedelta(days=30)
+        
+        # Get date range from request
+        if self.request.GET.get('date_start'):
+            try:
+                date_start = timezone.make_aware(
+                    datetime.strptime(self.request.GET['date_start'], '%Y-%m-%d')
+                )
+            except ValueError:
+                pass
+        
+        if self.request.GET.get('date_end'):
+            try:
+                date_end = timezone.make_aware(
+                    datetime.strptime(self.request.GET['date_end'], '%Y-%m-%d')
+                )
+            except ValueError:
+                pass
+        
+        context['date_start'] = date_start.date()
+        context['date_end'] = date_end.date()
+        
+        # Overall Summary
+        overall_stats = LeadConversionService.get_conversion_stats(
+            date_start=date_start,
+            date_end=date_end
+        )
+        context['overall_stats'] = overall_stats
+        
+        # Get ad spend
+        ads_service = MetaAdsService()
+        if ads_service.is_configured():
+            ad_spend = ads_service.get_account_spend_by_date(date_start)
+            context['ad_spend'] = ad_spend
+            context['roas'] = (overall_stats['revenue'] / ad_spend) if ad_spend > 0 else Decimal('0')
+        else:
+            context['ad_spend'] = Decimal('0')
+            context['roas'] = Decimal('0')
+        
+        # Per WhatsApp Number metrics
+        numbers = WhatsAppNumberConfig.objects.filter(is_active=True)
+        number_stats = []
+        
+        for number in numbers:
+            stats = LeadConversionService.get_conversion_stats(
+                phone_number_id=number.phone_number_id,
+                date_start=date_start,
+                date_end=date_end
+            )
+            stats['number'] = number
+            number_stats.append(stats)
+        
+        context['number_stats'] = number_stats
+        
+        # Daily reports for charts
+        daily_reports = DailyLeadReport.objects.filter(
+            report_date__range=(date_start.date(), date_end.date()),
+            phone_number_id__isnull=True,
+            campaign_id__isnull=True
+        ).order_by('report_date')
+        context['daily_reports'] = daily_reports
+        
+        # Lead status breakdown
+        leads = WhatsAppCustomer.objects.filter(
+            lead_created_at__range=(date_start, date_end),
+            is_active=True
+        )
+        context['pending_leads'] = leads.filter(lead_status='pending').count()
+        context['won_leads'] = leads.filter(lead_status='won').count()
+        context['lost_leads'] = leads.filter(lead_status='lost').count()
+        
+        # Campaign performance
+        campaign_stats = leads.exclude(
+            meta_campaign_id__isnull=True
+        ).values('meta_campaign_id').annotate(
+            total=Count('id'),
+            won=Count('id', filter=Q(lead_status='won')),
+            lost=Count('id', filter=Q(lead_status='lost')),
+            revenue=Sum('conversion_value', filter=Q(lead_status='won'))
+        ).order_by('-total')[:10]
+        context['campaign_stats'] = campaign_stats
+        
+        # Recent conversions
+        recent_conversions = WhatsAppCustomer.objects.filter(
+            lead_status='won',
+            won_at__gte=date_start,
+            is_active=True
+        ).select_related('converted_order').order_by('-won_at')[:10]
+        context['recent_conversions'] = recent_conversions
+        
+        # Meta CAPI status
+        capi_config = MetaConversionConfig.objects.filter(is_active=True).first()
+        context['capi_configured'] = bool(capi_config and capi_config.access_token)
+        context['capi_config'] = capi_config
+        
+        # Pending conversions to send
+        context['pending_conversion_sends'] = WhatsAppCustomer.objects.filter(
+            lead_status='won',
+            conversion_sent=False,
+            converted_order__isnull=False
+        ).count()
+        
+        return context
+
+
+class CustomerLifecycleView(LoginRequiredMixin, DetailView):
+    """
+    Customer Lifecycle View showing lead → order progression.
+    """
+    model = WhatsAppCustomer
+    template_name = 'integrations/whatsapp/customer_lifecycle.html'
+    context_object_name = 'customer'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = f'Customer Lifecycle: {self.object.profile_name or self.object.wa_id}'
+        context['is_integrations'] = True
+        context['is_whatsapp'] = True
+        
+        # Timeline events
+        timeline = []
+        
+        # Lead created
+        timeline.append({
+            'type': 'lead_created',
+            'date': self.object.lead_created_at or self.object.first_seen,
+            'title': 'Lead Created',
+            'description': f"Source: {self.object.get_attribution_source_display()}",
+            'icon': 'user-plus',
+            'color': 'blue',
+        })
+        
+        # First message
+        first_message = self.object.messages.order_by('timestamp_utc').first()
+        if first_message:
+            timeline.append({
+                'type': 'first_message',
+                'date': first_message.timestamp_utc,
+                'title': 'First Message',
+                'description': first_message.body[:100] if first_message.body else 'Media message',
+                'icon': 'message-circle',
+                'color': 'green',
+            })
+        
+        # Messages grouped by day
+        messages_by_day = self.object.messages.values('timestamp_utc__date').annotate(
+            count=Count('id')
+        ).order_by('timestamp_utc__date')
+        
+        for day_data in messages_by_day[1:5]:  # Skip first (already shown), show next 4
+            timeline.append({
+                'type': 'messages',
+                'date': day_data['timestamp_utc__date'],
+                'title': f"{day_data['count']} Messages",
+                'description': f"Conversation continued",
+                'icon': 'messages',
+                'color': 'gray',
+            })
+        
+        # Won/Lost status
+        if self.object.lead_status == 'won' and self.object.won_at:
+            timeline.append({
+                'type': 'converted',
+                'date': self.object.won_at,
+                'title': 'Converted (Won)',
+                'description': f"Order value: ₹{self.object.conversion_value}",
+                'icon': 'check-circle',
+                'color': 'green',
+            })
+        elif self.object.lead_status == 'lost' and self.object.lost_at:
+            timeline.append({
+                'type': 'lost',
+                'date': self.object.lost_at,
+                'title': 'Marked as Lost',
+                'description': 'No conversion within matching period',
+                'icon': 'x-circle',
+                'color': 'red',
+            })
+        
+        # Conversion sent to Meta
+        if self.object.conversion_sent and self.object.conversion_sent_at:
+            timeline.append({
+                'type': 'capi_sent',
+                'date': self.object.conversion_sent_at,
+                'title': 'Conversion Sent to Meta',
+                'description': 'CAPI event recorded',
+                'icon': 'send',
+                'color': 'purple',
+            })
+        
+        # Sort timeline by date
+        timeline.sort(key=lambda x: x['date'] if x['date'] else timezone.now())
+        context['timeline'] = timeline
+        
+        # Linked order details
+        if self.object.converted_order:
+            context['order'] = self.object.converted_order
+        
+        # Linked lead
+        if self.object.linked_lead:
+            context['lead'] = self.object.linked_lead
+        
+        # Linked customer
+        if self.object.linked_customer:
+            context['erp_customer'] = self.object.linked_customer
+        
+        # All messages
+        context['messages'] = self.object.messages.all()[:50]
+        
+        # Channels contacted
+        context['channels'] = self.object.channels.select_related('number_config').all()
+        
+        return context
+
+
+# =============================================================================
+# API ENDPOINTS
+# =============================================================================
 
 @require_http_methods(["POST"])
 def save_whatsapp_connection(request):
@@ -613,4 +890,49 @@ def disconnect_whatsapp_number(request, number_id):
         return JsonResponse({'success': False, 'error': 'Number not found'}, status=404)
     except Exception as e:
         logger.error(f"Error disconnecting WhatsApp number: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def trigger_daily_sync(request):
+    """
+    Manually trigger the daily sync task.
+    """
+    from .tasks import sync_lead_statuses, generate_daily_reports
+    
+    try:
+        # Trigger async tasks
+        sync_lead_statuses.delay()
+        generate_daily_reports.delay()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Daily sync tasks triggered'
+        })
+    except Exception as e:
+        logger.error(f"Error triggering daily sync: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def send_pending_conversions_api(request):
+    """
+    Manually trigger sending pending conversions to Meta CAPI.
+    """
+    from .tasks import send_conversion_event
+    from .services import LeadConversionService
+    
+    try:
+        sent, failed = LeadConversionService.send_pending_conversions()
+        
+        return JsonResponse({
+            'success': True,
+            'sent': sent,
+            'failed': failed,
+            'message': f'Sent {sent} conversions, {failed} failed'
+        })
+    except Exception as e:
+        logger.error(f"Error sending pending conversions: {e}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
