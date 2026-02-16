@@ -928,7 +928,91 @@ class WhatsAppERPTester:
         except Exception as e:
             print(f"❌ Lead Performance Link: ERROR - {str(e)}")
             return False
-        """Run all WhatsApp-specific tests"""
+    
+    def run_whatsapp_attribution_tests(self):
+        """Run all WhatsApp Lead Attribution & Meta Conversion Tracking tests"""
+        print(f"🚀 Starting WhatsApp Lead Attribution & Meta Conversion Tracking Tests")
+        print(f"📍 Base URL: {self.base_url}")
+        print(f"👤 Username: {self.username}")
+        print("=" * 70)
+        
+        test_results = {}
+        
+        # Run individual tests for new features
+        print("\n🧪 Running Lead Attribution & Conversion Features Tests...")
+        print("=" * 70)
+        
+        # Test new endpoints
+        test_results['lead_performance_dashboard'] = self.test_lead_performance_dashboard()
+        test_results['customer_lifecycle_view'] = self.test_customer_lifecycle_view()
+        test_results['api_endpoints'] = self.test_api_endpoints()
+        test_results['admin_panel_models'] = self.test_admin_panel_models()
+        test_results['sidebar_lead_performance_link'] = self.test_sidebar_lead_performance_link()
+        
+        # Test existing functionality still works
+        print("\n🔄 Testing Existing Features Compatibility...")
+        print("=" * 70)
+        test_results['existing_endpoints'] = self.test_existing_endpoints_still_work()
+        
+        # Legacy tests for completeness
+        test_results['message_reception'] = self.test_whatsapp_message_reception()
+        test_results['customer_deduplication'] = self.test_customer_deduplication()
+        test_results['ad_attribution'] = self.test_ad_attribution()
+        
+        # Summary
+        print("\n" + "=" * 70)
+        print("📊 WHATSAPP LEAD ATTRIBUTION & CONVERSION TESTS SUMMARY")
+        print("=" * 70)
+        
+        passed = sum(test_results.values())
+        total = len(test_results)
+        
+        # Categorize results
+        new_feature_tests = [
+            'lead_performance_dashboard', 'customer_lifecycle_view', 
+            'api_endpoints', 'admin_panel_models', 'sidebar_lead_performance_link'
+        ]
+        existing_feature_tests = [
+            'existing_endpoints', 'message_reception', 
+            'customer_deduplication', 'ad_attribution'
+        ]
+        
+        print("🆕 NEW FEATURES:")
+        new_passed = 0
+        for test_name in new_feature_tests:
+            if test_name in test_results:
+                result = test_results[test_name]
+                icon = "✅" if result else "❌"
+                status = "PASSED" if result else "FAILED"
+                print(f"   {icon} {test_name.replace('_', ' ').title()}: {status}")
+                if result:
+                    new_passed += 1
+        
+        print("\n🔄 EXISTING FEATURES COMPATIBILITY:")
+        existing_passed = 0
+        for test_name in existing_feature_tests:
+            if test_name in test_results:
+                result = test_results[test_name]
+                icon = "✅" if result else "❌"
+                status = "PASSED" if result else "FAILED"
+                print(f"   {icon} {test_name.replace('_', ' ').title()}: {status}")
+                if result:
+                    existing_passed += 1
+        
+        print(f"\n📈 Overall Success Rate: {(passed/total*100):.1f}% ({passed}/{total})")
+        print(f"📈 New Features: {(new_passed/len(new_feature_tests)*100):.1f}% ({new_passed}/{len(new_feature_tests)})")
+        print(f"📈 Existing Features: {(existing_passed/len(existing_feature_tests)*100):.1f}% ({existing_passed}/{len(existing_feature_tests)})")
+        
+        if new_passed == len(new_feature_tests):
+            print("\n🎉 All new Lead Attribution & Conversion features are working correctly!")
+        elif new_passed >= len(new_feature_tests) * 0.7:
+            print(f"\n⚠️  Most new features working, but {len(new_feature_tests) - new_passed} features need attention")
+        else:
+            print(f"\n❌ Major issues found: {len(new_feature_tests) - new_passed} out of {len(new_feature_tests)} new features failed")
+        
+        return passed >= total * 0.7  # Pass if 70% or more tests succeed
+    
+    def run_whatsapp_tests(self):
         print(f"🚀 Starting WhatsApp Lead Auto-Save Backend Tests")
         print(f"📍 Base URL: {self.base_url}")
         print(f"👤 Username: {self.username}")
