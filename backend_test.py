@@ -640,7 +640,7 @@ class WhatsAppERPTester:
             # Check for expected content
             expected_keywords = [
                 'lead performance', 'dashboard', 'roas', 'conversion',
-                'overall stats', 'whatsapp number', 'campaign performance',
+                'overall summary', 'whatsapp number', 'campaign performance',
                 'meta capi', 'ad spend', 'revenue'
             ]
             
