@@ -488,6 +488,78 @@ agent_communication:
         agent: "testing"
         comment: "✅ WEBHOOK ENDPOINTS TESTED SUCCESSFULLY: GET /webhooks/whatsapp/ with correct token (elvis_whatsapp_verify_2024) returns challenge with HTTP 200. Wrong token correctly rejected with HTTP 403. POST endpoint accepts message payloads and returns 'OK' with HTTP 200. Real-time webhook processing confirmed working."
 
+  - task: "Lead Attribution & Conversion - Data Models"
+    implemented: true
+    working: "NA"
+    file: "integrations/whatsapp/models.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Added source_type, ad_platform, lead_status (pending/won/lost), conversion tracking fields, Meta CAPI tracking. New models: MetaConversionConfig, MetaAdsConfig, DailyLeadReport, LeadConversionEvent."
+
+  - task: "Lead Attribution & Conversion - Services"
+    implemented: true
+    working: "NA"
+    file: "integrations/whatsapp/services.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "MetaCAPIService for sending conversions to Meta, MetaAdsService for fetching ad spend, LeadConversionService for order matching, LeadAttributionService for parsing attribution, DailyReportService for generating reports."
+
+  - task: "Lead Attribution & Conversion - Celery Tasks"
+    implemented: true
+    working: "NA"
+    file: "integrations/whatsapp/tasks.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Daily sync at 02:00 IST, generate daily reports, sync ad spend, process order conversions, send conversion events. Celery Beat schedule configured in settings.py."
+
+  - task: "Lead Performance Dashboard"
+    implemented: true
+    working: "NA"
+    file: "integrations/whatsapp/views.py, templates/integrations/whatsapp/lead_performance.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "LeadPerformanceDashboardView with overall stats, per-number metrics, campaign performance, ROAS calculation, manual sync actions."
+
+  - task: "Customer Lifecycle View"
+    implemented: true
+    working: "NA"
+    file: "integrations/whatsapp/views.py, templates/integrations/whatsapp/customer_lifecycle.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "CustomerLifecycleView showing lead journey timeline, attribution, conversion info, message history, linked orders."
+
+  - task: "Embedded Signup - Existing Portfolio"
+    implemented: true
+    working: "NA"
+    file: "templates/integrations/whatsapp/connect.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Updated FB.login to pass business.id in extras.setup.business to use existing portfolio and avoid creating a new one."
+
   - task: "WhatsApp Lead Auto-Save - Customer Deduplication"
     implemented: true
     working: true
