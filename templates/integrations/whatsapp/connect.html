@@ -399,15 +399,24 @@
             </div>
         `);
         
-        FB.login(fbLoginCallback, {
+        // Build login options with existing portfolio support
+        const loginOptions = {
             config_id: FB_CONFIG_ID,
             response_type: 'code',
             override_default_response_type: true,
             extras: {
                 "feature_type": "coexistence",
-                "version": "v3"
+                "version": "v3",
+                // Use existing portfolio - prevents Meta from creating a new one
+                "setup": {
+                    "business": META_BUSINESS_ID ? { "id": META_BUSINESS_ID } : undefined
+                }
             }
-        });
+        };
+        
+        console.log('Login options:', loginOptions);
+        
+        FB.login(fbLoginCallback, loginOptions);
     };
 
     // Save connection to backend
