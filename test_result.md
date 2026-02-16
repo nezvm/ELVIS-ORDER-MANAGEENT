@@ -564,7 +564,10 @@ agent_communication:
         comment: "✅ SIDEBAR NAVIGATION VERIFIED: Both 'WhatsApp Leads' (Marketing section) and 'WhatsApp Setup' (Integrations section) navigation items found in sidebar. Navigation structure correct and accessible."
 
 test_plan:
-  current_focus: ["WhatsApp Lead Auto-Save - UI Dashboard", "WhatsApp Lead Auto-Save - Sidebar Navigation"]
+  current_focus: 
+    - "Lead Attribution & Conversion Tracking"
+    - "Meta CAPI Integration"
+    - "Lead Performance Dashboard"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
@@ -572,39 +575,80 @@ test_plan:
 agent_communication:
   - agent: "main"
     message: |
-      Implemented WhatsApp Lead Auto-Save feature:
+      Implemented WhatsApp Lead Attribution & Meta Conversion Tracking feature:
       
-      1. Created integrations/whatsapp Django app with models:
-         - WhatsAppCustomer (global dedupe by wa_id)
-         - WhatsAppCustomerChannel (touchpoints)
-         - WhatsAppMessage (message storage)
-         - WhatsAppNumberConfig (sales number tracking)
-         - WhatsAppWebhookLog (debugging)
+      ## Data Model Enhancements (integrations/whatsapp/models.py):
+      1. Added to WhatsAppCustomer:
+         - source_type (organic/ad/unknown) - Lead source categorization
+         - ad_platform (facebook/instagram/google) - Ad platform tracking
+         - meta_campaign_id, meta_adset_id - Campaign tracking
+         - lead_status (pending/won/lost) - Conversion status
+         - lead_created_at, won_at, lost_at - Timestamps
+         - converted_order (FK to Order) - Order conversion link
+         - conversion_value - Order amount for ROAS
+         - conversion_sent, conversion_sent_at - Meta CAPI tracking
+         - google_gclid - Google Click ID support
       
-      2. Webhook endpoints:
-         - GET /webhooks/whatsapp/ - Meta verification
-         - POST /webhooks/whatsapp/ - Message ingestion
+      2. New Models:
+         - MetaConversionConfig - Store Pixel ID & Access Token for CAPI
+         - MetaAdsConfig - Store Ad Account ID for Insights API (with business_id for Embedded Signup)
+         - DailyLeadReport - Aggregated daily stats per WhatsApp number
+         - LeadConversionEvent - Track individual CAPI events
       
-      3. Ad Attribution:
-         - Captures CTWA referral data (headline, source_id, ctwa_clid)
-         - Tags leads as from_ad/organic
+      ## Services (integrations/whatsapp/services.py):
+      - MetaCAPIService - Send Purchase/Lead events to Meta CAPI
+      - MetaAdsService - Fetch ad spend from Meta Ads Insights API
+      - LeadConversionService - Match leads to orders, manage Won/Lost lifecycle
+      - LeadAttributionService - Parse attribution from webhooks
+      - DailyReportService - Generate aggregated daily reports
       
-      4. UI Pages:
-         - WhatsApp Integration dashboard (/integrations/whatsapp/)
-         - WhatsApp Leads list (/integrations/whatsapp/customers/)
-         - Customer detail view
+      ## Celery Tasks (integrations/whatsapp/tasks.py):
+      - sync_lead_statuses - Daily at 02:00 IST (expires pending leads, sends conversions)
+      - generate_daily_reports - Aggregates daily stats
+      - sync_ad_spend - Fetches ad spend from Meta
+      - process_order_conversion - Async order matching
+      - send_conversion_event - Send single conversion to CAPI
       
-      5. All 9 unit tests pass:
-         - Webhook verification
-         - Customer deduplication
-         - Message storage
-         - Lead creation
-         - Ad attribution
+      ## Views & Templates:
+      - LeadPerformanceDashboardView (/integrations/whatsapp/performance/)
+        - Overall summary (leads, conversions, ROAS)
+        - Per WhatsApp Number metrics table
+        - Campaign performance breakdown
+        - Recent conversions with CAPI status
+        - Manual sync/send actions
+      
+      - CustomerLifecycleView (/integrations/whatsapp/lead/<pk>/lifecycle/)
+        - Customer journey timeline
+        - Attribution details
+        - Conversion info
+        - Message history
+        - Linked orders
+      
+      ## Signal Handler:
+      - Auto-matches orders to WhatsApp leads when created/confirmed
+      
+      ## Embedded Signup Enhancement:
+      - Updated connect.html to pass business.id for existing portfolio
+      - Prevents creating new portfolio during Embedded Signup
+      
+      ## Settings Updates:
+      - Added Celery Beat schedule for daily tasks
+      - Added META_BUSINESS_ID, META_AD_ACCOUNT_ID settings
+      - Configured Ad Account ID: 1112702787240378
+      
+      ## Admin Panel:
+      - Registered MetaConversionConfig, MetaAdsConfig, DailyLeadReport, LeadConversionEvent
+      - Updated WhatsAppCustomer admin with new fields
+      
+      ## Sidebar Navigation:
+      - Added "Lead Performance" link under Integrations
       
       Testing needed:
-      - Verify webhook endpoints accessible
-      - Verify UI pages load correctly
-      - Verify sidebar navigation works
+      - Login and verify Lead Performance Dashboard loads
+      - Verify Customer Lifecycle view
+      - Test Meta CAPI configuration in admin
+      - Test webhook attribution parsing
+      - Verify sidebar navigation
 
   - agent: "testing"
     message: |
