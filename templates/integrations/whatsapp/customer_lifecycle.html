@@ -1,0 +1,359 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'integrations:whatsapp_dashboard' %}">WhatsApp</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'integrations:whatsapp_lead_performance' %}">Lead Performance</a></li>
+            <li class="breadcrumb-item active">Customer Lifecycle</li>
+        </ol>
+    </nav>
+
+    <!-- Customer Header -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-auto">
+                    <div class="avatar avatar-lg bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 64px; height: 64px;">
+                        <span class="fs-4">{{ customer.profile_name|slice:":1"|upper|default:"?" }}</span>
+                    </div>
+                </div>
+                <div class="col">
+                    <h3 class="mb-1">{{ customer.profile_name|default:"Unknown Customer" }}</h3>
+                    <p class="text-muted mb-0">
+                        <i class="fab fa-whatsapp text-success me-1"></i>
+                        {{ customer.formatted_phone }}
+                    </p>
+                </div>
+                <div class="col-auto">
+                    <!-- Lead Status Badge -->
+                    {% if customer.lead_status == 'won' %}
+                    <span class="badge bg-success fs-6 px-3 py-2">
+                        <i class="fas fa-check-circle me-1"></i> WON
+                    </span>
+                    {% elif customer.lead_status == 'lost' %}
+                    <span class="badge bg-danger fs-6 px-3 py-2">
+                        <i class="fas fa-times-circle me-1"></i> LOST
+                    </span>
+                    {% else %}
+                    <span class="badge bg-warning fs-6 px-3 py-2">
+                        <i class="fas fa-clock me-1"></i> PENDING
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Timeline -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-stream me-2"></i>
+                        Customer Journey Timeline
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% for event in timeline %}
+                        <div class="timeline-item mb-4">
+                            <div class="d-flex">
+                                <div class="timeline-marker me-3">
+                                    <span class="badge rounded-circle p-2 bg-{{ event.color }}">
+                                        {% if event.type == 'lead_created' %}
+                                        <i class="fas fa-user-plus"></i>
+                                        {% elif event.type == 'first_message' %}
+                                        <i class="fas fa-comment"></i>
+                                        {% elif event.type == 'messages' %}
+                                        <i class="fas fa-comments"></i>
+                                        {% elif event.type == 'converted' %}
+                                        <i class="fas fa-check-circle"></i>
+                                        {% elif event.type == 'lost' %}
+                                        <i class="fas fa-times-circle"></i>
+                                        {% elif event.type == 'capi_sent' %}
+                                        <i class="fas fa-paper-plane"></i>
+                                        {% else %}
+                                        <i class="fas fa-circle"></i>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="timeline-content flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">{{ event.title }}</h6>
+                                            <p class="text-muted mb-0 small">{{ event.description }}</p>
+                                        </div>
+                                        <small class="text-muted">{{ event.date|date:"M d, Y H:i" }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-muted text-center">No timeline events</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message History -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-comments me-2"></i>
+                        Message History ({{ messages|length }} messages)
+                    </h6>
+                </div>
+                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                    {% for msg in messages %}
+                    <div class="d-flex mb-3 {% if msg.direction == 'outbound' %}flex-row-reverse{% endif %}">
+                        <div class="message-bubble {% if msg.direction == 'inbound' %}bg-light{% else %}bg-primary text-white{% endif %} rounded p-3" style="max-width: 75%;">
+                            {% if msg.body %}
+                            <p class="mb-1">{{ msg.body }}</p>
+                            {% else %}
+                            <p class="mb-1 fst-italic">[{{ msg.msg_type }} message]</p>
+                            {% endif %}
+                            <small class="{% if msg.direction == 'inbound' %}text-muted{% else %}text-white-50{% endif %}">
+                                {{ msg.timestamp_utc|date:"M d, H:i" }}
+                            </small>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center">No messages</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Side Panel -->
+        <div class="col-md-4">
+            <!-- Attribution Info -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-bullseye me-2"></i>
+                        Attribution
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless mb-0">
+                        <tr>
+                            <td class="text-muted">Source Type</td>
+                            <td class="text-end">
+                                {% if customer.source_type == 'ad' %}
+                                <span class="badge bg-info">Ad</span>
+                                {% elif customer.source_type == 'organic' %}
+                                <span class="badge bg-success">Organic</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Unknown</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Attribution</td>
+                            <td class="text-end">{{ customer.get_attribution_source_display }}</td>
+                        </tr>
+                        {% if customer.ad_platform %}
+                        <tr>
+                            <td class="text-muted">Platform</td>
+                            <td class="text-end">{{ customer.ad_platform|capfirst }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if customer.meta_campaign_id %}
+                        <tr>
+                            <td class="text-muted">Campaign ID</td>
+                            <td class="text-end"><code class="small">{{ customer.meta_campaign_id }}</code></td>
+                        </tr>
+                        {% endif %}
+                        {% if customer.meta_ctwa_clid %}
+                        <tr>
+                            <td class="text-muted">CTWA Click ID</td>
+                            <td class="text-end"><code class="small">{{ customer.meta_ctwa_clid|truncatechars:20 }}</code></td>
+                        </tr>
+                        {% endif %}
+                        {% if customer.meta_ad_headline %}
+                        <tr>
+                            <td class="text-muted">Ad Headline</td>
+                            <td class="text-end">{{ customer.meta_ad_headline|truncatechars:30 }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+
+            <!-- Conversion Info -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-exchange-alt me-2"></i>
+                        Conversion
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless mb-0">
+                        <tr>
+                            <td class="text-muted">Status</td>
+                            <td class="text-end">
+                                {% if customer.lead_status == 'won' %}
+                                <span class="badge bg-success">Won</span>
+                                {% elif customer.lead_status == 'lost' %}
+                                <span class="badge bg-danger">Lost</span>
+                                {% else %}
+                                <span class="badge bg-warning">Pending</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if customer.lead_created_at %}
+                        <tr>
+                            <td class="text-muted">Lead Created</td>
+                            <td class="text-end">{{ customer.lead_created_at|date:"M d, Y" }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if customer.won_at %}
+                        <tr>
+                            <td class="text-muted">Won At</td>
+                            <td class="text-end">{{ customer.won_at|date:"M d, Y H:i" }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Conversion Value</td>
+                            <td class="text-end"><strong class="text-success">₹{{ customer.conversion_value|floatformat:0 }}</strong></td>
+                        </tr>
+                        {% endif %}
+                        {% if customer.lost_at %}
+                        <tr>
+                            <td class="text-muted">Lost At</td>
+                            <td class="text-end">{{ customer.lost_at|date:"M d, Y H:i" }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td class="text-muted">Meta CAPI</td>
+                            <td class="text-end">
+                                {% if customer.conversion_sent %}
+                                <span class="badge bg-success">Sent</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Not Sent</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Linked Order -->
+            {% if order %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-shopping-cart me-2"></i>
+                        Linked Order
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless mb-0">
+                        <tr>
+                            <td class="text-muted">Order #</td>
+                            <td class="text-end">
+                                <a href="{{ order.get_absolute_url }}">{{ order.order_no }}</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Amount</td>
+                            <td class="text-end">₹{{ order.total_amount|floatformat:0 }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Stage</td>
+                            <td class="text-end">
+                                <span class="badge {{ order.get_stage_badge }}">{{ order.stage }}</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Created</td>
+                            <td class="text-end">{{ order.created|date:"M d, Y" }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Channels Contacted -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-phone-alt me-2"></i>
+                        Channels Contacted ({{ channels|length }})
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% for channel in channels %}
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <strong>{{ channel.number_config.name|default:channel.phone_number_id }}</strong>
+                            <br><small class="text-muted">{{ channel.message_count }} messages</small>
+                        </div>
+                        <small class="text-muted">{{ channel.first_contact_at|date:"M d" }}</small>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center mb-0">No channels</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>
+                        Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'integrations:whatsapp_customer_detail' customer.pk %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-eye me-1"></i> View Full Details
+                        </a>
+                        {% if lead %}
+                        <a href="{{ lead.get_absolute_url }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-user me-1"></i> View Marketing Lead
+                        </a>
+                        {% endif %}
+                        {% if erp_customer %}
+                        <a href="{{ erp_customer.get_absolute_url }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-address-book me-1"></i> View ERP Customer
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline-marker {
+    position: relative;
+}
+.timeline-marker::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    width: 2px;
+    height: calc(100% + 1rem);
+    background: #e9ecef;
+    transform: translateX(-50%);
+}
+.timeline-item:last-child .timeline-marker::after {
+    display: none;
+}
+.avatar {
+    font-weight: 600;
+}
+.message-bubble {
+    word-break: break-word;
+}
+</style>
+{% endblock %}
