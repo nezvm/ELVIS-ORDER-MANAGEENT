@@ -1,0 +1,355 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">Lead Performance Dashboard</h1>
+            <p class="text-muted mb-0">Track leads, conversions, and ROAS across WhatsApp numbers</p>
+        </div>
+        <div class="d-flex gap-2">
+            <!-- Date Range Filter -->
+            <form method="get" class="d-flex gap-2">
+                <input type="date" name="date_start" value="{{ date_start|date:'Y-m-d' }}" class="form-control form-control-sm">
+                <input type="date" name="date_end" value="{{ date_end|date:'Y-m-d' }}" class="form-control form-control-sm">
+                <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+            </form>
+            <!-- Manual Actions -->
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    Actions
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="#" onclick="triggerSync()">Trigger Daily Sync</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="sendConversions()">Send Pending Conversions</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{% url 'integrations:whatsapp_dashboard' %}">WhatsApp Setup</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overall Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h2 class="mb-0">{{ overall_stats.total_leads }}</h2>
+                    <small>Total Leads</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h2 class="mb-0">{{ overall_stats.ad_leads }}</h2>
+                    <small>Ad Leads</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h2 class="mb-0">{{ overall_stats.won }}</h2>
+                    <small>Conversions</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-warning text-dark">
+                <div class="card-body text-center">
+                    <h2 class="mb-0">{{ overall_stats.conversion_rate }}%</h2>
+                    <small>Conv. Rate</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-secondary text-white">
+                <div class="card-body text-center">
+                    <h2 class="mb-0">₹{{ overall_stats.revenue|floatformat:0 }}</h2>
+                    <small>Revenue</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card {% if roas > 1 %}bg-success{% else %}bg-danger{% endif %} text-white">
+                <div class="card-body text-center">
+                    <h2 class="mb-0">{{ roas|floatformat:2 }}x</h2>
+                    <small>ROAS</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lead Status Breakdown -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Lead Status Breakdown</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="badge bg-warning">Pending</span>
+                        <strong>{{ pending_leads }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="badge bg-success">Won</span>
+                        <strong>{{ won_leads }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="badge bg-danger">Lost</span>
+                        <strong>{{ lost_leads }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Ad Spend & ROAS</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Ad Spend</span>
+                        <strong>₹{{ ad_spend|floatformat:0 }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Revenue</span>
+                        <strong>₹{{ overall_stats.revenue|floatformat:0 }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>ROAS</span>
+                        <strong class="{% if roas > 1 %}text-success{% else %}text-danger{% endif %}">
+                            {{ roas|floatformat:2 }}x
+                        </strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Meta CAPI Status</h6>
+                </div>
+                <div class="card-body">
+                    {% if capi_configured %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Status</span>
+                        <span class="badge bg-success">Connected</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Events Sent</span>
+                        <strong>{{ capi_config.events_sent|default:0 }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>Pending</span>
+                        <strong class="text-warning">{{ pending_conversion_sends }}</strong>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Meta CAPI not configured. Add credentials in Admin.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Per WhatsApp Number Stats -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h6 class="mb-0">Performance by WhatsApp Number</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Number</th>
+                            <th class="text-center">Total Leads</th>
+                            <th class="text-center">Ad Leads</th>
+                            <th class="text-center">Organic</th>
+                            <th class="text-center">Won</th>
+                            <th class="text-center">Lost</th>
+                            <th class="text-center">Conv. Rate</th>
+                            <th class="text-end">Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in number_stats %}
+                        <tr>
+                            <td>
+                                <strong>{{ stat.number.name|default:stat.number.display_phone_number|default:stat.number.phone_number_id }}</strong>
+                                <br><small class="text-muted">{{ stat.number.phone_number_id }}</small>
+                            </td>
+                            <td class="text-center">{{ stat.total_leads }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-info">{{ stat.ad_leads }}</span>
+                            </td>
+                            <td class="text-center">{{ stat.organic_leads }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-success">{{ stat.won }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-danger">{{ stat.lost }}</span>
+                            </td>
+                            <td class="text-center">{{ stat.conversion_rate }}%</td>
+                            <td class="text-end">₹{{ stat.revenue|floatformat:0 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">No WhatsApp numbers configured</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Campaign Performance -->
+    {% if campaign_stats %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h6 class="mb-0">Campaign Performance</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Campaign ID</th>
+                            <th class="text-center">Leads</th>
+                            <th class="text-center">Won</th>
+                            <th class="text-center">Lost</th>
+                            <th class="text-center">Conv. Rate</th>
+                            <th class="text-end">Revenue</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for campaign in campaign_stats %}
+                        <tr>
+                            <td><code>{{ campaign.meta_campaign_id }}</code></td>
+                            <td class="text-center">{{ campaign.total }}</td>
+                            <td class="text-center"><span class="badge bg-success">{{ campaign.won }}</span></td>
+                            <td class="text-center"><span class="badge bg-danger">{{ campaign.lost }}</span></td>
+                            <td class="text-center">
+                                {% widthratio campaign.won campaign.total 100 as conv_rate %}
+                                {{ conv_rate|default:0 }}%
+                            </td>
+                            <td class="text-end">₹{{ campaign.revenue|floatformat:0|default:0 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Conversions -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Recent Conversions</h6>
+            <a href="{% url 'integrations:whatsapp_customer_list' %}" class="btn btn-sm btn-outline-primary">View All Leads</a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Customer</th>
+                            <th>Source</th>
+                            <th>Won At</th>
+                            <th class="text-end">Value</th>
+                            <th class="text-center">CAPI</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for customer in recent_conversions %}
+                        <tr>
+                            <td>
+                                <strong>{{ customer.profile_name|default:"Unknown" }}</strong>
+                                <br><small class="text-muted">{{ customer.formatted_phone }}</small>
+                            </td>
+                            <td>
+                                {% if customer.is_from_ad %}
+                                <span class="badge bg-info">Ad</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Organic</span>
+                                {% endif %}
+                                {% if customer.ad_platform %}
+                                <small class="text-muted">{{ customer.ad_platform }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ customer.won_at|date:"M d, Y H:i" }}</td>
+                            <td class="text-end">₹{{ customer.conversion_value|floatformat:0 }}</td>
+                            <td class="text-center">
+                                {% if customer.conversion_sent %}
+                                <span class="badge bg-success" title="Sent {{ customer.conversion_sent_at }}">✓</span>
+                                {% else %}
+                                <span class="badge bg-warning">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'integrations:whatsapp_customer_lifecycle' customer.pk %}" class="btn btn-sm btn-outline-secondary">
+                                    View
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">No conversions yet</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function triggerSync() {
+    if (confirm('Trigger daily sync now? This will update lead statuses and send pending conversions.')) {
+        fetch('{% url "integrations:whatsapp_trigger_sync" %}', {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}'}
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('Daily sync triggered! Tasks are running in background.');
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+
+function sendConversions() {
+    if (confirm('Send all pending conversions to Meta CAPI now?')) {
+        fetch('{% url "integrations:whatsapp_send_conversions" %}', {
+            method: 'POST',
+            headers: {'X-CSRFToken': '{{ csrf_token }}'}
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Sent ${data.sent} conversions, ${data.failed} failed.`);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}
