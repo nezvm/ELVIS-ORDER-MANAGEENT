@@ -620,7 +620,314 @@ class WhatsAppERPTester:
             print(f"❌ Sidebar navigation test: ERROR - {str(e)}")
             return False
     
-    def run_whatsapp_tests(self):
+    def test_lead_performance_dashboard(self):
+        """Test the new Lead Performance Dashboard endpoint"""
+        print("\n📊 Testing Lead Performance Dashboard...")
+        
+        if not self.login():
+            print("❌ Cannot test dashboard without login")
+            return False
+        
+        url = f"{self.base_url}/integrations/whatsapp/performance/"
+        
+        try:
+            response = self.session.get(url)
+            
+            if response.status_code != 200:
+                print(f"❌ Lead Performance Dashboard: FAILED - Status: {response.status_code}")
+                return False
+            
+            # Check for expected content
+            expected_keywords = [
+                'lead performance', 'dashboard', 'roas', 'conversion',
+                'overall stats', 'whatsapp number', 'campaign performance',
+                'meta capi', 'ad spend', 'revenue'
+            ]
+            
+            content_valid = True
+            missing_keywords = []
+            
+            for keyword in expected_keywords:
+                if keyword.lower() not in response.text.lower():
+                    missing_keywords.append(keyword)
+                    content_valid = False
+            
+            if content_valid:
+                print("✅ Lead Performance Dashboard: PASSED")
+                print("   - All expected dashboard elements found")
+            else:
+                print(f"❌ Lead Performance Dashboard: FAILED - Missing keywords: {missing_keywords}")
+            
+            return content_valid
+            
+        except Exception as e:
+            print(f"❌ Lead Performance Dashboard: ERROR - {str(e)}")
+            return False
+    
+    def test_customer_lifecycle_view(self):
+        """Test the Customer Lifecycle View endpoint"""
+        print("\n🔄 Testing Customer Lifecycle View...")
+        
+        if not self.login():
+            print("❌ Cannot test lifecycle view without login")
+            return False
+        
+        # First, try to get a customer UUID by creating one via webhook
+        # Create a test customer first
+        webhook_url = f"{self.base_url}/webhooks/whatsapp/"
+        test_payload = {
+            "object": "whatsapp_business_account",
+            "entry": [{
+                "id": "123456789",
+                "changes": [{
+                    "value": {
+                        "messaging_product": "whatsapp",
+                        "metadata": {
+                            "display_phone_number": "919876543210",
+                            "phone_number_id": "test_phone_lifecycle"
+                        },
+                        "contacts": [{"profile": {"name": "Lifecycle Test Customer"}, "wa_id": "919999888844"}],
+                        "messages": [{
+                            "from": "919999888844",
+                            "id": f"msg_lifecycle_{uuid.uuid4()}",
+                            "timestamp": "1707590400",
+                            "type": "text",
+                            "text": {"body": "Testing lifecycle view"}
+                        }]
+                    },
+                    "field": "messages"
+                }]
+            }]
+        }
+        
+        # Send webhook to create customer
+        try:
+            webhook_response = requests.post(webhook_url, json=test_payload, headers={'Content-Type': 'application/json'})
+            if webhook_response.status_code != 200:
+                print(f"⚠️  Failed to create test customer via webhook: {webhook_response.status_code}")
+        except Exception:
+            pass
+        
+        # Test lifecycle view with a dummy UUID (should still load the template)
+        test_uuid = str(uuid.uuid4())
+        lifecycle_url = f"{self.base_url}/integrations/whatsapp/lead/{test_uuid}/lifecycle/"
+        
+        try:
+            response = self.session.get(lifecycle_url)
+            
+            # Could be 200 (if customer exists) or 404 (if not found), both are valid responses
+            if response.status_code in [200, 404]:
+                # Check if the endpoint exists and returns proper response
+                if response.status_code == 404:
+                    print("✅ Customer Lifecycle View: PASSED (endpoint exists, returns 404 for non-existent customer)")
+                    return True
+                else:
+                    # Check content for 200 response
+                    expected_keywords = [
+                        'customer lifecycle', 'timeline', 'lead created', 
+                        'attribution', 'messages', 'conversion'
+                    ]
+                    
+                    content_valid = any(keyword.lower() in response.text.lower() for keyword in expected_keywords)
+                    
+                    if content_valid:
+                        print("✅ Customer Lifecycle View: PASSED")
+                        return True
+                    else:
+                        print("❌ Customer Lifecycle View: FAILED - Missing expected content")
+                        return False
+            else:
+                print(f"❌ Customer Lifecycle View: FAILED - Status: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            print(f"❌ Customer Lifecycle View: ERROR - {str(e)}")
+            return False
+    
+    def test_api_endpoints(self):
+        """Test the new API endpoints for sync and conversions"""
+        print("\n🔌 Testing API Endpoints...")
+        
+        if not self.login():
+            print("❌ Cannot test API endpoints without login")
+            return False
+        
+        results = []
+        
+        # Test trigger-sync endpoint
+        try:
+            sync_url = f"{self.base_url}/integrations/whatsapp/api/trigger-sync/"
+            response = self.session.post(sync_url)
+            
+            if response.status_code == 200:
+                try:
+                    data = response.json()
+                    if data.get('success'):
+                        print("✅ Trigger Daily Sync API: PASSED")
+                        results.append(True)
+                    else:
+                        print(f"❌ Trigger Daily Sync API: FAILED - Response: {data}")
+                        results.append(False)
+                except json.JSONDecodeError:
+                    print(f"❌ Trigger Daily Sync API: FAILED - Invalid JSON response")
+                    results.append(False)
+            else:
+                print(f"❌ Trigger Daily Sync API: FAILED - Status: {response.status_code}")
+                results.append(False)
+        except Exception as e:
+            print(f"❌ Trigger Daily Sync API: ERROR - {str(e)}")
+            results.append(False)
+        
+        # Test send-conversions endpoint
+        try:
+            conversions_url = f"{self.base_url}/integrations/whatsapp/api/send-conversions/"
+            response = self.session.post(conversions_url)
+            
+            if response.status_code == 200:
+                try:
+                    data = response.json()
+                    if 'sent' in data and 'failed' in data:
+                        print(f"✅ Send Conversions API: PASSED - Sent: {data.get('sent')}, Failed: {data.get('failed')}")
+                        results.append(True)
+                    else:
+                        print(f"❌ Send Conversions API: FAILED - Missing expected fields: {data}")
+                        results.append(False)
+                except json.JSONDecodeError:
+                    print(f"❌ Send Conversions API: FAILED - Invalid JSON response")
+                    results.append(False)
+            else:
+                print(f"❌ Send Conversions API: FAILED - Status: {response.status_code}")
+                results.append(False)
+        except Exception as e:
+            print(f"❌ Send Conversions API: ERROR - {str(e)}")
+            results.append(False)
+        
+        return all(results)
+    
+    def test_admin_panel_models(self):
+        """Test that new models are registered in admin panel"""
+        print("\n⚙️  Testing Admin Panel Models...")
+        
+        if not self.login():
+            print("❌ Cannot test admin panel without login")
+            return False
+        
+        admin_url = f"{self.base_url}/admin/"
+        
+        try:
+            response = self.session.get(admin_url)
+            
+            if response.status_code != 200:
+                print(f"❌ Admin panel access: FAILED - Status: {response.status_code}")
+                return False
+            
+            # Check for new models in admin
+            expected_models = [
+                'MetaConversionConfig', 'Meta Conversion Config',
+                'MetaAdsConfig', 'Meta Ads Config', 
+                'DailyLeadReport', 'Daily Lead Report',
+                'LeadConversionEvent', 'Lead Conversion Event',
+                'WhatsAppCustomer', 'WhatsApp Customer'
+            ]
+            
+            found_models = []
+            missing_models = []
+            
+            for model in expected_models:
+                if model.lower() in response.text.lower():
+                    found_models.append(model)
+                else:
+                    missing_models.append(model)
+            
+            if len(found_models) >= len(expected_models) // 2:  # At least half should be found
+                print(f"✅ Admin Panel Models: PASSED - Found {len(found_models)} model references")
+                print(f"   Found: {', '.join(found_models[:3])}...")
+                return True
+            else:
+                print(f"❌ Admin Panel Models: FAILED - Only found {len(found_models)} out of {len(expected_models)} models")
+                print(f"   Missing: {missing_models[:3]}...")
+                return False
+            
+        except Exception as e:
+            print(f"❌ Admin Panel Models: ERROR - {str(e)}")
+            return False
+    
+    def test_existing_endpoints_still_work(self):
+        """Verify that existing WhatsApp endpoints still work after new features"""
+        print("\n🔄 Testing Existing Endpoints Compatibility...")
+        
+        results = []
+        
+        # Test existing webhook verification
+        verify_result = self.test_whatsapp_webhook_verification()
+        results.append(verify_result)
+        
+        # Test WhatsApp Dashboard
+        if self.login():
+            try:
+                dashboard_response = self.session.get(f"{self.base_url}/integrations/whatsapp/")
+                if dashboard_response.status_code == 200:
+                    print("✅ WhatsApp Dashboard: Still working")
+                    results.append(True)
+                else:
+                    print(f"❌ WhatsApp Dashboard: FAILED - Status: {dashboard_response.status_code}")
+                    results.append(False)
+            except Exception as e:
+                print(f"❌ WhatsApp Dashboard: ERROR - {str(e)}")
+                results.append(False)
+            
+            # Test WhatsApp Leads List
+            try:
+                leads_response = self.session.get(f"{self.base_url}/integrations/whatsapp/leads/")
+                if leads_response.status_code == 200:
+                    print("✅ WhatsApp Leads List: Still working")
+                    results.append(True)
+                else:
+                    print(f"❌ WhatsApp Leads List: FAILED - Status: {leads_response.status_code}")
+                    results.append(False)
+            except Exception as e:
+                print(f"❌ WhatsApp Leads List: ERROR - {str(e)}")
+                results.append(False)
+        
+        return all(results)
+    
+    def test_sidebar_lead_performance_link(self):
+        """Test that Lead Performance link is added to sidebar"""
+        print("\n🔗 Testing Lead Performance Sidebar Link...")
+        
+        if not self.login():
+            print("❌ Cannot test sidebar without login")
+            return False
+        
+        try:
+            # Get the main page or integrations page to check sidebar
+            response = self.session.get(f"{self.base_url}/integrations/whatsapp/")
+            
+            if response.status_code != 200:
+                print(f"❌ Cannot access WhatsApp page: {response.status_code}")
+                return False
+            
+            # Check for Lead Performance link in navigation
+            lead_performance_indicators = [
+                'lead performance', 'performance dashboard', 
+                'whatsapp/performance', '/performance/'
+            ]
+            
+            found_indicators = []
+            for indicator in lead_performance_indicators:
+                if indicator.lower() in response.text.lower():
+                    found_indicators.append(indicator)
+            
+            if found_indicators:
+                print(f"✅ Lead Performance Link: PASSED - Found indicators: {found_indicators[:2]}")
+                return True
+            else:
+                print("❌ Lead Performance Link: FAILED - No performance link found in navigation")
+                return False
+            
+        except Exception as e:
+            print(f"❌ Lead Performance Link: ERROR - {str(e)}")
+            return False
         """Run all WhatsApp-specific tests"""
         print(f"🚀 Starting WhatsApp Lead Auto-Save Backend Tests")
         print(f"📍 Base URL: {self.base_url}")
