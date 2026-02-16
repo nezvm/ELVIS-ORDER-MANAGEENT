@@ -263,6 +263,42 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
+# Celery Beat Schedule for WhatsApp Lead Attribution
+from celery.schedules import crontab
+CELERY_BEAT_SCHEDULE = {
+    # Daily lead status sync at 02:00 IST (20:30 UTC previous day)
+    'sync-lead-statuses-daily': {
+        'task': 'whatsapp.sync_lead_statuses',
+        'schedule': crontab(hour=20, minute=30),
+    },
+    # Generate daily reports at 02:15 IST
+    'generate-daily-reports': {
+        'task': 'whatsapp.generate_daily_reports',
+        'schedule': crontab(hour=20, minute=45),
+    },
+    # Sync ad spend at 02:30 IST
+    'sync-ad-spend-daily': {
+        'task': 'whatsapp.sync_ad_spend',
+        'schedule': crontab(hour=21, minute=0),
+    },
+}
+
+# =============================================================================
+# META INTEGRATION CONFIGURATION (WhatsApp, CAPI, Ads)
+# =============================================================================
+# Meta App Credentials (for Embedded Signup)
+FB_APP_ID = config('FB_APP_ID', default='')
+FB_CONFIG_ID = config('FB_CONFIG_ID', default='')
+
+# Meta Business Portfolio ID (required for Embedded Signup with existing portfolio)
+META_BUSINESS_ID = config('META_BUSINESS_ID', default='')
+
+# WhatsApp Webhook Verification Token
+WA_VERIFY_TOKEN = config('WA_VERIFY_TOKEN', default='elvis_whatsapp_verify_2024')
+
+# Meta Ads Account ID (for ROAS reporting)
+META_AD_ACCOUNT_ID = config('META_AD_ACCOUNT_ID', default='1112702787240378')
+
 
 
 # =============================================================================
