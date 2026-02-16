@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
 Backend Test Suite for Elvis-Manager ERP Application
-Tests WhatsApp Lead Auto-Save feature endpoints and UI pages
+Tests WhatsApp Lead Attribution & Meta Conversion Tracking features
 """
 
 import requests
 import sys
 import json
+import uuid
 from urllib.parse import urljoin
 
 class WhatsAppERPTester:
