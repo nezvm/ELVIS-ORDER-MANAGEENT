@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import leads_views
 
 app_name = 'marketing'
 
@@ -8,8 +9,20 @@ urlpatterns = [
     path('', views.DailyInsightsDashboardView.as_view(), name='dashboard'),
     path('dashboard/', views.DailyInsightsDashboardView.as_view(), name='daily_insights'),
     
-    # Leads
-    path('leads/', views.LeadListView.as_view(), name='lead_list'),
+    # ==========================================================================
+    # NEW LEADS MODULE (Revamped)
+    # ==========================================================================
+    path('leads/', leads_views.LeadsOverviewDashboardView.as_view(), name='leads_overview'),
+    path('leads/whatsapp/', leads_views.WhatsAppLeadsView.as_view(), name='leads_whatsapp'),
+    path('leads/shopify/', leads_views.ShopifyLeadsView.as_view(), name='leads_shopify'),
+    path('leads/other/', leads_views.OtherLeadsView.as_view(), name='leads_other'),
+    path('leads/<uuid:pk>/', leads_views.LeadDetailView.as_view(), name='lead_detail_new'),
+    path('leads/api/chart-data/', leads_views.leads_chart_data, name='leads_chart_data'),
+    
+    # ==========================================================================
+    # Legacy Leads (keep for backward compatibility)
+    # ==========================================================================
+    path('lead-list/', views.LeadListView.as_view(), name='lead_list'),
     path('lead/<uuid:pk>/', views.LeadDetailView.as_view(), name='lead_detail'),
     path('lead/new/', views.LeadCreateView.as_view(), name='lead_create'),
     path('lead/<uuid:pk>/update/', views.LeadUpdateView.as_view(), name='lead_update'),
