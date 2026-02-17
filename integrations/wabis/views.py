@@ -364,3 +364,48 @@ def sync_status(request):
         'webhooks_24h': recent_webhooks,
         'errors_24h': recent_errors,
     })
+
+
+@require_http_methods(["POST"])
+def trigger_api_sync(request):
+    """
+    Trigger a sync of subscribers from Wabis API.
+    Requires WABIS_API_TOKEN and WABIS_WHATSAPP_BOT_ID to be configured.
+    """
+    from django.conf import settings
+    
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Authentication required'}, status=401)
+    
+    api_token = getattr(settings, 'WABIS_API_TOKEN', '')
+    bot_id = getattr(settings, 'WABIS_WHATSAPP_BOT_ID', '')
+    
+    if not api_token:
+        return JsonResponse({
+            'success': False, 
+            'error': 'WABIS_API_TOKEN not configured. Add it to your environment variables.'
+        }, status=400)
+    
+    if not bot_id:
+        return JsonResponse({
+            'success': False,
+            'error': 'WABIS_WHATSAPP_BOT_ID not configured. Add it to your environment variables.'
+        }, status=400)
+    
+    try:
+        from .api_client import WabisSubscriberSyncService
+        
+        sync_service = WabisSubscriberSyncService(api_token=api_token)
+        stats = sync_service.sync_all_subscribers(whatsapp_bot_id=bot_id)
+        
+        return JsonResponse({
+            'success': True,
+            'message': f"Sync completed: {stats['created']} created, {stats['updated']} updated",
+            'stats': stats
+        })
+    except Exception as e:
+        logger.error(f"API sync error: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
