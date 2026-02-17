@@ -1,5 +1,6 @@
 """
 Marketing Signals - Auto-match leads to orders for conversion tracking.
+CAPI integration: Fire Lead/Purchase events to Meta.
 """
 
 import logging
@@ -46,3 +47,45 @@ def match_order_to_leads(sender, instance, created, **kwargs):
                     
     except Exception as e:
         logger.error(f"Error in match_order_to_leads signal: {e}", exc_info=True)
+
+
+@receiver(post_save, sender='marketing.Lead')
+def fire_capi_lead_event(sender, instance, created, **kwargs):
+    """
+    Send Lead event to Meta CAPI when a new lead is created.
+    Also send Purchase event when lead transitions to Won.
+    """
+    if not instance.is_active:
+        return
+
+    # On creation: send Lead event
+    if created and not instance.lead_event_sent_to_meta:
+        try:
+            from .meta_tasks import send_capi_lead_event
+            send_capi_lead_event.delay(str(instance.id))
+            logger.debug(f"Queued CAPI Lead event for lead {instance.id}")
+        except Exception:
+            # Celery not available - attempt sync
+            try:
+                from .meta_services import MetaCAPIService
+                service = MetaCAPIService()
+                if service.is_configured():
+                    service.send_lead_event(instance)
+            except Exception as e:
+                logger.warning(f"CAPI Lead event sync failed: {e}")
+
+    # On Won status: send Purchase event
+    if not created and instance.conversion_status == 'won' and not instance.conversion_sent_to_meta:
+        if instance.converted_order:
+            try:
+                from .meta_tasks import send_capi_purchase_event
+                send_capi_purchase_event.delay(str(instance.id))
+                logger.debug(f"Queued CAPI Purchase event for lead {instance.id}")
+            except Exception:
+                try:
+                    from .meta_services import MetaCAPIService
+                    service = MetaCAPIService()
+                    if service.is_configured():
+                        service.send_purchase_event(instance)
+                except Exception as e:
+                    logger.warning(f"CAPI Purchase event sync failed: {e}")
