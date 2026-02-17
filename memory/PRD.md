@@ -18,6 +18,7 @@ Build a comprehensive lead management system within the existing Django ERP with
 - Customer deduplication by phone number
 - Lead attribution (organic vs ad)
 - Admin dashboard for number management
+- **UI Configuration Page** at `/integrations/wabis/config/`
 
 ### Phase 2: Shopify Integration ✅
 - Webhook endpoints for orders, checkouts, fulfillments
@@ -41,7 +42,14 @@ Build a comprehensive lead management system within the existing Django ERP with
 - Updated sidebar navigation to use Wabis
 - Kept webhook endpoint for backward compatibility
 
-### Phase 6: Meta CAPI Integration (Future)
+### Phase 6: Wabis API Pull Integration ✅ (Feb 17, 2026)
+- Created `WabisAPIClient` for Wabis REST API
+- UI-based configuration (no environment variables required)
+- Test Connection button
+- Sync Subscribers button
+- Step-by-step setup instructions in UI
+
+### Phase 7: Meta CAPI Integration (Future)
 - Send conversions to Meta for ROAS tracking
 - Ad spend sync
 
@@ -51,9 +59,11 @@ Build a comprehensive lead management system within the existing Django ERP with
 
 ### Wabis WhatsApp BSP Integration
 - **Webhook**: `/webhooks/wabis/` - GET verification, POST message processing
-- **Models**: WabisCustomer, WabisMessage, WabisNumber, WabisWebhookLog
-- **Services**: Customer deduplication, ad attribution extraction
-- **UI**: Dashboard at `/integrations/wabis/`
+- **API Client**: Full REST API client for Wabis
+- **Configuration UI**: `/integrations/wabis/config/` - Enter API Token & Bot ID
+- **Models**: WabisCustomer, WabisMessage, WabisNumber, WabisWebhookLog, WabisSyncLog, WabisConfig
+- **Services**: Customer deduplication, ad attribution extraction, subscriber sync
+- **Dashboard**: `/integrations/wabis/`
 
 ### Shopify Integration
 - **Webhooks**:
@@ -69,42 +79,33 @@ Build a comprehensive lead management system within the existing Django ERP with
 - **Tabs**: All Leads, WhatsApp Leads, Shopify Leads, Other Leads
 - **Sub-tabs**: Organic/Ads for WhatsApp, Orders/Checkouts for Shopify
 
-### Cleanup: Old Meta Cloud API Integration (REMOVED)
-- Old UI at `/integrations/whatsapp/` now redirects to `/integrations/wabis/`
-- Old Performance Dashboard redirects to `/marketing/dashboard/`
-- Sidebar updated to show "WhatsApp (Wabis)" instead of old "WhatsApp Setup"
-- Legacy webhook `/webhooks/whatsapp/` kept for any existing integrations
-
-### Celery Tasks
-- `sync_lead_statuses` - Daily at 02:00 IST
-- `generate_lead_daily_stats` - Daily at 02:15 IST
-
 ---
 
-## Prioritized Backlog
+## Wabis Setup Instructions
 
-### P0 (Critical) - COMPLETED
-- [x] Wabis webhook integration
-- [x] Shopify webhook integration
-- [x] Lead deduplication
-- [x] Dashboard with metrics
-- [x] Remove old Meta Cloud API UI duplication
+### Step 1: Get API Token
+1. Go to [bot.wabis.in/api/developer/console](https://bot.wabis.in/api/developer/console)
+2. Login with your Wabis account
+3. Copy the API Token (format: `18091|phcZz1un...`)
 
-### P1 (High Priority)
-- [ ] Meta Conversions API (CAPI) integration for ROAS
-- [ ] Meta Ads API for ad spend sync
-- [ ] WhatsApp message templates for recovery campaigns
+### Step 2: Get WhatsApp Bot ID
+1. Go to [bot.wabis.in](https://bot.wabis.in)
+2. Navigate to Bot Manager
+3. Select your WhatsApp Bot
+4. Find Bot ID in URL: `bot.wabis.in/whatsapp/[BOT_ID]/...`
 
-### P2 (Medium Priority)
-- [ ] Advanced analytics and reporting
-- [ ] Custom date range filters on dashboard
-- [ ] Export leads to CSV
-- [ ] Bulk lead operations
+### Step 3: Configure in ERP
+1. Go to `/integrations/wabis/config/`
+2. Enter API Token and Bot ID
+3. Click "Test Connection"
+4. Click "Save Configuration"
+5. Click "Sync Subscribers Now" to import leads
 
-### P3 (Low Priority)
-- [ ] Mobile responsive optimizations
-- [ ] Email notifications for high-value leads
-- [ ] Lead scoring algorithm
+### Step 4: Configure Webhook (Optional)
+For real-time updates:
+1. Go to Wabis → Bot Manager → Out-bound Webhook
+2. Create new webhook with URL: `https://your-domain.com/webhooks/wabis/`
+3. Select trigger events (new message, new contact, etc.)
 
 ---
 
@@ -121,34 +122,24 @@ Build a comprehensive lead management system within the existing Django ERP with
 ├── elvis_erp/          # Main Django project
 ├── integrations/       # 3rd-party integrations
 │   ├── wabis/          # Wabis WhatsApp BSP (ACTIVE)
+│   │   ├── api_client.py  # Wabis API client
+│   │   ├── models.py      # WabisConfig, WabisCustomer, etc.
+│   │   └── views.py       # Dashboard, Config, Sync
 │   ├── shopify/        # Shopify webhooks (ACTIVE)
 │   └── whatsapp/       # Legacy Meta API (DEPRECATED - redirects to wabis)
 ├── marketing/          # Leads, campaigns, analytics
 └── templates/          # Django templates
 ```
 
-### Key Models
-- `Lead` (marketing) - Universal lead model
-- `WabisCustomer`, `WabisMessage`, `WabisNumber` (integrations.wabis)
-- `ShopifyOrder`, `ShopifyAbandonedCheckout` (integrations)
-
-### API Endpoints
+### Key API Endpoints
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/webhooks/wabis/` | GET/POST | Wabis webhook (PRIMARY) |
+| `/integrations/wabis/config/` | GET | Configuration page |
+| `/integrations/wabis/api/save-config/` | POST | Save API credentials |
+| `/integrations/wabis/api/test-connection/` | POST | Test API connection |
+| `/integrations/wabis/api/trigger-sync/` | POST | Sync subscribers |
+| `/webhooks/wabis/` | GET/POST | Wabis webhook |
 | `/webhooks/shopify/orders/` | POST | Shopify orders |
-| `/webhooks/shopify/checkouts/` | POST | Abandoned checkouts |
-| `/webhooks/shopify/fulfillments/` | POST | Fulfillment updates |
-| `/marketing/dashboard/` | GET | Daily insights |
-| `/marketing/leads/` | GET | Leads list |
-| `/integrations/wabis/` | GET | Wabis WhatsApp config |
-
-### Redirects (Old → New)
-| Old URL | Redirects To |
-|---------|-------------|
-| `/integrations/whatsapp/` | `/integrations/wabis/` |
-| `/integrations/whatsapp/performance/` | `/marketing/` |
-| `/integrations/whatsapp/leads/` | `/marketing/leads/?lead_source=whatsapp` |
 
 ---
 
