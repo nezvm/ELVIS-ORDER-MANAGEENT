@@ -38,7 +38,7 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Number</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wabis Bot ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wabis Number ID</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Messages</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customers</th>
@@ -97,8 +97,8 @@
                             <div class="flex items-center space-x-2">
                                 <button onclick="showEditBotIdModal('{{ num.id }}', '{{ num.display_name }}', '{{ num.wabis_bot_id|default:"" }}')" 
                                         class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors" 
-                                        title="Edit Bot ID">
-                                    <i class="fas fa-edit mr-1"></i>Bot ID
+                                        title="Edit Number ID">
+                                    <i class="fas fa-edit mr-1"></i>Number ID
                                 </button>
                                 <button onclick="deleteNumber('{{ num.id }}')" class="text-red-500 hover:text-red-700" title="Delete">
                                     <i class="fas fa-trash"></i>
