@@ -942,9 +942,106 @@ def send_pending_conversions_api(request):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
+# =============================================================================
+# BSP CONNECTION API
+# =============================================================================
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def bsp_connect_number(request):
+    """
+    Register a WhatsApp number connected via BSP (Cloud API).
+    This is a simpler flow - just registers the number so the ERP knows 
+    which numbers to expect webhooks from.
+    """
+    try:
+        data = json.loads(request.body)
+        phone_number_id = data.get('phone_number_id')
+        waba_id = data.get('waba_id', '')
+        display_phone_number = data.get('display_phone_number')
+        display_name = data.get('display_name')
+        bsp_name = data.get('bsp_name', 'other')
+        access_token = data.get('access_token', '')
+        
+        if not phone_number_id or not display_phone_number or not display_name:
+            return JsonResponse({
+                'success': False,
+                'error': 'Phone Number ID, Display Phone Number, and Display Name are required'
+            }, status=400)
+        
+        # Create or update WhatsAppConnectedNumber
+        existing = WhatsAppConnectedNumber.objects.filter(
+            phone_number_id=phone_number_id
+        ).first()
+        
+        if existing:
+            existing.waba_id = waba_id or existing.waba_id
+            existing.display_phone_number = display_phone_number
+            existing.display_name = display_name
+            existing.access_token = access_token if access_token else existing.access_token
+            existing.status = 'active'
+            existing.is_active = True
+            existing.meta_data = {
+                'connection_type': 'bsp',
+                'bsp_name': bsp_name,
+                'connected_at': timezone.now().isoformat(),
+            }
+            existing.save()
+            connected_number = existing
+            logger.info(f"Updated WhatsApp BSP connection: {phone_number_id}")
+        else:
+            connected_number = WhatsAppConnectedNumber.objects.create(
+                waba_id=waba_id or f'bsp_{phone_number_id}',
+                phone_number_id=phone_number_id,
+                display_phone_number=display_phone_number,
+                display_name=display_name,
+                access_token=access_token,
+                status='active',
+                webhook_verified=False,
+                connected_by=request.user if request.user.is_authenticated else None,
+                meta_data={
+                    'connection_type': 'bsp',
+                    'bsp_name': bsp_name,
+                    'connected_at': timezone.now().isoformat(),
+                }
+            )
+            logger.info(f"Created new WhatsApp BSP connection: {phone_number_id}")
+        
+        # Also create/update WhatsAppNumberConfig for webhook tracking
+        number_config, _ = WhatsAppNumberConfig.objects.get_or_create(
+            phone_number_id=phone_number_id,
+            defaults={
+                'name': display_name,
+                'display_phone_number': display_phone_number
+            }
+        )
+        number_config.connected_number = connected_number
+        number_config.name = display_name
+        number_config.display_phone_number = display_phone_number
+        number_config.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'WhatsApp number registered successfully',
+            'data': {
+                'id': str(connected_number.id),
+                'phone_number_id': connected_number.phone_number_id,
+                'display_name': connected_number.display_name,
+                'display_phone_number': connected_number.display_phone_number,
+                'bsp_name': bsp_name,
+                'status': connected_number.status
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f"Error in BSP Connect: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 
 # =============================================================================
-# DIRECT CONNECT API (for existing WABAs)
+# LEGACY APIs (kept for backward compatibility)
 # =============================================================================
 
 @csrf_exempt
