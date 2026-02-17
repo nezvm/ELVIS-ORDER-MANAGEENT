@@ -370,26 +370,33 @@ def sync_status(request):
 def trigger_api_sync(request):
     """
     Trigger a sync of subscribers from Wabis API.
-    Requires WABIS_API_TOKEN and WABIS_WHATSAPP_BOT_ID to be configured.
+    Reads credentials from database config or settings.
     """
-    from django.conf import settings
-    
     if not request.user.is_authenticated:
         return JsonResponse({'success': False, 'error': 'Authentication required'}, status=401)
     
-    api_token = getattr(settings, 'WABIS_API_TOKEN', '')
-    bot_id = getattr(settings, 'WABIS_WHATSAPP_BOT_ID', '')
+    # Try to get from database config first
+    config = WabisConfig.objects.filter(is_active=True).first()
+    
+    if config and config.api_key and config.whatsapp_bot_id:
+        api_token = config.api_key
+        bot_id = config.whatsapp_bot_id
+    else:
+        # Fallback to settings
+        from django.conf import settings
+        api_token = getattr(settings, 'WABIS_API_TOKEN', '')
+        bot_id = getattr(settings, 'WABIS_WHATSAPP_BOT_ID', '')
     
     if not api_token:
         return JsonResponse({
             'success': False, 
-            'error': 'WABIS_API_TOKEN not configured. Add it to your environment variables.'
+            'error': 'API Token not configured. Go to Settings to add it.'
         }, status=400)
     
     if not bot_id:
         return JsonResponse({
             'success': False,
-            'error': 'WABIS_WHATSAPP_BOT_ID not configured. Add it to your environment variables.'
+            'error': 'WhatsApp Bot ID not configured. Go to Settings to add it.'
         }, status=400)
     
     try:
