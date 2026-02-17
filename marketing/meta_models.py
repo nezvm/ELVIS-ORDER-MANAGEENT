@@ -10,7 +10,7 @@ import hashlib
 from django.db import models
 from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator
-from master.models import BaseModel
+from core.base import BaseModel
 
 
 class MetaIntegrationConfig(BaseModel):
