@@ -65,6 +65,7 @@ MODULES = [
     "integrations",
     "integrations.whatsapp",
     "integrations.wabis",
+    "integrations.shopify",
     "api",
     "marketing",
 ]
