@@ -172,6 +172,20 @@ class Lead(BaseModel):
         blank=True,
         help_text="When conversion status was last changed"
     )
+    status_reason = models.CharField(
+        max_length=50,
+        choices=STATUS_REASON_CHOICES,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Reason for current status"
+    )
+    last_activity_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Last activity timestamp (message, status change, etc.)"
+    )
     won_at = models.DateTimeField(
         null=True,
         blank=True,
