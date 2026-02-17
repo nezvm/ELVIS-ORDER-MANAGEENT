@@ -1,0 +1,227 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}{{ customer.profile_name|default:"Lead" }} - Wabis{% endblock %}
+{% block page_title %}WhatsApp Lead Details{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-start justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center">
+                    <span class="text-primary-600 font-bold text-2xl">{{ customer.profile_name|slice:":1"|upper|default:"?" }}</span>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900" data-testid="customer-name">{{ customer.profile_name|default:"Unknown" }}</h2>
+                    <p class="text-gray-500 text-lg">+{{ customer.wa_id }}</p>
+                    <div class="flex items-center space-x-3 mt-2">
+                        {% if customer.is_from_ad %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                            <i class="fas fa-ad mr-1"></i> From Ad
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <i class="fas fa-leaf mr-1"></i> Organic
+                        </span>
+                        {% endif %}
+                        
+                        {% if customer.conversion_status == 'won' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800" data-testid="conversion-status">
+                            <i class="fas fa-check mr-1"></i> Won
+                        </span>
+                        {% elif customer.conversion_status == 'lost' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800" data-testid="conversion-status">
+                            <i class="fas fa-times mr-1"></i> Lost
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800" data-testid="conversion-status">
+                            <i class="fas fa-clock mr-1"></i> Pending
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                {% if customer.linked_lead %}
+                <a href="{{ customer.linked_lead.get_absolute_url }}" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm">
+                    <i class="fas fa-user mr-2"></i>View Lead
+                </a>
+                {% endif %}
+                <a href="https://wa.me/{{ customer.wa_id }}" target="_blank" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm">
+                    <i class="fab fa-whatsapp mr-2"></i>Open WhatsApp
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Stats -->
+        <div class="lg:col-span-1 space-y-6">
+            <!-- Quick Stats -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Statistics</h3>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-500">Total Messages</span>
+                        <span class="font-semibold text-gray-900">{{ customer.total_messages }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-500">Channels</span>
+                        <span class="font-semibold text-gray-900">{{ customer.total_channels }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-500">First Seen</span>
+                        <span class="text-gray-900">{{ customer.first_seen|date:"d M Y" }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-500">Last Activity</span>
+                        <span class="text-gray-900">
+                            {% if customer.last_message_at %}
+                            {{ customer.last_message_at|timesince }} ago
+                            {% else %}
+                            -
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Attribution -->
+            {% if customer.is_from_ad %}
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Ad Attribution</h3>
+                <div class="space-y-3">
+                    {% if customer.meta_campaign_id %}
+                    <div>
+                        <span class="text-xs text-gray-500">Campaign ID</span>
+                        <p class="text-sm text-gray-900 font-mono">{{ customer.meta_campaign_id }}</p>
+                    </div>
+                    {% endif %}
+                    {% if customer.meta_adset_id %}
+                    <div>
+                        <span class="text-xs text-gray-500">Ad Set ID</span>
+                        <p class="text-sm text-gray-900 font-mono">{{ customer.meta_adset_id }}</p>
+                    </div>
+                    {% endif %}
+                    {% if customer.meta_ad_id %}
+                    <div>
+                        <span class="text-xs text-gray-500">Ad ID</span>
+                        <p class="text-sm text-gray-900 font-mono">{{ customer.meta_ad_id }}</p>
+                    </div>
+                    {% endif %}
+                    {% if customer.meta_ctwa_clid %}
+                    <div>
+                        <span class="text-xs text-gray-500">CTWA Click ID</span>
+                        <p class="text-sm text-gray-900 font-mono truncate">{{ customer.meta_ctwa_clid }}</p>
+                    </div>
+                    {% endif %}
+                    {% if customer.ad_headline %}
+                    <div>
+                        <span class="text-xs text-gray-500">Ad Headline</span>
+                        <p class="text-sm text-gray-900">{{ customer.ad_headline }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Conversion Details -->
+            {% if customer.conversion_status == 'won' %}
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Conversion</h3>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-500">Converted At</span>
+                        <span class="text-gray-900">{{ customer.won_at|date:"d M Y H:i" }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-500">Value</span>
+                        <span class="font-semibold text-green-600">₹{{ customer.conversion_value|floatformat:0 }}</span>
+                    </div>
+                    {% if customer.converted_order %}
+                    <div class="pt-2 border-t border-gray-100">
+                        <a href="{{ customer.converted_order.get_absolute_url }}" class="text-primary-500 hover:text-primary-600 text-sm">
+                            View Order #{{ customer.converted_order.order_no }} <i class="fas fa-arrow-right ml-1"></i>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Connected Channels -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Connected via</h3>
+                <div class="space-y-3">
+                    {% for channel in channels %}
+                    <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                            <i class="fab fa-whatsapp text-green-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-medium text-gray-900 text-sm">{{ channel.number.display_name }}</div>
+                            <div class="text-xs text-gray-500">{{ channel.message_count }} messages</div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-gray-500 text-sm">No channels recorded</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Messages -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-6 border-b border-gray-100">
+                    <h3 class="text-lg font-semibold text-gray-900">Message History</h3>
+                </div>
+                
+                <div class="divide-y divide-gray-100 max-h-[600px] overflow-y-auto" data-testid="messages-list">
+                    {% for msg in messages %}
+                    <div class="p-4 hover:bg-gray-50">
+                        <div class="flex items-start justify-between">
+                            <div class="flex items-start space-x-3">
+                                {% if msg.direction == 'inbound' %}
+                                <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                                    <span class="text-primary-600 font-bold text-xs">{{ customer.profile_name|slice:":1"|upper|default:"?" }}</span>
+                                </div>
+                                {% else %}
+                                <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                                    <i class="fab fa-whatsapp text-green-600 text-sm"></i>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="font-medium text-gray-900 text-sm">
+                                            {% if msg.direction == 'inbound' %}{{ customer.profile_name|default:"Customer" }}{% else %}You{% endif %}
+                                        </span>
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                                            {{ msg.msg_type }}
+                                        </span>
+                                    </div>
+                                    <p class="text-gray-700 mt-1">{{ msg.body|default:"[Media]"|linebreaksbr }}</p>
+                                </div>
+                            </div>
+                            <span class="text-xs text-gray-400 whitespace-nowrap">
+                                {{ msg.timestamp_utc|date:"d M Y H:i" }}
+                            </span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="p-12 text-center">
+                        <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                            <i class="fas fa-comments text-gray-400"></i>
+                        </div>
+                        <p class="text-gray-500">No messages recorded yet</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
