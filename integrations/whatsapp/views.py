@@ -535,7 +535,7 @@ class WhatsAppCustomerDetailView(LoginRequiredMixin, DetailView):
 
 
 class WhatsAppConnectView(LoginRequiredMixin, TemplateView):
-    """Page to connect WhatsApp Business numbers via Embedded Signup or Direct Connect."""
+    """Page to connect WhatsApp Business numbers via BSP."""
     template_name = 'integrations/whatsapp/connect.html'
     
     def get_context_data(self, **kwargs):
@@ -544,23 +544,21 @@ class WhatsAppConnectView(LoginRequiredMixin, TemplateView):
         context['is_integrations'] = True
         context['is_whatsapp'] = True
         
-        # Facebook App credentials from settings
-        context['fb_app_id'] = getattr(settings, 'FB_APP_ID', '')
-        context['fb_config_id'] = getattr(settings, 'FB_CONFIG_ID', '')
-        
-        # Business Portfolio ID for existing portfolio
-        context['meta_business_id'] = getattr(settings, 'META_BUSINESS_ID', '')
-        
-        # Webhook URL and verify token for Direct Connect instructions
+        # Webhook URL and verify token for BSP configuration
         context['webhook_url'] = self.request.build_absolute_uri(
             reverse('integrations:whatsapp_webhook')
         )
         context['verify_token'] = getattr(settings, 'WA_VERIFY_TOKEN', 'elvis_whatsapp_verify_2024')
         
-        # Connected numbers
+        # Connected numbers (registered manually)
         context['connected_numbers'] = WhatsAppConnectedNumber.objects.filter(
             is_active=True
         ).order_by('-created')
+        
+        # Number configs (auto-detected from webhooks)
+        context['number_configs'] = WhatsAppNumberConfig.objects.filter(
+            is_active=True
+        ).order_by('-last_webhook_at')
         
         return context
 
