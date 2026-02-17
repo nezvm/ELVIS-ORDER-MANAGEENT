@@ -240,7 +240,7 @@ class WhatsAppLeadsView(LoginRequiredMixin, TemplateView):
         context['numbers_stats'] = numbers_stats
         
         # Recent WhatsApp Leads
-        context['recent_leads'] = filtered_wa_leads.select_related('owner').order_by('-created')[:50]
+        context['recent_leads'] = filtered_wa_leads.select_related('assigned_to').order_by('-created')[:50]
         
         # Phone number filter
         phone_filter = self.request.GET.get('phone_number')
