@@ -341,7 +341,7 @@ class ShopifyLeadsView(LoginRequiredMixin, TemplateView):
                 status_reason='recovered'
             )
         
-        context['recent_leads'] = filtered_leads.select_related('owner', 'converted_order').order_by('-created')[:50]
+        context['recent_leads'] = filtered_leads.select_related('assigned_to', 'converted_order').order_by('-created')[:50]
         
         return context
 
