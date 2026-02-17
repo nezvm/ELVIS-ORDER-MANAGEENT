@@ -1,0 +1,188 @@
+{% extends 'ui/base.html' %}
+{% load humanize %}
+
+{% block title %}CAPI Event Logs{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">CAPI Event Logs</h1>
+            <p class="text-sm text-gray-500 mt-1">Meta Conversions API event tracking &amp; status</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'marketing:meta_overview' %}" class="inline-flex items-center px-4 py-2 text-xs font-medium bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition">
+                <i class="fas fa-arrow-left mr-2"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <p class="text-xs font-medium text-gray-500 uppercase">Total Events</p>
+            <p class="text-2xl font-bold text-gray-900 mt-1">{{ total_events|intcomma }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <p class="text-xs font-medium text-gray-500 uppercase">Sent</p>
+            <p class="text-2xl font-bold text-green-600 mt-1">{{ sent_events|intcomma }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <p class="text-xs font-medium text-gray-500 uppercase">Failed</p>
+            <p class="text-2xl font-bold text-red-600 mt-1">{{ failed_events|intcomma }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <p class="text-xs font-medium text-gray-500 uppercase">Pending</p>
+            <p class="text-2xl font-bold text-amber-600 mt-1">{{ pending_events|intcomma }}</p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+        <form method="get" class="flex flex-wrap items-end gap-4">
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Event Type</label>
+                <select name="event_name" class="text-xs border border-gray-300 rounded-lg px-3 py-2 bg-white">
+                    <option value="">All Types</option>
+                    <option value="Lead" {% if current_event_name == 'Lead' %}selected{% endif %}>Lead</option>
+                    <option value="Purchase" {% if current_event_name == 'Purchase' %}selected{% endif %}>Purchase</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Status</label>
+                <select name="status" class="text-xs border border-gray-300 rounded-lg px-3 py-2 bg-white">
+                    <option value="">All Statuses</option>
+                    <option value="pending" {% if current_status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="sent" {% if current_status == 'sent' %}selected{% endif %}>Sent</option>
+                    <option value="failed" {% if current_status == 'failed' %}selected{% endif %}>Failed</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Source</label>
+                <select name="source" class="text-xs border border-gray-300 rounded-lg px-3 py-2 bg-white">
+                    <option value="">All Sources</option>
+                    <option value="whatsapp" {% if current_source == 'whatsapp' %}selected{% endif %}>WhatsApp</option>
+                    <option value="shopify" {% if current_source == 'shopify' %}selected{% endif %}>Shopify</option>
+                    <option value="other" {% if current_source == 'other' %}selected{% endif %}>Other</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">From</label>
+                <input type="date" name="start_date" value="{{ request.GET.start_date }}" class="text-xs border border-gray-300 rounded-lg px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">To</label>
+                <input type="date" name="end_date" value="{{ request.GET.end_date }}" class="text-xs border border-gray-300 rounded-lg px-3 py-2">
+            </div>
+            <button type="submit" class="px-4 py-2 text-xs font-medium bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition">
+                <i class="fas fa-filter mr-1"></i> Filter
+            </button>
+            <a href="{% url 'marketing:capi_logs' %}" class="px-4 py-2 text-xs font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Clear</a>
+        </form>
+    </div>
+
+    <!-- Events Table -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        {% if events %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="text-left px-4 py-3 font-semibold text-gray-600">Event</th>
+                        <th class="text-left px-4 py-3 font-semibold text-gray-600">Event ID</th>
+                        <th class="text-left px-4 py-3 font-semibold text-gray-600">Source</th>
+                        <th class="text-left px-4 py-3 font-semibold text-gray-600">Lead</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-600">Value</th>
+                        <th class="text-left px-4 py-3 font-semibold text-gray-600">Status</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-600">Retries</th>
+                        <th class="text-left px-4 py-3 font-semibold text-gray-600">User Data</th>
+                        <th class="text-left px-4 py-3 font-semibold text-gray-600">Time</th>
+                        <th class="text-left px-4 py-3 font-semibold text-gray-600">Error</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for event in events %}
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold {% if event.event_name == 'Lead' %}bg-blue-100 text-blue-700{% else %}bg-green-100 text-green-700{% endif %}">
+                                {% if event.event_name == 'Lead' %}<i class="fas fa-user-plus mr-1"></i>{% else %}<i class="fas fa-shopping-cart mr-1"></i>{% endif %}
+                                {{ event.event_name }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-gray-500 font-mono text-[10px]" title="{{ event.event_id }}">{{ event.event_id|truncatechars:24 }}</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium {% if event.source == 'whatsapp' %}bg-green-50 text-green-700{% elif event.source == 'shopify' %}bg-purple-50 text-purple-700{% else %}bg-gray-100 text-gray-600{% endif %}">
+                                {{ event.source }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if event.lead %}
+                            <a href="{% url 'marketing:lead_detail' event.lead.pk %}" class="text-blue-600 hover:underline font-medium">
+                                {{ event.lead.name|default:event.lead.phone_no|truncatechars:20 }}
+                            </a>
+                            {% else %}
+                            <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-right font-medium {% if event.value %}text-green-600{% else %}text-gray-400{% endif %}">
+                            {% if event.value %}&#8377;{{ event.value|floatformat:0|intcomma }}{% else %}-{% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold
+                                {% if event.status == 'sent' %}bg-green-100 text-green-700
+                                {% elif event.status == 'failed' %}bg-red-100 text-red-700
+                                {% else %}bg-amber-100 text-amber-700{% endif %}">
+                                <i class="fas fa-circle text-[5px]"></i>
+                                {{ event.status }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-right text-gray-600">{{ event.retries }}</td>
+                        <td class="px-4 py-3 text-gray-500">
+                            {% if event.phone_hash_used %}<i class="fas fa-phone text-green-500 mr-1" title="Phone hash"></i>{% endif %}
+                            {% if event.email_hash_used %}<i class="fas fa-envelope text-blue-500" title="Email hash"></i>{% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-gray-500">{{ event.created|timesince }} ago</td>
+                        <td class="px-4 py-3 text-red-500 text-[10px] max-w-[200px] truncate" title="{{ event.last_error }}">
+                            {{ event.last_error|default:"-"|truncatechars:60 }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
+            <p class="text-xs text-gray-500">
+                Page {{ page_obj.number }} of {{ paginator.num_pages }}
+                ({{ paginator.count }} total events)
+            </p>
+            <div class="flex gap-1">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-1.5 text-xs bg-white border border-gray-300 rounded-lg hover:bg-gray-50">&laquo; Prev</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="px-3 py-1.5 text-xs bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Next &raquo;</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="p-8 text-center">
+            <i class="fas fa-database text-4xl text-gray-300 mb-3"></i>
+            <p class="text-sm text-gray-500">No CAPI events found.</p>
+            <p class="text-xs text-gray-400 mt-1">Events are logged when leads are created (Lead event) or when leads become Won with an order (Purchase event).</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Info -->
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-700">
+        <i class="fas fa-info-circle mr-1"></i>
+        <strong>What is CAPI?</strong> The Meta Conversions API sends server-side events (Lead &amp; Purchase) to Meta for: (1) ad delivery optimization, (2) Meta's own attribution reporting in Ads Manager. CAPI does <strong>not</strong> return campaign mapping back to the ERP. Event response data is masked in logs for security.
+    </div>
+</div>
+{% endblock %}
