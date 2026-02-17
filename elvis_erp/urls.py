@@ -7,6 +7,7 @@ from registration.backends.default import urls as registration_urls
 
 # Import WhatsApp webhook for root-level access
 from integrations.whatsapp.views import whatsapp_webhook
+from integrations.wabis.views import wabis_webhook
 
 urlpatterns = [
     path("", include("core.urls")),
@@ -26,6 +27,9 @@ urlpatterns = [
     
     # WhatsApp Webhook at root level for easy Meta configuration
     path("webhooks/whatsapp/", whatsapp_webhook, name='whatsapp_webhook_root'),
+    
+    # Wabis Webhook at root level for easy BSP configuration
+    path("webhooks/wabis/", wabis_webhook, name='wabis_webhook_root'),
     
     # REST API
     path("api/v1/", include("api.urls")),
