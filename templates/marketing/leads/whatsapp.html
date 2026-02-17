@@ -1,0 +1,204 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}WhatsApp Leads{% endblock %}
+{% block page_title %}WhatsApp Leads{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with Tabs -->
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-6">
+            <h2 class="text-2xl font-bold text-gray-900">Leads</h2>
+            <nav class="flex space-x-1 bg-gray-100 rounded-lg p-1">
+                <a href="{% url 'marketing:leads_overview' %}?date_filter={{ date_filter }}" 
+                   class="px-4 py-2 text-sm font-medium rounded-md {% if active_tab == 'overview' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">
+                    All Leads
+                </a>
+                <a href="{% url 'marketing:leads_whatsapp' %}?date_filter={{ date_filter }}"
+                   class="px-4 py-2 text-sm font-medium rounded-md {% if active_tab == 'whatsapp' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">
+                    <i class="fab fa-whatsapp text-green-500 mr-1"></i>WhatsApp
+                </a>
+                <a href="{% url 'marketing:leads_shopify' %}?date_filter={{ date_filter }}"
+                   class="px-4 py-2 text-sm font-medium rounded-md {% if active_tab == 'shopify' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">
+                    <i class="fab fa-shopify text-green-600 mr-1"></i>Shopify
+                </a>
+                <a href="{% url 'marketing:leads_other' %}?date_filter={{ date_filter }}"
+                   class="px-4 py-2 text-sm font-medium rounded-md {% if active_tab == 'other' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">
+                    Other
+                </a>
+            </nav>
+        </div>
+        
+        <!-- Date Filter -->
+        <div class="flex items-center space-x-3">
+            <select id="dateFilter" onchange="applyDateFilter()" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+                <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
+                <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
+                <option value="this_week" {% if date_filter == 'this_week' %}selected{% endif %}>This Week</option>
+                <option value="this_month" {% if date_filter == 'this_month' %}selected{% endif %}>This Month</option>
+                <option value="last_7_days" {% if date_filter == 'last_7_days' %}selected{% endif %}>Last 7 Days</option>
+                <option value="last_30_days" {% if date_filter == 'last_30_days' %}selected{% endif %}>Last 30 Days</option>
+            </select>
+            <span class="text-sm text-gray-500">{{ filter_label }}</span>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                    <i class="fab fa-whatsapp text-green-600"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500">Total</p>
+                    <p class="text-xl font-bold text-gray-900">{{ total_leads }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-xs text-gray-500 uppercase">Pending</p>
+            <p class="text-xl font-bold text-yellow-600 mt-1">{{ pending_leads }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-xs text-gray-500 uppercase">Won</p>
+            <p class="text-xl font-bold text-green-600 mt-1">{{ won_leads }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-xs text-gray-500 uppercase">Lost</p>
+            <p class="text-xl font-bold text-red-600 mt-1">{{ lost_leads }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-xs text-gray-500 uppercase">Conversion</p>
+            <p class="text-xl font-bold text-purple-600 mt-1">{{ conversion_rate }}%</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-xs text-gray-500 uppercase">Revenue</p>
+            <p class="text-xl font-bold text-gray-900 mt-1">₹{{ total_revenue|floatformat:0 }}</p>
+        </div>
+    </div>
+
+    <!-- Per Number Stats -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-900">Performance by WhatsApp Number</h3>
+            <p class="text-sm text-gray-500 mt-1">Lead intake & outcomes for each connected number</p>
+        </div>
+        
+        {% if numbers_stats %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Number</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Leads</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pending</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Won</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lost</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Conversion</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Message</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for stat in numbers_stats %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                    <i class="fab fa-whatsapp text-green-600"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">{{ stat.number.display_name }}</div>
+                                    <div class="text-sm text-gray-500">{{ stat.number.display_phone_number }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-lg font-semibold text-gray-900">{{ stat.leads_count }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-yellow-600 font-medium">{{ stat.pending }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-green-600 font-medium">{{ stat.won }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-red-600 font-medium">{{ stat.lost }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-purple-600 font-medium">{{ stat.conversion_rate }}%</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-900 font-medium">₹{{ stat.revenue|floatformat:0 }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {% if stat.last_message %}{{ stat.last_message|timesince }} ago{% else %}-{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center text-gray-500">
+            <i class="fab fa-whatsapp text-4xl mb-4"></i>
+            <p>No WhatsApp numbers configured.</p>
+            <a href="{% url 'integrations:wabis:number_list' %}" class="mt-4 inline-block text-blue-600 hover:underline">Configure Numbers</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent WhatsApp Leads -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-900">Recent WhatsApp Leads</h3>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lead</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for lead in recent_leads %}
+                    <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='{% url 'marketing:lead_detail_new' lead.pk %}'">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="font-medium text-gray-900">{{ lead.name|default:"Unknown" }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ lead.phone_no }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if lead.conversion_status == 'won' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Won</span>
+                            {% elif lead.conversion_status == 'lost' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Lost</span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ lead.get_status_reason_display|default:"-" }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {% if lead.conversion_value %}₹{{ lead.conversion_value|floatformat:0 }}{% else %}-{% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ lead.created|date:"M d, H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                            <p>No WhatsApp leads found.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function applyDateFilter() {
+    const filter = document.getElementById('dateFilter').value;
+    const url = new URL(window.location.href);
+    url.searchParams.set('date_filter', filter);
+    window.location.href = url.toString();
+}
+</script>
+{% endblock %}
