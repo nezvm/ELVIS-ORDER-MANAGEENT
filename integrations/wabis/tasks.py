@@ -18,7 +18,7 @@ def sync_wabis_subscribers(self):
     Runs automatically every 15 minutes via Celery Beat.
     """
     from integrations.wabis.models import WabisConfig, WabisNumber, WabisSyncLog
-    from integrations.wabis.api_client import WabisAPIClient, WabisSubscriberSyncService
+    from integrations.wabis.api_client import WabisSubscriberSyncService
     
     logger.info("Starting automatic Wabis subscriber sync...")
     
