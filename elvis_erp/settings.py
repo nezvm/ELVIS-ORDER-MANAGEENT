@@ -269,6 +269,19 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 from celery.schedules import crontab
 CELERY_BEAT_SCHEDULE = {
     # =============================================================================
+    # WABIS WHATSAPP SYNC (Every 15 minutes)
+    # =============================================================================
+    'sync-wabis-subscribers-auto': {
+        'task': 'integrations.wabis.sync_wabis_subscribers',
+        'schedule': crontab(minute='*/15'),  # Every 15 minutes
+    },
+    # Expire pending Wabis leads daily at 02:00 IST (20:30 UTC)
+    'expire-wabis-pending-leads': {
+        'task': 'integrations.wabis.expire_pending_leads',
+        'schedule': crontab(hour=20, minute=30),
+    },
+    
+    # =============================================================================
     # UNIVERSAL LEAD SYNC (ALL LEADS)
     # =============================================================================
     # Daily lead status sync at 02:00 IST (20:30 UTC previous day)
