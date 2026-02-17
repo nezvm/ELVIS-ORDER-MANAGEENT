@@ -281,6 +281,15 @@ class WabisCustomer(BaseModel):
     total_channels = models.IntegerField(default=1)
     tags = models.JSONField(default=list, blank=True)
     
+    # Wabis API specific
+    wabis_subscriber_id = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text="Subscriber ID from Wabis API"
+    )
+    
     class Meta:
         verbose_name = "Wabis Customer"
         verbose_name_plural = "Wabis Customers"
