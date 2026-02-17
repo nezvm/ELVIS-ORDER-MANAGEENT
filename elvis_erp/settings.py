@@ -263,23 +263,35 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
-# Celery Beat Schedule for WhatsApp Lead Attribution
+# Celery Beat Schedule for Lead Sync & WhatsApp
 from celery.schedules import crontab
 CELERY_BEAT_SCHEDULE = {
+    # =============================================================================
+    # UNIVERSAL LEAD SYNC (ALL LEADS)
+    # =============================================================================
     # Daily lead status sync at 02:00 IST (20:30 UTC previous day)
-    'sync-lead-statuses-daily': {
-        'task': 'whatsapp.sync_lead_statuses',
+    'sync-all-lead-statuses-daily': {
+        'task': 'marketing.sync_lead_statuses',
         'schedule': crontab(hour=20, minute=30),
     },
-    # Generate daily reports at 02:15 IST
-    'generate-daily-reports': {
-        'task': 'whatsapp.generate_daily_reports',
+    # Generate daily lead stats at 02:15 IST
+    'generate-lead-daily-stats': {
+        'task': 'marketing.generate_lead_daily_stats',
         'schedule': crontab(hour=20, minute=45),
     },
-    # Sync ad spend at 02:30 IST
+    
+    # =============================================================================
+    # WHATSAPP SPECIFIC (for backward compatibility)
+    # =============================================================================
+    # WhatsApp daily reports at 02:30 IST
+    'generate-whatsapp-daily-reports': {
+        'task': 'whatsapp.generate_daily_reports',
+        'schedule': crontab(hour=21, minute=0),
+    },
+    # Sync ad spend at 02:45 IST
     'sync-ad-spend-daily': {
         'task': 'whatsapp.sync_ad_spend',
-        'schedule': crontab(hour=21, minute=0),
+        'schedule': crontab(hour=21, minute=15),
     },
 }
 
