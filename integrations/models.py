@@ -218,6 +218,7 @@ class ShopifySyncLog(BaseModel):
         ('products', 'Products'),
         ('inventory', 'Inventory'),
         ('fulfillment', 'Fulfillment'),
+        ('abandoned_checkouts', 'Abandoned Checkouts'),
     ])
     status = models.CharField(max_length=30, choices=[
         ('started', 'Started'),
@@ -240,6 +241,109 @@ class ShopifySyncLog(BaseModel):
     
     def __str__(self):
         return f"{self.store.name} - {self.sync_type} - {self.status}"
+
+
+class ShopifyAbandonedCheckout(BaseModel):
+    """Track abandoned checkouts from Shopify for lead recovery."""
+    RECOVERY_STATUS = [
+        ('pending', 'Pending'),
+        ('contacted', 'Contacted'),
+        ('recovered', 'Recovered'),
+        ('lost', 'Lost'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    store = models.ForeignKey(ShopifyStore, on_delete=models.CASCADE, related_name='abandoned_checkouts')
+    
+    # Shopify IDs
+    shopify_checkout_id = models.CharField(max_length=100, db_index=True)
+    shopify_checkout_token = models.CharField(max_length=200, blank=True, null=True)
+    
+    # Customer info
+    customer_email = models.EmailField(blank=True, null=True, db_index=True)
+    customer_phone = models.CharField(max_length=20, blank=True, null=True, db_index=True)
+    customer_phone_normalized = models.CharField(max_length=20, blank=True, null=True, db_index=True)
+    customer_name = models.CharField(max_length=200, blank=True, null=True)
+    
+    # Cart details
+    cart_value = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    cart_items = models.JSONField(default=list, help_text="List of {product_title, quantity, price}")
+    cart_item_count = models.IntegerField(default=0)
+    currency = models.CharField(max_length=3, default='INR')
+    
+    # Recovery URL
+    recovery_url = models.URLField(blank=True, null=True)
+    
+    # Timestamps from Shopify
+    abandoned_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    
+    # Status
+    recovery_status = models.CharField(max_length=20, choices=RECOVERY_STATUS, default='pending', db_index=True)
+    is_recovered = models.BooleanField(default=False)
+    recovered_order = models.ForeignKey(
+        ShopifyOrder,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='recovered_from_checkouts'
+    )
+    
+    # Raw data
+    shopify_data = models.JSONField(default=dict)
+    
+    # Link to ERP lead
+    lead = models.ForeignKey(
+        'marketing.Lead',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='shopify_checkouts'
+    )
+    
+    class Meta:
+        verbose_name = "Shopify Abandoned Checkout"
+        verbose_name_plural = "Shopify Abandoned Checkouts"
+        unique_together = ['store', 'shopify_checkout_id']
+        ordering = ['-abandoned_at']
+        indexes = [
+            models.Index(fields=['customer_phone', 'recovery_status']),
+            models.Index(fields=['customer_email', 'recovery_status']),
+        ]
+    
+    def __str__(self):
+        return f"Checkout {self.shopify_checkout_id} - ₹{self.cart_value}"
+
+
+class ShopifyWebhookLog(BaseModel):
+    """Log Shopify webhook deliveries for debugging."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    store = models.ForeignKey(ShopifyStore, on_delete=models.SET_NULL, null=True, blank=True)
+    webhook_topic = models.CharField(max_length=100, db_index=True)  # orders/create, checkouts/update, etc.
+    
+    # Request info
+    shopify_domain = models.CharField(max_length=200, blank=True, null=True)
+    shopify_hmac = models.CharField(max_length=200, blank=True, null=True)
+    
+    # Payload
+    payload = models.JSONField(default=dict)
+    
+    # Processing
+    processed = models.BooleanField(default=False)
+    processing_time_ms = models.IntegerField(null=True, blank=True)
+    error_message = models.TextField(blank=True, null=True)
+    
+    # Results
+    action_taken = models.CharField(max_length=100, blank=True, null=True)
+    
+    class Meta:
+        verbose_name = "Shopify Webhook Log"
+        verbose_name_plural = "Shopify Webhook Logs"
+        ordering = ['-created']
+    
+    def __str__(self):
+        return f"{self.webhook_topic} - {self.created}"
 
 
 # Generic Integration Config
