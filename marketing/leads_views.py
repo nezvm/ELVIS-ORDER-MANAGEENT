@@ -394,7 +394,7 @@ class OtherLeadsView(LoginRequiredMixin, TemplateView):
         ).order_by('-count')
         context['source_breakdown'] = list(sources)
         
-        context['recent_leads'] = filtered_leads.select_related('owner').order_by('-created')[:50]
+        context['recent_leads'] = filtered_leads.select_related('assigned_to').order_by('-created')[:50]
         
         return context
 
