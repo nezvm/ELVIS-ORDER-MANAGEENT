@@ -64,6 +64,7 @@ MODULES = [
     "segmentation",
     "integrations",
     "integrations.whatsapp",
+    "integrations.wabis",
     "api",
     "marketing",
 ]
