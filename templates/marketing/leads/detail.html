@@ -269,4 +269,95 @@
         </div>
     </div>
 </div>
+
+<!-- Attribution Section -->
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm mt-6">
+    <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+        <h3 class="text-sm font-bold text-gray-900"><i class="fas fa-tag text-blue-500 mr-2"></i>Attribution &amp; CAPI Status</h3>
+    </div>
+    <div class="p-5">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+            <div>
+                <p class="text-xs text-gray-500 uppercase">Attribution Model</p>
+                <p class="font-medium text-gray-900 mt-0.5">
+                    {% if lead.attribution_model == 'probabilistic_ads' %}
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700"><i class="fas fa-ad mr-1"></i>Probabilistic Ads</span>
+                    {% elif lead.attribution_model == 'manual_ads' %}
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-blue-200 text-blue-800"><i class="fas fa-user-check mr-1"></i>Manual Ads</span>
+                    {% elif lead.attribution_model == 'organic' %}
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700"><i class="fas fa-leaf mr-1"></i>Organic</span>
+                    {% elif lead.attribution_model == 'manual_organic' %}
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-200 text-green-800"><i class="fas fa-user-check mr-1"></i>Manual Organic</span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Unknown</span>
+                    {% endif %}
+                </p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 uppercase">Confidence</p>
+                <p class="font-medium text-gray-900 mt-0.5">{{ lead.attribution_confidence|floatformat:0|default:"—" }}%</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 uppercase">CAPI Lead Event</p>
+                <p class="font-medium mt-0.5 {% if lead.lead_event_sent_to_meta %}text-green-600{% else %}text-gray-400{% endif %}">
+                    {% if lead.lead_event_sent_to_meta %}<i class="fas fa-check-circle mr-1"></i>Sent{% else %}Not sent{% endif %}
+                </p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 uppercase">CAPI Purchase Event</p>
+                <p class="font-medium mt-0.5 {% if lead.conversion_sent_to_meta %}text-green-600{% else %}text-gray-400{% endif %}">
+                    {% if lead.conversion_sent_to_meta %}<i class="fas fa-check-circle mr-1"></i>Sent{% else %}Not sent{% endif %}
+                </p>
+            </div>
+        </div>
+        {% if lead.attribution_reason %}
+        <div class="bg-gray-50 rounded-lg p-3 mb-4 text-xs text-gray-600">
+            <i class="fas fa-info-circle text-blue-500 mr-1"></i>
+            <strong>Reason:</strong> {{ lead.attribution_reason }}
+        </div>
+        {% endif %}
+        <!-- Manual Attribution Override -->
+        <div class="flex items-center gap-2 pt-3 border-t border-gray-100">
+            <span class="text-xs text-gray-500 mr-2">Manual Override:</span>
+            <button onclick="overrideAttribution('manual_ads')" class="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                <i class="fas fa-ad mr-1"></i> Mark as Ads
+            </button>
+            <button onclick="overrideAttribution('manual_organic')" class="px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                <i class="fas fa-leaf mr-1"></i> Mark as Organic
+            </button>
+            <span id="overrideResult" class="text-xs ml-2"></span>
+        </div>
+        <p class="text-[10px] text-gray-400 mt-2">
+            <i class="fas fa-lock mr-1"></i>
+            Manual overrides are never overwritten by the nightly attribution engine.
+        </p>
+    </div>
+</div>
+
+<script>
+function overrideAttribution(model) {
+    const formData = new FormData();
+    formData.append('attribution_model', model);
+    fetch('{% url "marketing:api_update_lead_attribution" pk=lead.pk %}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        const el = document.getElementById('overrideResult');
+        if (data.success) {
+            el.className = 'text-xs ml-2 text-green-600';
+            el.innerHTML = '<i class="fas fa-check-circle mr-1"></i>' + data.message;
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            el.className = 'text-xs ml-2 text-red-600';
+            el.innerHTML = '<i class="fas fa-times-circle mr-1"></i>' + (data.error || 'Failed');
+        }
+    })
+    .catch(err => {
+        document.getElementById('overrideResult').innerHTML = 'Error: ' + err.message;
+    });
+}
+</script>
 {% endblock %}
