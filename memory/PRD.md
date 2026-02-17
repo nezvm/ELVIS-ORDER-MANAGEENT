@@ -56,7 +56,14 @@ Build a comprehensive lead management system within the existing Django ERP with
 - Sync iterates through all numbers with configured Bot IDs
 - API correctly uses Wabis format: `{status: '1', message: [...]}`
 
-### Phase 8: Meta CAPI Integration (Future)
+### Phase 8: Enhanced WhatsApp Analytics Dashboard ✅ (Feb 17, 2026)
+- **Conversion Funnel**: Total → Pending → Won → Lost breakdown
+- **Leads by Number**: See which WhatsApp number brings most leads
+- **Source Distribution**: Organic vs Ads pie chart (with limitation note)
+- **Key Metrics**: Total leads, Won, Pending, Conversion Rate, Revenue
+- **Source Configuration Guide**: Explains how attribution works with Wabis
+
+### Phase 9: Meta CAPI Integration (Future)
 - Send conversions to Meta for ROAS tracking
 - Ad spend sync
 
