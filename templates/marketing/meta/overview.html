@@ -12,7 +12,6 @@
             <p class="text-sm text-gray-500 mt-1">WhatsApp ROAS + Meta Measurement Engine &mdash; {{ date_label }}</p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-            {% for p, lbl in "today:Today,yesterday:Yesterday,this_week:This Week,this_month:This Month,last_month:Last Month"|make_list %}{% endfor %}
             <a href="?preset=today" class="px-3 py-1.5 text-xs font-medium rounded-lg border {% if date_preset == 'today' %}bg-primary-500 text-white border-primary-500{% else %}bg-white text-gray-600 border-gray-300 hover:bg-gray-50{% endif %} transition">Today</a>
             <a href="?preset=yesterday" class="px-3 py-1.5 text-xs font-medium rounded-lg border {% if date_preset == 'yesterday' %}bg-primary-500 text-white border-primary-500{% else %}bg-white text-gray-600 border-gray-300 hover:bg-gray-50{% endif %} transition">Yesterday</a>
             <a href="?preset=this_week" class="px-3 py-1.5 text-xs font-medium rounded-lg border {% if date_preset == 'this_week' %}bg-primary-500 text-white border-primary-500{% else %}bg-white text-gray-600 border-gray-300 hover:bg-gray-50{% endif %} transition">This Week</a>
