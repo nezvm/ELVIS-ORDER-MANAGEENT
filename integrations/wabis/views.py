@@ -370,52 +370,70 @@ def sync_status(request):
 def trigger_api_sync(request):
     """
     Trigger a sync of subscribers from Wabis API.
-    Reads credentials from database config or settings.
+    Syncs from ALL configured WhatsApp numbers, or falls back to single config bot ID.
     """
     if not request.user.is_authenticated:
         return JsonResponse({'success': False, 'error': 'Authentication required'}, status=401)
     
-    # Try to get from database config first
+    # Get config for API token
     config = WabisConfig.objects.filter(is_active=True).first()
     
-    if config and config.api_key and config.whatsapp_bot_id:
-        api_token = config.api_key
-        bot_id = config.whatsapp_bot_id
-    else:
-        # Fallback to settings
-        from django.conf import settings
-        api_token = getattr(settings, 'WABIS_API_TOKEN', '')
-        bot_id = getattr(settings, 'WABIS_WHATSAPP_BOT_ID', '')
-    
-    if not api_token:
+    if not config or not config.api_key:
         return JsonResponse({
             'success': False, 
             'error': 'API Token not configured. Go to Settings to add it.'
         }, status=400)
     
-    if not bot_id:
-        return JsonResponse({
-            'success': False,
-            'error': 'WhatsApp Bot ID not configured. Go to Settings to add it.'
-        }, status=400)
+    api_token = config.api_key
     
     try:
         from .api_client import WabisSubscriberSyncService
         
         sync_service = WabisSubscriberSyncService(api_token=api_token)
-        stats = sync_service.sync_all_subscribers(whatsapp_bot_id=bot_id)
         
-        # Update last sync time
-        config = WabisConfig.objects.filter(is_active=True).first()
-        if config:
+        # Check if any numbers have bot IDs configured
+        numbers_with_bot_ids = WabisNumber.objects.filter(
+            is_active=True,
+            wabis_bot_id__isnull=False
+        ).exclude(wabis_bot_id='').count()
+        
+        if numbers_with_bot_ids > 0:
+            # Sync from all configured numbers
+            stats = sync_service.sync_all_numbers()
+            
+            # Update last sync time
             config.last_sync_at = timezone.now()
+            config.connection_status = 'connected'
             config.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f"Synced {stats['numbers_synced']} numbers: {stats['total_created']} created, {stats['total_updated']} updated",
+                'stats': stats,
+                'sync_type': 'multi_number'
+            })
         
-        return JsonResponse({
-            'success': True,
-            'message': f"Sync completed: {stats['created']} created, {stats['updated']} updated",
-            'stats': stats
-        })
+        elif config.whatsapp_bot_id:
+            # Fallback: sync from single config bot ID
+            stats = sync_service.sync_all_subscribers(whatsapp_bot_id=config.whatsapp_bot_id)
+            
+            config.last_sync_at = timezone.now()
+            config.connection_status = 'connected'
+            config.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f"Sync completed: {stats['created']} created, {stats['updated']} updated",
+                'stats': stats,
+                'sync_type': 'single_bot'
+            })
+        
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'No WhatsApp numbers configured with Bot IDs. Add Bot IDs to your numbers in the Numbers page, or set a default Bot ID in Settings.'
+            }, status=400)
+            
     except Exception as e:
         logger.error(f"API sync error: {e}")
         return JsonResponse({
