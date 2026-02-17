@@ -129,21 +129,23 @@
 <div id="editBotIdModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
     <div class="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4">
         <div class="p-6 border-b border-gray-100">
-            <h3 class="text-lg font-semibold text-gray-900">Edit Wabis Bot ID</h3>
+            <h3 class="text-lg font-semibold text-gray-900">Edit Wabis Number ID</h3>
             <p class="text-sm text-gray-500 mt-1" id="editBotIdNumberName">For number: ...</p>
         </div>
         <div class="p-6 space-y-4">
             <div class="bg-blue-50 rounded-lg p-3 text-sm text-blue-700">
                 <i class="fas fa-info-circle mr-1"></i>
-                Find the Bot ID in Wabis URL when viewing this number:<br>
-                <code class="bg-blue-100 px-1 rounded mt-1 inline-block">bot.wabis.in/whatsapp/<strong>[BOT_ID]</strong>/bot-reply</code>
+                Find the <strong>Number ID</strong> in Wabis "Connect Account" page:<br>
+                <a href="https://bot.wabis.in/whatsapp/bot/connect" target="_blank" class="underline">bot.wabis.in/whatsapp/bot/connect</a>
+                <p class="mt-2 text-xs">Example: <code class="bg-blue-100 px-1 rounded">288969734293575</code></p>
+                <p class="mt-1 text-xs text-red-600">⚠️ Use "Number ID", NOT "Business Account ID"</p>
             </div>
             <input type="hidden" id="editBotIdNumberId">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Wabis Bot ID</label>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Wabis Number ID</label>
                 <input type="text" id="editBotIdValue"
                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                       placeholder="12345"
+                       placeholder="288969734293575"
                        data-testid="edit-bot-id-input">
             </div>
         </div>
@@ -152,7 +154,7 @@
                 Cancel
             </button>
             <button onclick="saveBotId()" type="button" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors" data-testid="save-bot-id-btn">
-                Save Bot ID
+                Save Number ID
             </button>
         </div>
     </div>
