@@ -653,11 +653,97 @@ agent_communication:
         agent: "testing"
         comment: "✅ SIDEBAR NAVIGATION VERIFIED: Both 'WhatsApp Leads' (Marketing section) and 'WhatsApp Setup' (Integrations section) navigation items found in sidebar. Navigation structure correct and accessible."
 
+  - task: "Marketing Meta Measurement Engine - ROAS Dashboard"
+    implemented: true
+    working: "NA"
+    file: "marketing/meta_views.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "MarketingOverviewView implemented for ROAS Dashboard with date filters, KPIs, charts, dual ROAS views, attribution disclaimer"
+
+  - task: "Marketing Meta Measurement Engine - Meta Integration Settings"
+    implemented: true
+    working: "NA"
+    file: "marketing/meta_views.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "MetaSettingsView implemented for Meta API config form, test connection/events, setup guide"
+
+  - task: "Marketing Meta Measurement Engine - Campaign Performance"
+    implemented: true
+    working: "NA"
+    file: "marketing/meta_views.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "CampaignPerformanceView implemented with campaign performance table and date filters"
+
+  - task: "Marketing Meta Measurement Engine - CAPI Event Logs"
+    implemented: true
+    working: "NA"
+    file: "marketing/meta_views.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "CapiEventLogsView implemented as filterable CAPI event log viewer"
+
+  - task: "Marketing Meta Measurement Engine - API Endpoints"
+    implemented: true
+    working: "NA"
+    file: "marketing/meta_views.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "All Meta API endpoints implemented: test-connection, send-test-event, sync-insights, run-attribution, send-pending-capi, chart-data, lead attribution"
+
+  - task: "Marketing Meta Measurement Engine - Lead List Attribution Column"
+    implemented: true
+    working: "NA"
+    file: "marketing/views.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "LeadListView enhanced with Attribution column and lead detail page attribution section"
+
+  - task: "Marketing Meta Measurement Engine - Sidebar Navigation"
+    implemented: true
+    working: "NA"
+    file: "templates/ui/base.html"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Sidebar updated with ROAS Dashboard, Campaign Performance, CAPI Event Logs, Meta Settings navigation links"
+
 test_plan:
   current_focus: 
-    - "Lead Attribution & Conversion Tracking"
-    - "Meta CAPI Integration"
-    - "Lead Performance Dashboard"
+    - "Marketing Meta Measurement Engine - ROAS Dashboard"
+    - "Marketing Meta Measurement Engine - Meta Integration Settings"
+    - "Marketing Meta Measurement Engine - Campaign Performance"
+    - "Marketing Meta Measurement Engine - CAPI Event Logs"
+    - "Marketing Meta Measurement Engine - API Endpoints"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
