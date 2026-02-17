@@ -32,6 +32,19 @@ class Lead(BaseModel):
         ('lost', 'Lost'),
     ]
     
+    # Status reason for transparency
+    STATUS_REASON_CHOICES = [
+        ('manual_win', 'Manual Win'),
+        ('order_placed', 'Order Placed'),
+        ('recovered', 'Recovered from Abandoned'),
+        ('manual_loss', 'Manual Loss'),
+        ('cooling_period_expired', 'Cooling Period Expired'),
+        ('no_response', 'No Response'),
+        ('duplicate', 'Duplicate Lead'),
+        ('invalid', 'Invalid Contact'),
+        ('not_interested', 'Not Interested'),
+    ]
+    
     # Source type for attribution
     SOURCE_TYPE_CHOICES = [
         ('organic', 'Organic'),
