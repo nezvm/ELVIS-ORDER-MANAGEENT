@@ -219,6 +219,59 @@ class Lead(BaseModel):
     )
     conversion_sent_at = models.DateTimeField(null=True, blank=True)
     conversion_event_id = models.CharField(max_length=200, blank=True, null=True)
+    lead_event_sent_to_meta = models.BooleanField(
+        default=False,
+        help_text="Whether lead event was sent to Meta CAPI"
+    )
+    lead_event_sent_at = models.DateTimeField(null=True, blank=True)
+    lead_event_id = models.CharField(max_length=200, blank=True, null=True)
+    
+    # =============================================================================
+    # PROBABILISTIC ATTRIBUTION (Meta CAPI Integration)
+    # =============================================================================
+    ATTRIBUTION_MODEL_CHOICES = [
+        ('unknown', 'Unknown'),
+        ('organic', 'Organic'),
+        ('probabilistic_ads', 'Probabilistic Ads'),
+        ('manual_ads', 'Manual - Ads'),
+        ('manual_organic', 'Manual - Organic'),
+    ]
+    
+    attribution_model = models.CharField(
+        max_length=30,
+        choices=ATTRIBUTION_MODEL_CHOICES,
+        default='unknown',
+        db_index=True,
+        help_text="Attribution model: organic, probabilistic_ads, manual_ads, manual_organic"
+    )
+    attribution_confidence = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+        help_text="Attribution confidence score (0-100)"
+    )
+    attribution_reason = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Explanation of attribution calculation"
+    )
+    attribution_bucket_date = models.DateField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Date bucket used for attribution calculation"
+    )
+    attributed_campaign_id = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Campaign ID if proportionally allocated"
+    )
+    attribution_updated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When attribution was last calculated"
+    )
     
     # Lead Management
     lead_status = models.CharField(max_length=20, choices=LEAD_STATUS, default='new')
