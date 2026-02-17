@@ -322,8 +322,34 @@
                         </span>
                         {% endif %}
                     </td>
+                    <!-- Attribution Badge -->
+                    <td class="px-4 py-5">
+                        {% if lead.attribution_model == 'probabilistic_ads' %}
+                        <div class="flex flex-col items-start gap-1">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">
+                                <i class="fas fa-ad mr-1"></i>Ads (Est.)
+                            </span>
+                            <span class="text-[10px] text-gray-400">{{ lead.attribution_confidence|floatformat:0 }}% conf</span>
+                        </div>
+                        {% elif lead.attribution_model == 'manual_ads' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-200 text-blue-800">
+                            <i class="fas fa-user-check mr-1"></i>Manual Ads
+                        </span>
+                        {% elif lead.attribution_model == 'organic' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
+                            <i class="fas fa-leaf mr-1"></i>Organic
+                        </span>
+                        {% elif lead.attribution_model == 'manual_organic' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-200 text-green-800">
+                            <i class="fas fa-user-check mr-1"></i>Manual Organic
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-500">
+                            Unknown
+                        </span>
+                        {% endif %}
+                    </td>
                     <td class="px-6 py-5">
-                        {% if lead.match_status == 'win' %}
                         <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold badge-win">
                             <i class="fas fa-check-circle mr-1.5"></i>WIN
                         </span>
