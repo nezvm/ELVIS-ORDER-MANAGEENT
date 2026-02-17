@@ -232,7 +232,6 @@ class ShopifyOrderService:
             # Update lead if linked
             if checkout.lead:
                 checkout.lead.conversion_status = 'won'
-                checkout.lead.status = 'Won'
                 checkout.lead.won_at = timezone.now()
                 checkout.lead.save()
             
