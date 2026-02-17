@@ -229,7 +229,8 @@ function submitAddNumber() {
         phone_number_id: formData.get('phone_number_id'),
         display_phone_number: formData.get('display_phone_number'),
         display_name: formData.get('display_name'),
-        waba_id: formData.get('waba_id') || ''
+        waba_id: formData.get('waba_id') || '',
+        wabis_bot_id: formData.get('wabis_bot_id') || ''
     };
     
     if (!data.phone_number_id || !data.display_phone_number || !data.display_name) {
@@ -280,6 +281,45 @@ function deleteNumber(numberId) {
     })
     .catch(error => {
         alert('Error deleting number');
+    });
+}
+
+// Edit Bot ID Modal Functions
+function showEditBotIdModal(numberId, numberName, currentBotId) {
+    document.getElementById('editBotIdNumberId').value = numberId;
+    document.getElementById('editBotIdNumberName').textContent = 'For number: ' + numberName;
+    document.getElementById('editBotIdValue').value = currentBotId || '';
+    document.getElementById('editBotIdModal').classList.remove('hidden');
+}
+
+function hideEditBotIdModal() {
+    document.getElementById('editBotIdModal').classList.add('hidden');
+    document.getElementById('editBotIdValue').value = '';
+}
+
+function saveBotId() {
+    const numberId = document.getElementById('editBotIdNumberId').value;
+    const botId = document.getElementById('editBotIdValue').value.trim();
+    
+    fetch(`/integrations/wabis/numbers/${numberId}/update-bot-id/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ wabis_bot_id: botId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert('Failed to update Bot ID: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        alert('Error updating Bot ID');
+        console.error(error);
     });
 }
 </script>
