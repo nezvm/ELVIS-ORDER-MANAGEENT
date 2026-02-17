@@ -1,0 +1,251 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}Shopify Leads{% endblock %}
+{% block page_title %}Shopify Leads{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header with Tabs -->
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-6">
+            <h2 class="text-2xl font-bold text-gray-900">Leads</h2>
+            <nav class="flex space-x-1 bg-gray-100 rounded-lg p-1">
+                <a href="{% url 'marketing:leads_overview' %}?date_filter={{ date_filter }}" 
+                   class="px-4 py-2 text-sm font-medium rounded-md {% if active_tab == 'overview' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">
+                    All Leads
+                </a>
+                <a href="{% url 'marketing:leads_whatsapp' %}?date_filter={{ date_filter }}"
+                   class="px-4 py-2 text-sm font-medium rounded-md {% if active_tab == 'whatsapp' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">
+                    <i class="fab fa-whatsapp text-green-500 mr-1"></i>WhatsApp
+                </a>
+                <a href="{% url 'marketing:leads_shopify' %}?date_filter={{ date_filter }}"
+                   class="px-4 py-2 text-sm font-medium rounded-md {% if active_tab == 'shopify' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">
+                    <i class="fab fa-shopify text-green-600 mr-1"></i>Shopify
+                </a>
+                <a href="{% url 'marketing:leads_other' %}?date_filter={{ date_filter }}"
+                   class="px-4 py-2 text-sm font-medium rounded-md {% if active_tab == 'other' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">
+                    Other
+                </a>
+            </nav>
+        </div>
+        
+        <!-- Date Filter -->
+        <div class="flex items-center space-x-3">
+            <select id="dateFilter" onchange="applyDateFilter()" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+                <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
+                <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
+                <option value="this_week" {% if date_filter == 'this_week' %}selected{% endif %}>This Week</option>
+                <option value="this_month" {% if date_filter == 'this_month' %}selected{% endif %}>This Month</option>
+                <option value="last_7_days" {% if date_filter == 'last_7_days' %}selected{% endif %}>Last 7 Days</option>
+                <option value="last_30_days" {% if date_filter == 'last_30_days' %}selected{% endif %}>Last 30 Days</option>
+            </select>
+            <span class="text-sm text-gray-500">{{ filter_label }}</span>
+        </div>
+    </div>
+
+    <!-- Subtabs -->
+    <div class="flex space-x-2">
+        <a href="?date_filter={{ date_filter }}&subtab=all" 
+           class="px-4 py-2 text-sm font-medium rounded-lg {% if subtab == 'all' %}bg-purple-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+            All ({{ total_leads }})
+        </a>
+        <a href="?date_filter={{ date_filter }}&subtab=orders" 
+           class="px-4 py-2 text-sm font-medium rounded-lg {% if subtab == 'orders' %}bg-purple-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+            Orders ({{ orders_leads }})
+        </a>
+        <a href="?date_filter={{ date_filter }}&subtab=abandoned" 
+           class="px-4 py-2 text-sm font-medium rounded-lg {% if subtab == 'abandoned' %}bg-purple-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+            Abandoned ({{ abandoned_leads }})
+        </a>
+        <a href="?date_filter={{ date_filter }}&subtab=recovered" 
+           class="px-4 py-2 text-sm font-medium rounded-lg {% if subtab == 'recovered' %}bg-purple-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+            <i class="fas fa-check-circle mr-1"></i>Recovered ({{ recovered_leads }})
+        </a>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                    <i class="fab fa-shopify text-purple-600"></i>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500">Total</p>
+                    <p class="text-xl font-bold text-gray-900">{{ total_leads }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-xs text-gray-500 uppercase">Pending</p>
+            <p class="text-xl font-bold text-yellow-600 mt-1">{{ pending_leads }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-xs text-gray-500 uppercase">Won</p>
+            <p class="text-xl font-bold text-green-600 mt-1">{{ won_leads }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-xs text-gray-500 uppercase">Lost</p>
+            <p class="text-xl font-bold text-red-600 mt-1">{{ lost_leads }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-xs text-gray-500 uppercase">Conversion</p>
+            <p class="text-xl font-bold text-purple-600 mt-1">{{ conversion_rate }}%</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-xs text-gray-500 uppercase">Recovery</p>
+            <p class="text-xl font-bold text-blue-600 mt-1">{{ recovery_rate }}%</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-xs text-gray-500 uppercase">COD</p>
+            <p class="text-xl font-bold text-orange-600 mt-1">{{ cod_orders }}</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-xs text-gray-500 uppercase">Prepaid</p>
+            <p class="text-xl font-bold text-green-600 mt-1">{{ prepaid_orders }}</p>
+        </div>
+    </div>
+
+    <!-- Insights Row -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- COD vs Prepaid -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Payment Split</h3>
+            <div class="flex items-center justify-around">
+                <div class="text-center">
+                    <div class="w-20 h-20 rounded-full bg-orange-100 flex items-center justify-center mx-auto mb-2">
+                        <span class="text-2xl font-bold text-orange-600">{{ cod_orders }}</span>
+                    </div>
+                    <p class="text-sm text-gray-600">COD Orders</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-2">
+                        <span class="text-2xl font-bold text-green-600">{{ prepaid_orders }}</span>
+                    </div>
+                    <p class="text-sm text-gray-600">Prepaid Orders</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recovery Funnel -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Abandoned → Recovered</h3>
+            <div class="space-y-3">
+                <div class="relative">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-sm text-gray-600">Abandoned Carts</span>
+                        <span class="text-sm font-semibold">{{ abandoned_leads }}</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div class="bg-red-500 h-3 rounded-full" style="width: 100%"></div>
+                    </div>
+                </div>
+                <div class="relative">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-sm text-gray-600">Recovered</span>
+                        <span class="text-sm font-semibold text-green-600">{{ recovered_leads }}</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        {% if abandoned_leads > 0 %}
+                        <div class="bg-green-500 h-3 rounded-full" style="width: {% widthratio recovered_leads abandoned_leads 100 %}%"></div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4 text-center">
+                <span class="text-3xl font-bold text-green-600">{{ recovery_rate }}%</span>
+                <p class="text-sm text-gray-500">Recovery Rate</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leads Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-100">
+            <h3 class="text-lg font-semibold text-gray-900">
+                {% if subtab == 'orders' %}Order Leads{% elif subtab == 'abandoned' %}Abandoned Leads{% elif subtab == 'recovered' %}Recovered Leads{% else %}All Shopify Leads{% endif %}
+            </h3>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lead</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Value</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for lead in recent_leads %}
+                    <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='{% url 'marketing:lead_detail_new' lead.pk %}'">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
+                                    <span class="text-purple-600 font-bold">{{ lead.name|slice:":1"|upper|default:"?" }}</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">{{ lead.name|default:"Unknown" }}</div>
+                                    <div class="text-sm text-gray-500">{{ lead.email|default:lead.phone_no }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if 'order' in lead.lead_source %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Order</span>
+                            {% elif 'abandoned' in lead.lead_source %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Abandoned</span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">{{ lead.lead_source }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if lead.conversion_status == 'won' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Won</span>
+                            {% elif lead.conversion_status == 'lost' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Lost</span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {% if lead.status_reason == 'recovered' %}
+                            <span class="text-green-600 font-medium">
+                                <i class="fas fa-check-circle mr-1"></i>Recovered
+                            </span>
+                            {% else %}
+                            {{ lead.get_status_reason_display|default:"-" }}
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {% if lead.conversion_value %}₹{{ lead.conversion_value|floatformat:0 }}{% else %}-{% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ lead.created|date:"M d, H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                            <i class="fab fa-shopify text-4xl mb-4"></i>
+                            <p>No Shopify leads found.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+function applyDateFilter() {
+    const filter = document.getElementById('dateFilter').value;
+    const url = new URL(window.location.href);
+    url.searchParams.set('date_filter', filter);
+    window.location.href = url.toString();
+}
+</script>
+{% endblock %}
