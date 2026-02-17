@@ -417,5 +417,37 @@ function copyToClipboard(elementId) {
         alert('Copied to clipboard!');
     }
 }
+
+function triggerSync() {
+    const btn = document.querySelector('[data-testid="sync-subscribers-btn"]');
+    const originalText = btn.innerHTML;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Syncing...';
+    
+    fetch('{% url "integrations:wabis:trigger_sync" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Sync completed!\n\n' + data.message);
+            window.location.reload();
+        } else {
+            alert('Sync failed: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        alert('Sync error: ' + error.message);
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
 </script>
 {% endblock %}
