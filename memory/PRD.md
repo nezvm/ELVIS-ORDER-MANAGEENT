@@ -142,9 +142,11 @@ For real-time updates:
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
 | `/integrations/wabis/config/` | GET | Configuration page |
+| `/integrations/wabis/numbers/` | GET | Number management page |
+| `/integrations/wabis/numbers/<pk>/update-bot-id/` | POST | Update Bot ID for a number |
 | `/integrations/wabis/api/save-config/` | POST | Save API credentials |
 | `/integrations/wabis/api/test-connection/` | POST | Test API connection |
-| `/integrations/wabis/api/trigger-sync/` | POST | Sync subscribers |
+| `/integrations/wabis/api/trigger-sync/` | POST | Sync subscribers from all numbers |
 | `/webhooks/wabis/` | GET/POST | Wabis webhook |
 | `/webhooks/shopify/orders/` | POST | Shopify orders |
 
@@ -153,7 +155,8 @@ For real-time updates:
 ## Test Credentials
 - **Admin Login**: admin / admin123
 - **Wabis Verify Token**: elvis_wabis_verify_2024
+- **Wabis Developer Console**: bot.wabis.in/api/developer/console (wowdeskdown@gmail.com)
 
 ## Test Report
-- Latest: `/app/test_reports/iteration_4.json`
-- Status: 100% backend tests passed, 100% frontend tests passed
+- Latest: `/app/test_reports/iteration_5.json`
+- Status: 100% backend tests passed (31 tests: 20 Wabis API + 11 webhooks)
