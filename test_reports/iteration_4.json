@@ -1,0 +1,105 @@
+{
+  "summary": "Completed comprehensive testing of Lead Management System webhooks and UI. All Wabis and Shopify webhook endpoints working correctly (11 backend tests passed). Frontend UI verified - Marketing Dashboard, Leads List with tabs (All Leads, WhatsApp Leads, Shopify Leads, Other Leads), and Wabis Dashboard all functional.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "All pages",
+        "issues": ["Console warning: cdn.tailwindcss.com should not be used in production - should use PostCSS/CLI build"]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/tests/test_webhooks.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Consider switching from cdn.tailwindcss.com to production Tailwind build"
+  ],
+  "critical_code_review_comments": [
+    "Webhook endpoints correctly return 200 even on errors to prevent retries from Shopify/Meta",
+    "Lead deduplication works correctly - same phone creates single lead",
+    "Wabis webhook verification using hub.mode=subscribe pattern works correctly",
+    "Shopify completed checkouts are correctly skipped (not treated as abandoned)",
+    "COD vs Prepaid detection based on financial_status=pending works",
+    "ROAS Metrics placeholder displayed with 'Coming Soon' badge"
+  ],
+  "updated_files": [
+    "/app/tests/test_webhooks.py"
+  ],
+  "success_rate": {
+    "backend": "100% (11 passed, 6 skipped auth tests)",
+    "frontend": "100%"
+  },
+  "test_credentials": "Username: admin, Password: admin123",
+  "seed_data_creation": "Test webhooks created: 3 WabisCustomers, 3 ShopifyOrders, 2 AbandonedCheckouts, 10 Leads total",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All webhook endpoints verified: GET /webhooks/wabis/ (verification), POST /webhooks/wabis/ (message processing), POST /webhooks/shopify/orders/, POST /webhooks/shopify/checkouts/, POST /webhooks/shopify/fulfillments/. UI pages verified: /marketing/dashboard/, /marketing/leads/, /integrations/wabis/. Lead filtering by source (whatsapp, shopify, other) works. Subtabs for WhatsApp (Organic, Ads) and Shopify (Orders, Abandoned Checkouts) present.",
+  "tested_features": {
+    "wabis_webhook_verification_get": {
+      "status": "PASS",
+      "endpoint": "/webhooks/wabis/",
+      "details": "Returns challenge on correct verify_token, returns 403 on wrong token"
+    },
+    "wabis_webhook_post": {
+      "status": "PASS",
+      "endpoint": "/webhooks/wabis/",
+      "details": "Creates WabisCustomer, WabisMessage, WabisNumber, and Lead records"
+    },
+    "shopify_orders_webhook": {
+      "status": "PASS",
+      "endpoint": "/webhooks/shopify/orders/",
+      "details": "Creates ShopifyOrder and Lead, handles COD/Prepaid correctly"
+    },
+    "shopify_checkouts_webhook": {
+      "status": "PASS",
+      "endpoint": "/webhooks/shopify/checkouts/",
+      "details": "Creates ShopifyAbandonedCheckout and Lead, skips completed checkouts"
+    },
+    "shopify_fulfillments_webhook": {
+      "status": "PASS",
+      "endpoint": "/webhooks/shopify/fulfillments/",
+      "details": "Updates ShopifyOrder with tracking info"
+    },
+    "marketing_dashboard": {
+      "status": "PASS",
+      "endpoint": "/marketing/dashboard/",
+      "details": "Shows Leads Today, Conversions Today, Shopify Orders, WhatsApp Messages, Lead Sources, Recovery Rate, Weekly Trends"
+    },
+    "leads_list_all": {
+      "status": "PASS",
+      "endpoint": "/marketing/leads/",
+      "details": "Shows all leads with tabs for filtering by source"
+    },
+    "leads_filter_whatsapp": {
+      "status": "PASS",
+      "endpoint": "/marketing/leads/?lead_source=whatsapp",
+      "details": "Shows WhatsApp leads with subtabs (Organic, Ads)"
+    },
+    "leads_filter_shopify": {
+      "status": "PASS",
+      "endpoint": "/marketing/leads/?lead_source=shopify",
+      "details": "Shows Shopify leads with subtabs (Orders, Abandoned Checkouts)"
+    },
+    "leads_filter_other": {
+      "status": "PASS",
+      "endpoint": "/marketing/leads/?lead_source=other",
+      "details": "Shows leads from other sources"
+    },
+    "wabis_dashboard": {
+      "status": "PASS",
+      "endpoint": "/integrations/wabis/",
+      "details": "Shows webhook URL, verify token, active numbers, leads/messages stats"
+    }
+  },
+  "mocked_apis": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  }
+}
