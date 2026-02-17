@@ -41,11 +41,18 @@ class LeadListView(LoginRequiredMixin, TemplateView):
         # Source counts for cards (before filtering)
         all_leads = Lead.objects.filter(is_active=True)
         context['source_counts'] = {
-            'whatsapp': all_leads.filter(lead_source__icontains='whatsapp').count(),
-            'shopify': all_leads.filter(lead_source__icontains='shopify').count(),
+            'whatsapp': all_leads.filter(Q(lead_source__icontains='whatsapp') | Q(source_type='whatsapp')).count(),
+            'shopify': all_leads.filter(Q(lead_source__icontains='shopify') | Q(source_type='shopify')).count(),
             'google': all_leads.filter(lead_source__icontains='google').count(),
             'ads': all_leads.filter(lead_source__in=['facebook_ad', 'instagram_ad', 'google_ad', 'whatsapp_ctwa_ad']).count(),
             'manual': all_leads.filter(lead_source='manual').count(),
+            'other': all_leads.exclude(
+                Q(lead_source__icontains='whatsapp') | 
+                Q(lead_source__icontains='shopify') | 
+                Q(lead_source__icontains='google') | 
+                Q(lead_source='manual') |
+                Q(source_type__in=['whatsapp', 'shopify'])
+            ).count(),
         }
         
         # Apply source filter
