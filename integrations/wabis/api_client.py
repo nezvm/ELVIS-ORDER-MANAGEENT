@@ -341,7 +341,7 @@ class WabisSubscriberSyncService:
         Sync all subscribers from a single Wabis bot to local database.
         
         Args:
-            whatsapp_bot_id: The WhatsApp bot ID to sync from
+            whatsapp_bot_id: The WhatsApp bot ID (phone_number_id) to sync from
             wabis_number: WabisNumber instance (optional) - to link customers to specific number
             config: WabisConfig instance (optional)
         
@@ -371,58 +371,77 @@ class WabisSubscriberSyncService:
                     offset=offset
                 )
                 
-                if not response.get('success') or not response.get('data'):
+                # Handle Wabis API response format: {status: '1', message: [...]}
+                if response.get('status') != '1':
+                    error_msg = response.get('message', 'Unknown API error')
+                    if isinstance(error_msg, str):
+                        logger.error(f"Wabis API error: {error_msg}")
                     break
                 
-                subscribers = response['data']
-                if not subscribers:
+                # In Wabis API, subscribers are in 'message' field
+                subscribers = response.get('message', [])
+                if not subscribers or not isinstance(subscribers, list):
                     break
                 
                 for sub in subscribers:
                     stats['total'] += 1
                     try:
-                        # Extract phone number
-                        phone = sub.get('phone_number', '') or sub.get('phone', '')
+                        # Extract phone number - Wabis uses 'chat_id' for the phone number
+                        phone = sub.get('chat_id', '') or sub.get('phone_number', '') or sub.get('phone', '')
                         if not phone:
                             continue
                         
                         # Normalize phone
-                        phone_digits = re.sub(r'\D', '', phone)
+                        phone_digits = re.sub(r'\D', '', str(phone))
                         wa_id = phone_digits[-10:] if len(phone_digits) >= 10 else phone_digits
+                        
+                        if not wa_id:
+                            continue
+                        
+                        # Build name from first_name and last_name
+                        first_name = sub.get('first_name', '') or ''
+                        last_name = sub.get('last_name', '') or ''
+                        full_name = f"{first_name} {last_name}".strip() or sub.get('name', '')
                         
                         # Create or update WabisCustomer
                         customer, created = WabisCustomer.objects.update_or_create(
                             wa_id=wa_id,
                             defaults={
-                                'profile_name': sub.get('name', '') or sub.get('first_name', ''),
-                                'email': sub.get('email', ''),
+                                'profile_name': full_name or f"WhatsApp {wa_id[-4:]}",
                                 'source_type': 'organic',  # Default, can be updated
-                                'wabis_subscriber_id': sub.get('id'),
+                                'wabis_subscriber_id': str(sub.get('subscriber_id', '')),
                                 'last_message_at': timezone.now(),
                             }
                         )
                         
+                        # Add email if available
+                        email = sub.get('email', '')
+                        if email and email != 'null' and email != 'None':
+                            customer.email = email
+                            customer.save(update_fields=['email'])
+                        
                         # Create/update Lead
-                        lead, lead_created = Lead.objects.get_or_create(
-                            phone_no__endswith=wa_id,
-                            defaults={
-                                'name': sub.get('name', '') or f"WhatsApp {wa_id}",
-                                'phone_no': f"+91{wa_id}",
-                                'email': sub.get('email', ''),
-                                'lead_source': 'whatsapp_inbound',
-                                'source_type': 'whatsapp',
-                                'conversion_status': 'pending',
-                            }
-                        )
-                        
-                        if not lead_created and not lead.name:
-                            lead.name = sub.get('name', '') or lead.name
-                            lead.save()
-                        
-                        # Link customer to lead
-                        if not customer.linked_lead:
-                            customer.linked_lead = lead
-                            customer.save()
+                        try:
+                            lead = Lead.objects.filter(phone_no__endswith=wa_id).first()
+                            if not lead:
+                                lead = Lead.objects.create(
+                                    name=full_name or f"WhatsApp {wa_id[-4:]}",
+                                    phone_no=f"+91{wa_id}",
+                                    email=email if email and email != 'null' else '',
+                                    lead_source='whatsapp_inbound',
+                                    source_type='whatsapp',
+                                    conversion_status='pending',
+                                )
+                            elif not lead.name or lead.name.startswith('WhatsApp'):
+                                lead.name = full_name or lead.name
+                                lead.save(update_fields=['name'])
+                            
+                            # Link customer to lead
+                            if not customer.linked_lead:
+                                customer.linked_lead = lead
+                                customer.save(update_fields=['linked_lead'])
+                        except Exception as lead_err:
+                            logger.warning(f"Error creating/updating lead for {wa_id}: {lead_err}")
                         
                         if created:
                             stats['created'] += 1
@@ -433,6 +452,10 @@ class WabisSubscriberSyncService:
                         logger.error(f"Error syncing subscriber {sub}: {e}")
                         stats['errors'] += 1
                 
+                # Check if we got fewer than limit, meaning no more pages
+                if len(subscribers) < limit:
+                    break
+                    
                 offset += limit
                 
                 # Safety limit
