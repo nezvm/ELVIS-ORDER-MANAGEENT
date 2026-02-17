@@ -134,7 +134,7 @@ class TestWabisConfigAPI:
         print("✓ Save config correctly rejects missing Bot ID")
     
     def test_save_wabis_config_unauthenticated(self):
-        """Test save config returns 401 for unauthenticated requests."""
+        """Test save config returns 401/403 for unauthenticated requests."""
         # Use fresh session without authentication
         response = requests.post(
             f"{BASE_URL}/integrations/wabis/api/save-config/",
@@ -145,8 +145,9 @@ class TestWabisConfigAPI:
             }
         )
         
-        assert response.status_code == 401, f"Expected 401, got {response.status_code}"
-        print("✓ Save config correctly returns 401 for unauthenticated requests")
+        # 401 for auth required or 403 for CSRF protection
+        assert response.status_code in [401, 403], f"Expected 401 or 403, got {response.status_code}"
+        print("✓ Save config correctly rejects unauthenticated requests")
 
 
 class TestWabisConnectionTest:
@@ -233,7 +234,7 @@ class TestWabisConnectionTest:
         print("✓ Connection test handles invalid credentials gracefully")
     
     def test_connection_test_unauthenticated(self):
-        """Test connection test returns 401 for unauthenticated requests."""
+        """Test connection test returns 401/403 for unauthenticated requests."""
         response = requests.post(
             f"{BASE_URL}/integrations/wabis/api/test-connection/",
             headers={'Content-Type': 'application/json'},
@@ -243,8 +244,9 @@ class TestWabisConnectionTest:
             }
         )
         
-        assert response.status_code == 401, f"Expected 401, got {response.status_code}"
-        print("✓ Connection test correctly returns 401 for unauthenticated")
+        # 401 for auth required or 403 for CSRF protection
+        assert response.status_code in [401, 403], f"Expected 401 or 403, got {response.status_code}"
+        print("✓ Connection test correctly rejects unauthenticated requests")
 
 
 class TestWabisSyncTrigger:
@@ -301,14 +303,15 @@ class TestWabisSyncTrigger:
         print("✓ Trigger sync endpoint responds correctly")
     
     def test_trigger_sync_unauthenticated(self):
-        """Test trigger sync returns 401 for unauthenticated requests."""
+        """Test trigger sync returns 401/403 for unauthenticated requests."""
         response = requests.post(
             f"{BASE_URL}/integrations/wabis/api/trigger-sync/",
             headers={'Content-Type': 'application/json'}
         )
         
-        assert response.status_code == 401, f"Expected 401, got {response.status_code}"
-        print("✓ Trigger sync correctly returns 401 for unauthenticated")
+        # 401 for auth required or 403 for CSRF protection
+        assert response.status_code in [401, 403], f"Expected 401 or 403, got {response.status_code}"
+        print("✓ Trigger sync correctly rejects unauthenticated requests")
 
 
 class TestWabisNumberBotIdUpdate:
