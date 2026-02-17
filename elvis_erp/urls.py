@@ -15,7 +15,8 @@ from integrations.shopify.views import (
     shopify_fulfillments_webhook
 )
 
-urlpatterns = [
+# Core URL patterns
+core_patterns = [
     path("", include("core.urls")),
     path("master/", include("master.urls")),
     path("accounts/", include("accounts.urls")),
@@ -45,6 +46,16 @@ urlpatterns = [
     
     # REST API
     path("api/v1/", include("api.urls")),
+]
+
+# Main URL patterns - serve routes both with and without /api prefix
+# Emergent platform routes /api/* to backend on port 8001
+urlpatterns = [
+    # Routes without /api prefix (for local development)
+    *core_patterns,
+    
+    # Routes with /api prefix (for Emergent platform external access)
+    path("api/", include((core_patterns, 'api_prefixed'))),
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_FILE_ROOT)
