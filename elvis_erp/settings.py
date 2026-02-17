@@ -390,3 +390,11 @@ META_ACCESS_TOKEN = config('META_ACCESS_TOKEN', default='')
 # Facebook App credentials for Embedded Signup
 FB_APP_ID = config('FB_APP_ID', default='1612261483351391')
 FB_CONFIG_ID = config('FB_CONFIG_ID', default='1714776409680646')
+
+# =============================================================================
+# WABIS BSP CONFIGURATION
+# =============================================================================
+# Wabis API Token from https://bot.wabis.in/api/developer/console
+WABIS_API_TOKEN = config('WABIS_API_TOKEN', default='')
+WABIS_WHATSAPP_BOT_ID = config('WABIS_WHATSAPP_BOT_ID', default='')
+
