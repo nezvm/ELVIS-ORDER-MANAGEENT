@@ -10,6 +10,9 @@ urlpatterns = [
     # WhatsApp Integration (includes webhook)
     path('whatsapp/', include('integrations.whatsapp.urls')),
     
+    # Wabis WhatsApp BSP Integration
+    path('wabis/', include('integrations.wabis.urls')),
+    
     # Google Workspace
     path('google/', views.GoogleConfigListView.as_view(), name='google_config_list'),
     path('google/<uuid:pk>/', views.GoogleConfigDetailView.as_view(), name='google_config_detail'),
