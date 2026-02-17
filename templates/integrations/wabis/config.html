@@ -67,41 +67,41 @@
             </div>
         </div>
         
-        <!-- Step 2: Get Bot ID -->
+        <!-- Step 2: Get Number IDs -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="p-4 bg-purple-500 text-white">
                 <div class="flex items-center space-x-3">
                     <span class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold">2</span>
-                    <h3 class="text-lg font-semibold">Get WhatsApp Bot ID</h3>
+                    <h3 class="text-lg font-semibold">Get Number IDs</h3>
                 </div>
             </div>
             <div class="p-6 space-y-4">
-                <p class="text-gray-600 text-sm">Find your WhatsApp Bot ID in Wabis:</p>
+                <p class="text-gray-600 text-sm">Find the Number ID for each WhatsApp number in Wabis:</p>
                 <ol class="space-y-2 text-sm text-gray-600">
                     <li class="flex items-start space-x-2">
                         <span class="text-purple-500 font-bold">1.</span>
-                        <span>Login to <a href="https://bot.wabis.in" target="_blank" class="text-purple-600 hover:underline font-medium">bot.wabis.in</a></span>
+                        <span>Go to <a href="https://bot.wabis.in/whatsapp/bot/connect" target="_blank" class="text-purple-600 hover:underline font-medium">Connect Account</a></span>
                     </li>
                     <li class="flex items-start space-x-2">
                         <span class="text-purple-500 font-bold">2.</span>
-                        <span>Go to <strong>Dashboard → Bot Manager</strong></span>
+                        <span>Look for <strong>"Number ID"</strong> next to each number</span>
                     </li>
                     <li class="flex items-start space-x-2">
                         <span class="text-purple-500 font-bold">3.</span>
-                        <span>Click on your <strong>WhatsApp Bot</strong></span>
-                    </li>
-                    <li class="flex items-start space-x-2">
-                        <span class="text-purple-500 font-bold">4.</span>
-                        <span>Check the <strong>URL in browser</strong></span>
+                        <span>Copy the Number ID (15-digit number)</span>
                     </li>
                 </ol>
                 <div class="bg-purple-50 rounded-lg p-3 space-y-2">
-                    <p class="text-xs text-purple-700 font-medium">Look for ID in browser URL:</p>
-                    <code class="text-xs text-gray-700 block">bot.wabis.in/whatsapp/<strong class="text-purple-600 bg-purple-100 px-1 rounded">12345</strong>/bot-reply</code>
-                    <p class="text-xs text-purple-600 mt-2">The number after /whatsapp/ is your Bot ID</p>
+                    <p class="text-xs text-purple-700 font-medium">⚠️ Use "Number ID", NOT "Business Account ID"</p>
+                    <p class="text-xs text-gray-600">Example Number ID: <code class="bg-white px-1 rounded">288969734293575</code></p>
                 </div>
-                <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                    <p class="text-xs text-gray-600"><i class="fas fa-lightbulb text-yellow-500 mr-1"></i> <strong>Alternative:</strong> The Bot ID might also be called "WhatsApp Account ID" in some Wabis sections</p>
+                <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                    <p class="text-xs text-yellow-800">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        <strong>Multiple Numbers?</strong> Go to 
+                        <a href="{% url 'integrations:wabis:number_list' %}" class="text-purple-600 hover:underline font-semibold">Numbers Page</a>
+                        to set Number ID for each WhatsApp number
+                    </p>
                 </div>
             </div>
         </div>
