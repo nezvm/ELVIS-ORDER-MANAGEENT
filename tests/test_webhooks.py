@@ -17,7 +17,7 @@ import uuid
 from datetime import datetime
 
 # Base URL from environment or default to localhost
-BASE_URL = os.environ.get('PREVIEW_URL', 'http://localhost:8001')
+BASE_URL = 'http://localhost:8001'
 
 # Test data prefixes
 TEST_PREFIX = "TEST_"
