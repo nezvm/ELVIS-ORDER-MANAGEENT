@@ -16,14 +16,10 @@ urlpatterns = [
     # Customer Lifecycle View
     path('lead/<uuid:pk>/lifecycle/', views.CustomerLifecycleView.as_view(), name='whatsapp_customer_lifecycle'),
     
-    # Connect Numbers
+    # BSP Connection
     path('connect/', views.WhatsAppConnectView.as_view(), name='whatsapp_connect'),
-    path('save-connection/', views.save_whatsapp_connection, name='whatsapp_save_connection'),
+    path('bsp-connect/', views.bsp_connect_number, name='whatsapp_bsp_connect'),
     path('disconnect/<uuid:number_id>/', views.disconnect_whatsapp_number, name='whatsapp_disconnect'),
-    
-    # Direct Connect API (for existing WABAs)
-    path('direct-connect/', views.direct_connect_number, name='whatsapp_direct_connect'),
-    path('verify-connection/', views.verify_connection, name='whatsapp_verify_connection'),
     
     # API Endpoints
     path('api/trigger-sync/', views.trigger_daily_sync, name='whatsapp_trigger_sync'),
