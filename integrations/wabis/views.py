@@ -398,6 +398,12 @@ def trigger_api_sync(request):
         sync_service = WabisSubscriberSyncService(api_token=api_token)
         stats = sync_service.sync_all_subscribers(whatsapp_bot_id=bot_id)
         
+        # Update last sync time
+        config = WabisConfig.objects.filter(is_active=True).first()
+        if config:
+            config.last_sync_at = timezone.now()
+            config.save()
+        
         return JsonResponse({
             'success': True,
             'message': f"Sync completed: {stats['created']} created, {stats['updated']} updated",
@@ -405,6 +411,124 @@ def trigger_api_sync(request):
         })
     except Exception as e:
         logger.error(f"API sync error: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+# =============================================================================
+# CONFIGURATION VIEWS
+# =============================================================================
+
+class WabisConfigView(LoginRequiredMixin, TemplateView):
+    """Wabis configuration page with setup instructions."""
+    template_name = 'integrations/wabis/config.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Wabis Configuration'
+        context['is_integrations'] = True
+        context['is_wabis'] = True
+        
+        # Get or create config
+        context['config'] = WabisConfig.objects.filter(is_active=True).first()
+        
+        # Webhook URL
+        context['webhook_url'] = self.request.build_absolute_uri(
+            reverse('integrations:wabis:webhook')
+        )
+        
+        # Stats
+        context['total_customers'] = WabisCustomer.objects.filter(is_active=True).count()
+        context['total_messages'] = WabisMessage.objects.count()
+        context['numbers_count'] = WabisNumber.objects.filter(is_active=True).count()
+        
+        return context
+
+
+@require_http_methods(["POST"])
+def save_wabis_config(request):
+    """Save Wabis configuration (API Token, Bot ID)."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Authentication required'}, status=401)
+    
+    try:
+        data = json.loads(request.body)
+        api_token = data.get('api_token', '').strip()
+        whatsapp_bot_id = data.get('whatsapp_bot_id', '').strip()
+        
+        if not api_token:
+            return JsonResponse({'success': False, 'error': 'API Token is required'}, status=400)
+        
+        if not whatsapp_bot_id:
+            return JsonResponse({'success': False, 'error': 'WhatsApp Bot ID is required'}, status=400)
+        
+        # Get or create config
+        config, created = WabisConfig.objects.get_or_create(
+            is_active=True,
+            defaults={'name': 'Default Wabis Config'}
+        )
+        
+        config.api_key = api_token
+        config.whatsapp_bot_id = whatsapp_bot_id
+        config.connection_status = 'connected'
+        config.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Configuration saved successfully'
+        })
+        
+    except Exception as e:
+        logger.error(f"Config save error: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_http_methods(["POST"])
+def test_wabis_connection(request):
+    """Test Wabis API connection with provided credentials."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Authentication required'}, status=401)
+    
+    try:
+        data = json.loads(request.body)
+        api_token = data.get('api_token', '').strip()
+        whatsapp_bot_id = data.get('whatsapp_bot_id', '').strip()
+        
+        if not api_token or not whatsapp_bot_id:
+            return JsonResponse({
+                'success': False, 
+                'error': 'API Token and Bot ID are required'
+            }, status=400)
+        
+        from .api_client import WabisAPIClient
+        
+        client = WabisAPIClient(api_token=api_token)
+        
+        # Try to fetch subscribers to test connection
+        response = client.get_subscribers_list(
+            whatsapp_bot_id=whatsapp_bot_id,
+            limit=1
+        )
+        
+        if response.get('success'):
+            # Get total count if available
+            subscriber_count = len(response.get('data', []))
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Connection successful',
+                'subscriber_count': subscriber_count
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': response.get('message', 'API returned error')
+            })
+            
+    except Exception as e:
+        logger.error(f"Connection test error: {e}")
         return JsonResponse({
             'success': False,
             'error': str(e)
