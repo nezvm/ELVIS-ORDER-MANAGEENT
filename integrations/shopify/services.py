@@ -183,7 +183,6 @@ class ShopifyOrderService:
             # Update lead to Won if not already
             if lead.conversion_status != 'won':
                 lead.conversion_status = 'won'
-                lead.status = 'Won'
                 lead.won_at = timezone.now()
                 lead.conversion_value = (lead.conversion_value or Decimal('0')) + order_value
             else:
