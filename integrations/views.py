@@ -27,6 +27,8 @@ class IntegrationDashboardView(mixins.HybridTemplateView):
     template_name = 'integrations/dashboard.html'
     
     def get_context_data(self, **kwargs):
+        from integrations.wabis.models import WabisCustomer, WabisMessage, WabisNumber
+        
         context = super().get_context_data(**kwargs)
         context['title'] = 'Integrations'
         context['is_integrations'] = True
@@ -34,9 +36,15 @@ class IntegrationDashboardView(mixins.HybridTemplateView):
         
         # Google configs
         context['google_configs'] = GoogleWorkspaceConfig.objects.filter(is_active=True)
+        context['google_config'] = GoogleWorkspaceConfig.objects.filter(is_active=True).first()
         
         # Shopify stores
         context['shopify_stores'] = ShopifyStore.objects.filter(is_active=True)
+        
+        # Wabis WhatsApp BSP stats
+        context['wabis_numbers_count'] = WabisNumber.objects.filter(is_active=True).count()
+        context['wabis_customers_count'] = WabisCustomer.objects.filter(is_active=True).count()
+        context['wabis_messages_count'] = WabisMessage.objects.count()
         
         # Other integrations
         context['integrations'] = IntegrationConfig.objects.filter(is_active=True)
