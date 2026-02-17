@@ -312,18 +312,22 @@ class ShopifyLeadsView(LoginRequiredMixin, TemplateView):
         else:
             context['recovery_rate'] = 0
         
-        # COD vs Prepaid (from orders)
+        # COD vs Prepaid (from orders — if fields exist)
         orders = ShopifyOrder.objects.filter(
             created__date__gte=start_date,
             created__date__lte=end_date,
             is_active=True
         )
-        context['cod_orders'] = orders.filter(
-            Q(payment_gateway_names__icontains='cod') | Q(gateway='cod')
-        ).count()
-        context['prepaid_orders'] = orders.exclude(
-            Q(payment_gateway_names__icontains='cod') | Q(gateway='cod')
-        ).count()
+        try:
+            context['cod_orders'] = orders.filter(
+                Q(financial_status__icontains='cod')
+            ).count()
+            context['prepaid_orders'] = orders.exclude(
+                Q(financial_status__icontains='cod')
+            ).count()
+        except Exception:
+            context['cod_orders'] = 0
+            context['prepaid_orders'] = orders.count()
         
         # Filter leads by subtab
         if subtab == 'orders':
