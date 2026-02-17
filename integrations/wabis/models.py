@@ -557,3 +557,61 @@ class CampaignMetrics(BaseModel):
     
     def __str__(self):
         return f"{self.date} - {self.campaign_name or self.campaign_id}"
+
+
+# =============================================================================
+# API SYNC LOGS
+# =============================================================================
+
+class WabisSyncLog(BaseModel):
+    """
+    Log of Wabis API sync operations (subscriber imports, conversation syncs).
+    """
+    SYNC_TYPE_CHOICES = [
+        ('subscribers', 'Subscribers Sync'),
+        ('conversations', 'Conversations Sync'),
+        ('templates', 'Templates Sync'),
+        ('full', 'Full Sync'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    sync_type = models.CharField(
+        max_length=20,
+        choices=SYNC_TYPE_CHOICES,
+        default='subscribers'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    
+    # Stats
+    items_processed = models.IntegerField(default=0)
+    items_created = models.IntegerField(default=0)
+    items_updated = models.IntegerField(default=0)
+    items_failed = models.IntegerField(default=0)
+    
+    # Timing
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    
+    # Errors
+    error_message = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        verbose_name = "Sync Log"
+        verbose_name_plural = "Sync Logs"
+        ordering = ['-created']
+    
+    def __str__(self):
+        return f"{self.sync_type} - {self.status} ({self.created})"
+
