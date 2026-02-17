@@ -13,6 +13,7 @@ urlpatterns = [
     path('numbers/', views.WabisNumberListView.as_view(), name='number_list'),
     path('numbers/add/', views.add_wabis_number, name='number_add'),
     path('numbers/<uuid:pk>/delete/', views.delete_wabis_number, name='number_delete'),
+    path('numbers/<uuid:pk>/update-bot-id/', views.update_wabis_number_bot_id, name='number_update_bot_id'),
     
     # Customers/Leads
     path('customers/', views.WabisCustomerListView.as_view(), name='customer_list'),
