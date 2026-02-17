@@ -8,7 +8,7 @@ import sys
 from urllib.parse import urljoin
 
 def test_cohort_endpoint():
-    base_url = "https://whatsapp-roas.preview.emergentagent.com"
+    base_url = "https://lead-intake-hub.preview.emergentagent.com"
     session = requests.Session()
     
     print("🔍 Debugging Cohort Analysis Endpoint")

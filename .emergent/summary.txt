@@ -1,171 +1,186 @@
 <analysis>**original_problem_statement:**
-The user wants to automate saving WhatsApp leads into their Django-based ERP system, named Elvis. The core requirements are:
-1.  Integrate WhatsApp lead capture into the existing ERP.
-2.  All WhatsApp leads should be organized under a main Leads section, with a dedicated WhatsApp Leads subsection.
-3.  Leads must be tagged with their source: Ad (from Click-to-WhatsApp ads) or Organic/Direct. This requires parsing referral data from the Meta webhook.
-4.  The system should support connecting multiple WhatsApp Business numbers, which are currently active on Android phones using the WhatsApp Business App (Coexistence mode).
-5.  The user initially struggled with the manual setup in the Meta Developer dashboard and later provided an Embedded Signup script to be integrated.
-6.  The user has 12 existing WhatsApp Business numbers under their Elvis Co Meta Business Portfolio, some of which already have s. The goal is to connect all of them to the ERP.
+The user wants to build a comprehensive lead management system within their existing Django ERP.
+
+**PRODUCT REQUIREMENTS:**
+
+1.  **WhatsApp Integration via Wabis BSP:**
+    *   Integrate with the Wabis Business Solution Provider to handle all WhatsApp communications.
+    *   Ingest incoming WhatsApp messages via webhooks.
+    *   Support multiple WhatsApp business numbers.
+    *   Deduplicate customers based on their phone number.
+    *   Identify lead source (organic vs. ad) and store attribution data (e.g., , ).
+    *   Create placeholders for future ROAS (Return on Ad Spend) reporting.
+
+2.  **Shopify All-in-One Integration:**
+    *   Create a single integration module to handle all Shopify interactions.
+    *   Capture leads from both new orders and abandoned checkouts.
+    *   Track the recovery of abandoned checkouts.
+    *   Sync customer details (name, address, etc.) from Shopify to the ERP.
+    *   Manage bi-directional shipping updates (pushing fulfillment from ERP to Shopify and pulling status changes from Shopify).
+    *   Segment orders as COD (Cash on Delivery) or Prepaid.
+
+3.  **Leads Module UI Revamp:**
+    *   Restructure the Leads section with top-level tabs: , , , and .
+    *   Implement sub-tabs for granular views (e.g., Shopify's , WhatsApp's ).
+    *   Ensure every lead in the list view displays key information: source, status (, , ), attribution, owner, and timestamps.
+
+4.  **Dashboards and Analytics:**
+    *   Develop a daily insights dashboard.
+    *   Display key metrics: leads per day, orders per day (COD vs. Prepaid), conversion rates per WhatsApp number, ads vs. organic lead counts, and Shopify recovery rates.
+    - Include placeholders to display ROAS metrics later.
+
+5.  **Automation with Celery:**
+    *   Implement a daily Celery job to run at 02:00 AM IST.
+    *   The job will enforce a 7-day matching window: leads that do not convert within this period are marked as .
+    *   If a  lead later converts (e.g., an order is placed), its status should be updated to .
+    *   The job must be idempotent and scalable.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A comprehensive WhatsApp integration module has been built as a new Django app (). This includes:
--   **Backend:** Models for , , , etc. A webhook endpoint () correctly processes incoming messages, creates leads, handles customer deduplication, and attributes the lead source (Ad vs. Organic).
--   **Frontend:** UI pages for a WhatsApp Setup dashboard, a WhatsApp Leads list, and a Lead Detail view. These are integrated into the main application's navigation and the unified All Leads page.
--   **Legal Pages:** Publicly accessible URLs for Privacy Policy, Terms of Service, and Data Deletion have been created as required by Meta.
--   **Embedded Signup:** An initial version of the Meta Embedded Signup flow has been integrated. However, this flow is currently blocked for the user due to a Meta restriction that prevents the app-owning Business Portfolio from onboarding its own numbers.
--   **Testing:** Unit tests, backend testing agent, and frontend testing agent have been run successfully on the implemented features. Manual  tests confirmed webhook functionality.
+The project is a Django-based ERP system with existing, but basic, models for , , , , and . Celery is also configured. A previous attempt to integrate directly with Meta's Cloud API was made and later abandoned because it was incompatible with the user's specific type of WhatsApp accounts. The agent then correctly identified that a Business Solution Provider (BSP) is needed and began generalizing the lead-syncing logic to be source-agnostic.
 
 **Last working item**:
-*   **Last item agent was working:** The agent was addressing the failure of the Embedded Signup flow. The user reported an error preventing them from selecting their main Elvis Co Business Portfolio. After the user provided an Excel sheet of their 12 existing WhatsApp numbers under that same portfolio, the agent realized the Embedded Signup flow was the wrong approach for this use case. The agent then pivoted and proposed a new solution: building a Direct Import feature to allow the user to add their existing s manually.
-*   **Status:** IN PROGRESS
+*   **Last item agent was working:** The agent had just received the new, comprehensive directive to integrate with Wabis and Shopify. The agent was in the initial exploration phase, reviewing Wabis and Shopify documentation and inspecting the existing models in the codebase (, , ) to plan the implementation.
+*   **Status:** NOT STARTED
 *   **Agent Testing Done:** N
 *   **Which testing method agent to use?** both
 *   **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
-*   **Issue 1:** Embedded Signup flow is unusable for the user's main goal. (Priority: P0)
-
-*   **Issues Detail:**
-    *   **Issue 1: Embedded Signup flow is unusable for the user's main goal.**
-        *   **Attempted fixes:** The agent implemented the Embedded Signup flow as requested. When the user hit a roadblock (Meta error: This business portfolio owns WALS. You can only select other business portfolios.), the agent suggested creating a new Business Portfolio. This was not a viable solution as the user's numbers are already tied to their main portfolio.
-        *   **Next debug checklist:** The current plan is to abandon this flow for connecting the user's existing numbers. The agent will instead build a new Direct Import feature. The existing Embedded Signup code can be kept for potential future use (e.g., onboarding third-party clients).
-        *   **Why fix this issue and what will be achieved with the fix?** The user cannot connect their existing 12 WhatsApp numbers with the current implementation. The new Direct Import feature will unblock the user and fulfill their core requirement.
-        *   **Status:** BLOCKED
-        *   **Is recurring issue?** N
-        *   **Should Test frontend/backend/both after fix?** both
-        *   **Blocked on other issue:** None. This issue is being superseded by In progress Task 1.
+There are no pending bugs. The main task is the large feature implementation described in the problem statement.
 
 **In progress Task List**:
-*   **Task 1:** Implement Direct Import for Existing WhatsApp Numbers. (Priority: P0)
-
-*   **Task Detail:**
-    *   **Task 1: Implement Direct Import for Existing WhatsApp Numbers.**
-        *   **Where to resume:** The task has not been started. The agent needs to begin by designing the UI and backend logic for this new feature. The plan is to:
-            1.  Create a form in the WhatsApp Setup dashboard ().
-            2.  The form should allow the user to enter a  and a friendly name.
-            3.  Create a view in  to process this form and save the data to the  model.
-            4.  Ensure the main webhook logic can handle messages from these manually added numbers.
-            5.  Update the dashboard to list all imported numbers and their status.
-        *   **What will be achieved with this?** This will allow the user to connect all their existing WhatsApp numbers that already have a , bypassing the failed Embedded Signup flow.
-        *   **Status:** NOT STARTED
-        *   **Should Test frontend/backend/both after fix?** both
-        *   **Blocked on something:** No.
+*   **Task 1: Implement Wabis & Shopify Integration and Revamp Leads Module (P0)**
+    *   **Where to resume:** The implementation should start from scratch based on the new directive. The first step is to create a new Django app, , and build the webhook receiver endpoint () to capture and log raw incoming message payloads from Wabis.
+    *   **What will be achieved:** A fully integrated system for lead intake from WhatsApp (via Wabis) and Shopify, a revamped leads UI, and automated daily reporting.
+    *   **Status:** NOT STARTED
+    *   **Should Test frontend/backend/both after fix?** Both
+    *   **Blocked on something:** No
 
 **Upcoming and Future Tasks**
-*   **Upcoming Tasks:**
-    *   **(P1) Guide User on Acquiring Missing s:** The user's provided Excel sheet shows that several of their numbers do not have a . After the import feature is built, the next agent must create a guide or provide steps on how to migrate these numbers to the Meta Cloud API to obtain their s.
-*   **Future Tasks:**
-    *   **(P2) Shopify Integration:** The user mentioned a future requirement to integrate Shopify leads.
-    *   **(P3) Custom Lead Importing:** The user mentioned a future need for a custom lead import feature.
+
+*   **Upcoming Tasks (P0):**
+    *   **Phase 1: Wabis Integration (Backend):**
+        *   Create a Django app () for the Wabis integration.
+        *   Implement a webhook endpoint to receive and log raw payloads from Wabis.
+        *   Develop services to parse payloads, deduplicate customers, and create  records with  and relevant attribution data.
+    *   **Phase 2: Shopify Integration Enhancements (Backend):**
+        *   Enhance the  module.
+        *   Implement webhook endpoints for new orders, abandoned checkouts, and fulfillment updates.
+        *   Create models and services to handle abandoned checkouts and sync order statuses.
+        *   Create  records from Shopify events with .
+
+*   **Future Tasks (P1):**
+    *   **Phase 3: Universal Lead Logic & Celery Job:**
+        *   Refine the universal  model and associated services.
+        *   Implement the daily Celery job to manage lead statuses (, , ) based on the 7-day matching window.
+    *   **Phase 4: Frontend Revamp (Leads UI & Dashboard):**
+        *   Rebuild the Django templates and views for the  module to match the new multi-tab UX design.
+        *   Create the new Daily Insights dashboard view and connect it to the analytics data.
+    *   **Phase 5: Meta Conversions API (CAPI) Integration:**
+        *   Implement the logic to send conversion events (when a lead status changes to ) back to Meta's CAPI to enable ROAS tracking.
 
 **Completed work in this session**
--   **WhatsApp Integration Module ( app):**
-    -   Created models for all necessary WhatsApp data (, , etc.).
-    -   Built and tested the core webhook endpoint () for message processing, lead creation, ad attribution, and customer deduplication.
-    -   Developed UI pages for the WhatsApp dashboard, leads list, and lead details.
-    -   Integrated WhatsApp leads into the main application sidebar and the unified  page.
--   **Legal Compliance:**
-    -   Created and exposed public URLs for Privacy Policy, Terms of Service, and Data Deletion pages (, , ).
--   **Initial Embedded Signup Flow:**
-    -   Implemented the frontend and backend for the Meta Embedded Signup flow, including the connect page and callback handler.
--   **Testing & Documentation:**
-    -   Created backend unit tests ().
-    -   Wrote a detailed setup guide ().
-    -   Generated numerous screenshots of all developed frontend modules.
+- **Initial Meta Cloud API Integration (Now Obsolete):** The agent fully implemented a direct integration with Meta's Cloud API, including model changes, services, webhooks, Celery tasks, and UI templates. This work was discarded after discovering it was incompatible with the user's WhatsApp Business App accounts.
+- **Troubleshooting & Strategy Shift:** Diagnosed the root cause of the connection failure with Meta's API and correctly concluded that a BSP is required. This pivoted the project strategy.
+- **Universal Lead Logic:** Began refactoring the lead management logic to be source-agnostic (not tied to just WhatsApp), which is still relevant for the new implementation.
 
 **Earlier issues found/mentioned but not fixed**
-*   **Issue 1: Supervisor Configuration Mismatch**
-    *   **Debug checklist:** The  file is configured for a FastAPI application, not Django. The agent worked around this by running  manually. To fix this, the supervisor configuration file (likely at ) needs to be updated to use a WSGI server like Gunicorn to run the Django application.
-    *   **Why to solve this issue and what will be achieved with this?** For the application to run robustly and automatically restart in a production or staging environment, the supervisor must be configured correctly.
-    *   **Should Test frontend/backend/both after fix:** Backend (verify the server runs via backend                          BACKOFF   Exited too quickly (process log may have details)
-code-server                      STOPPED   Not started
-frontend                         STOPPED   Feb 11 11:44 AM
-mongodb                          RUNNING   pid 52, uptime 0:00:04
-nginx-code-proxy                 RUNNING   pid 45, uptime 0:00:04
-supervisor> ).
-    *   **Is recurring issue?** N
+*   **Issue 1: Inability to connect WhatsApp Business App numbers to Meta Cloud API directly.**
+    *   **Status:** RESOLVED. This is a platform limitation, not a bug. The resolution was to change the integration strategy to use a BSP (Wabis), as directed by the user.
 
 **Known issue recurrence from previous fork**
-*   N/A
+- N/A
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Backend:** Django
--   **Database:** SQLite (Default for development)
--   **Frontend:** Django Template Language, HTML, CSS, JavaScript
--   **Third-Party Integration:** Meta WhatsApp Business Cloud API (Webhooks, Embedded Signup)
+- **Backend:** Django, Celery
+- **Database:** Default Django ORM with PostgreSQL/SQLite (not specified, but standard for Django).
+- **Integrations:** Wabis (WhatsApp BSP), Shopify.
+- **Core Concepts:** Webhooks, REST APIs, Background Job Processing.
 
 **key DB schema**
--   ****:  (unique), , 
--   ****: Stores details of the business's connected WhatsApp numbers.
--   ****: Maps a customer to a specific business number they contacted, enabling multi-channel tracking.
--   ****: Stores credentials from the Embedded Signup flow (, ).
--   ****: Extended with  and .
+-   **marketing_lead**: To be enhanced with  (e.g., 'whatsapp', 'shopify'),  ('organic', 'ad'), , ,  ('Pending', 'Won', 'Lost'), and conversion timestamps.
+-   **integrations_customer**: Stores unique customer data, identified by phone number or .
+-   **integrations_shopifyorder**: A mirror of Shopify order data.
+-   **New Models to be created:**
+    -   : To store raw webhook payloads for debugging.
+    -   : To track abandoned carts from Shopify.
+    -   : To store aggregated daily analytics for the dashboard.
 
 **changes in tech stack**
--   None.
+-   **WhatsApp Integration:** Switched from a direct Meta Cloud API approach to a BSP-mediated approach using **Wabis**.
 
 **All files of reference**
--   : Contains all business logic for webhook handling, UI views, and the Embedded Signup flow.
--   : Defines the database schema for the WhatsApp integration.
--   : Contains the core logic for processing a message event and creating/updating leads.
--   : Defines the root URL for the webhook ().
--   : The main UI for the WhatsApp setup and dashboard.
--   : A user-provided file listing their 12 existing WhatsApp numbers and associated IDs.
+*   **Relevant for New Work:**
+    *   : The  model that will be the central point of the new system.
+    *   : Contains the universal  to build upon.
+    *   : Location for the universal Celery tasks.
+    *   : To configure the new Celery Beat schedule.
+    *   : Contains existing  model to be used.
+*   **To be Created:**
+    *   A new Django app: .
+    *   New webhook views in .
+    *   New templates for the revamped leads UI and dashboard.
+*   **To be Refactored/Removed:**
+    *   Most of the code in  is now obsolete and should be removed to avoid confusion.
 
-**Areas that need refactoring**
--   The Embedded Signup feature ( view and template) is currently dead code for the user's immediate need. It should be disabled or hidden from the main UI to avoid confusion, pending a decision on its future use for onboarding new clients.
+**Areas that need refactoring**:
+- The  application should be almost entirely removed. Its logic for direct Meta API connection is no longer valid. A new, clean app  should be created to house the BSP logic.
 
 **key api endpoints**
--   : Main endpoint to receive webhook notifications from Meta.
--   : Endpoint for Meta to verify the webhook.
--   : Displays the WhatsApp Setup and Dashboard page.
--   : Initiates the (currently blocked) Embedded Signup flow.
--   , , : Public URLs for legal documents.
+*   **To be created:**
+    *   : Receives incoming message data from Wabis.
+    *   : Receives new order data from Shopify.
+    *   : Receives abandoned checkout data from Shopify.
+    *   : Receives shipping updates from Shopify.
 
 **Critical Info for New Agent**
--   **Pivot away from Embedded Signup:** The user's primary goal is to connect their **12 existing WhatsApp numbers**. The Embedded Signup flow is blocked due to a Meta restriction. **Do not** attempt to fix the Embedded Signup flow for this purpose.
--   **Focus on Direct Import:** The highest priority is to build the new **Direct Import feature**. This will allow the user to manually enter their s from the provided Excel sheet ().
--   **Use User's Data:** Refer to the  artifact for the list of numbers and their existing IDs.
--   **Next Step:** After the import feature is done, the next task will be to guide the user on how to obtain s for the numbers that currently lack one.
+-   **The project strategy has completely changed.** The extensive work done on direct Meta Cloud API integration is now obsolete. The new directive is to use a BSP named **Wabis**. Do not reuse the old Meta connection code.
+-   The user has provided credentials for the Wabis developer console. They should be used to understand the webhook payload structure.
+-   All lead processing logic (status changes, timing windows) should be implemented universally in the  app to handle leads from any source (Wabis, Shopify, etc.).
+-   Follow the phased implementation plan: start with backend webhook receivers (Wabis first, then Shopify), then build the universal Celery logic, and finally, tackle the frontend UI revamp and dashboards.
 
 **documents and test reports created in this job**
--   
--   
--   Multiple screenshots of the UI are available in the message history.
+-    exists but its contents are related to the old, obsolete Meta integration. It will need to be updated for the new features.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Shared a script () and asked what it was.
-2.  **Agent:** Identified it as the WhatsApp Embedded Signup script and offered to integrate it.
-3.  **User:** Agreed, confirming the goal is to connect multiple WA Business App numbers.
-4.  **Agent:** Proceeded with implementation.
-5.  **User:** Gave the go-ahead.
-6.  **Agent:** Completed the implementation.
-7.  **User:** Reported an error with a screenshot showing they couldn't select their business portfolio.
-8.  **Agent:** Explained the Meta restriction and suggested creating a new portfolio.
-9.  **User:** Clarified that all their numbers are in the main Elvis Co portfolio and shared an Excel sheet with the details.
-10. **Agent:** Analyzed the Excel sheet and proposed a new solution: pivot to a Direct Import feature to bypass the Embedded Signup flow for these existing numbers.
+1.  **User (Latest):** Provided a detailed new problem statement outlining the switch to Wabis and the comprehensive Shopify integration, UI revamp, and dashboard requirements. Provided Wabis credentials.
+2.  **Agent:** Acknowledged the new request and started exploring Wabis and Shopify documentation and existing models.
+3.  **Agent:** Confirmed understanding of webhook formats and laid out a high-level plan for the new implementation.
+4.  **User:** (Earlier) Confirmed the switch to a BSP and instructed the agent to remove the old Meta connection options.
+5.  **User:** (Earlier) Clarified that the lead syncing logic must be universal for all lead sources, not just WhatsApp.
+6.  **User:** (Earlier) Asked for the file location of the daily Celery sync task.
+7.  **Agent:** Replied with the file locations for the Celery task logic () and schedule ().
+8.  **User:** Confirmed that they will use a BSP named Wabis and provided access credentials.
+9.  **User:** Stated that their WABAs are from the WhatsApp Business App, not a BSP.
+10. **Agent:** Correctly diagnosed that a BSP is required for API access and recommended this approach.
 
 **Project Health Check:**
--   **Broken:** The Embedded Signup flow is non-functional for the user's specific context (connecting numbers from the app-owning portfolio).
--   **Mocked:** None.
+*   **Broken:** The WhatsApp integration is non-existent as the previous approach was invalidated.
+*   **Mocked:** None.
 
 **3rd Party Integrations**
--   **Meta WhatsApp Business Cloud API:** For receiving messages via webhooks and potentially managing numbers. This integration requires user-provided credentials (App ID, secrets, tokens) and does not use an Emergent LLM Key.
+*   **Wabis (WhatsApp BSP):** To be integrated. Requires user-provided credentials.
+*   **Shopify:** To be enhanced. Requires user-provided API keys and webhook setup.
+*   **Meta Conversions API (CAPI):** Future integration. Will require a User API Key.
+*   **Meta Ads API:** Future integration. Will require a User API Key.
 
 **Testing status**
--   **Testing agent used after significant changes:** YES
+-   **Testing agent used after significant changes:** YES (for the previous, now-obsolete feature).
 -   **Troubleshoot agent used after agent stuck in loop:** NO
--   **Test files created:** []
+-   **Test files created:** None for the new requirements.
 -   **Known regressions:** None.
 
 **Credentials to test flow:**
--   **Webhook Testing:** Use  with the sample JSON payloads from the agent's message history to simulate messages, ad referrals, and new customer events.
--   **Embedded Signup (Future):** Testing this would require a valid Meta Developer App ID () and Config ID () from the user's script, along with a configured test environment.
+*   **Wabis Developer Console:**
+    *   URL: 
+    *   Login: 
+    *   Password: 
+    *   **Note:** These credentials should be used for reading documentation and understanding API payloads, not hardcoded.
 
 **What agent forgot to execute**
--   The agent identified that the  file is incorrect for a Django application but did not fix it, opting for a manual  workaround. This is a pending infrastructure task that needs to be addressed for stable deployment.</analysis>
+The agent has not yet begun implementing the new, large feature request from the user (Wabis/Shopify integration, UI revamp). It was in the planning and exploration phase when the session ended. The entire task is pending.</analysis>
