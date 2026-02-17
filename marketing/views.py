@@ -58,15 +58,35 @@ class LeadListView(LoginRequiredMixin, TemplateView):
         # Apply source filter
         if lead_source:
             if lead_source == 'whatsapp':
-                leads = leads.filter(lead_source__icontains='whatsapp')
+                leads = leads.filter(Q(lead_source__icontains='whatsapp') | Q(source_type='whatsapp'))
+                # Sub-filter for WhatsApp type
+                wa_type = self.request.GET.get('wa_type')
+                if wa_type == 'organic':
+                    leads = leads.filter(Q(lead_source='whatsapp_inbound') | Q(source_type='organic'))
+                elif wa_type == 'ads':
+                    leads = leads.filter(Q(lead_source='whatsapp_ctwa_ad') | Q(source_type='ad'))
             elif lead_source == 'shopify':
-                leads = leads.filter(lead_source__icontains='shopify')
+                leads = leads.filter(Q(lead_source__icontains='shopify') | Q(source_type='shopify'))
+                # Sub-filter for Shopify type
+                shopify_type = self.request.GET.get('shopify_type')
+                if shopify_type == 'orders':
+                    leads = leads.filter(lead_source='shopify_order')
+                elif shopify_type == 'checkouts':
+                    leads = leads.filter(lead_source__in=['shopify_checkout', 'shopify_abandoned_checkout'])
             elif lead_source == 'google':
                 leads = leads.filter(lead_source__icontains='google')
             elif lead_source == 'ads':
                 leads = leads.filter(lead_source__in=['facebook_ad', 'instagram_ad', 'google_ad', 'whatsapp_ctwa_ad'])
             elif lead_source == 'manual':
                 leads = leads.filter(lead_source='manual')
+            elif lead_source == 'other':
+                leads = leads.exclude(
+                    Q(lead_source__icontains='whatsapp') | 
+                    Q(lead_source__icontains='shopify') | 
+                    Q(lead_source__icontains='google') | 
+                    Q(lead_source='manual') |
+                    Q(source_type__in=['whatsapp', 'shopify'])
+                )
         
         if match_status:
             leads = leads.filter(match_status=match_status)
