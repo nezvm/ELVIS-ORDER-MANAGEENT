@@ -346,7 +346,6 @@ class ShopifyCheckoutService:
                 email=checkout.customer_email or '',
                 lead_source='shopify_checkout',
                 source_type='shopify',
-                status='Pending',
                 conversion_status='pending',
                 notes=f"Abandoned checkout - Cart value: ₹{checkout.cart_value}\nItems: {checkout.cart_item_count}"
             )
