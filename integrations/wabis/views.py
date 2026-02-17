@@ -570,12 +570,14 @@ def test_wabis_connection(request):
         # Try to fetch subscribers to test connection
         response = client.get_subscribers_list(
             whatsapp_bot_id=whatsapp_bot_id,
-            limit=1
+            limit=10
         )
         
-        if response.get('success'):
-            # Get total count if available
-            subscriber_count = len(response.get('data', []))
+        # Handle Wabis API response format: {status: '1', message: [...]}
+        if response.get('status') == '1':
+            # Get subscriber count from message array
+            subscribers = response.get('message', [])
+            subscriber_count = len(subscribers) if isinstance(subscribers, list) else 0
             
             return JsonResponse({
                 'success': True,
@@ -583,9 +585,12 @@ def test_wabis_connection(request):
                 'subscriber_count': subscriber_count
             })
         else:
+            error_msg = response.get('message', 'API returned error')
+            if isinstance(error_msg, list):
+                error_msg = 'No data returned'
             return JsonResponse({
                 'success': False,
-                'error': response.get('message', 'API returned error')
+                'error': str(error_msg)
             })
             
     except Exception as e:
