@@ -284,14 +284,19 @@ class Lead(BaseModel):
         cutoff = timezone.now() - timedelta(days=days)
         return self.captured_at > cutoff
     
-    def mark_as_won(self, order, conversion_value=None):
+    def mark_as_won(self, order=None, conversion_value=None, reason='order_placed'):
         """Mark lead as Won with conversion details."""
         from django.utils import timezone
         self.conversion_status = 'won'
         self.won_at = timezone.now()
         self.conversion_status_at = timezone.now()
-        self.converted_order = order
-        self.conversion_value = conversion_value or order.total_amount
+        self.last_activity_at = timezone.now()
+        self.status_reason = reason
+        if order:
+            self.converted_order = order
+            self.conversion_value = conversion_value or order.total_amount
+        elif conversion_value:
+            self.conversion_value = conversion_value
         self.lead_status = 'converted'
         self.conversion_date = timezone.now().date()
         if self.captured_at:
@@ -299,14 +304,32 @@ class Lead(BaseModel):
         self.conversion_sent_to_meta = False
         self.save()
     
-    def mark_as_lost(self):
+    def mark_as_lost(self, reason='cooling_period_expired'):
         """Mark lead as Lost (no conversion within matching period)."""
         from django.utils import timezone
         self.conversion_status = 'lost'
         self.lost_at = timezone.now()
         self.conversion_status_at = timezone.now()
+        self.last_activity_at = timezone.now()
+        self.status_reason = reason
         if self.lead_status == 'new':
             self.lead_status = 'dormant'
+        self.save()
+    
+    def reopen_as_won(self, order, reason='recovered'):
+        """Reopen a Lost lead as Won when an order is placed."""
+        from django.utils import timezone
+        self.conversion_status = 'won'
+        self.won_at = timezone.now()
+        self.conversion_status_at = timezone.now()
+        self.last_activity_at = timezone.now()
+        self.status_reason = reason
+        self.converted_order = order
+        self.conversion_value = order.total_amount
+        self.lead_status = 'converted'
+        self.conversion_date = timezone.now().date()
+        if self.captured_at:
+            self.conversion_days = (timezone.now() - self.captured_at).days
         self.save()
 
 
