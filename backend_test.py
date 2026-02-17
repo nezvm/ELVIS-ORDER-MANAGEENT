@@ -26,6 +26,7 @@ class MarketingMetaERPTester:
         login_url = urljoin(self.base_url, '/accounts/login/')
         try:
             response = self.session.get(login_url)
+            print(f"   Login page status: {response.status_code}")
             if response.status_code != 200:
                 print(f"❌ Failed to access login page: {response.status_code}")
                 return False
@@ -33,43 +34,50 @@ class MarketingMetaERPTester:
             # Extract CSRF token from response
             if 'csrftoken' in self.session.cookies:
                 self.csrf_token = self.session.cookies['csrftoken']
+                print(f"   CSRF token from cookies: {self.csrf_token[:10]}...")
             elif 'csrf_token' in response.text:
                 # Try to extract from HTML
                 import re
                 csrf_match = re.search(r'name=["\']csrfmiddlewaretoken["\'] value=["\']([^"\']+)["\']', response.text)
                 if csrf_match:
                     self.csrf_token = csrf_match.group(1)
+                    print(f"   CSRF token from HTML: {self.csrf_token[:10]}...")
             
+            if not self.csrf_token:
+                print("❌ Could not extract CSRF token")
+                return False
+                
             # Prepare login data
             login_data = {
                 'username': self.username,
                 'password': self.password,
+                'csrfmiddlewaretoken': self.csrf_token,
             }
-            
-            if self.csrf_token:
-                login_data['csrfmiddlewaretoken'] = self.csrf_token
                 
             # Set headers
             headers = {
                 'Referer': login_url,
                 'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': self.csrf_token,
+                'User-Agent': 'Mozilla/5.0 (compatible; Test-Bot/1.0)',
             }
             
-            if self.csrf_token:
-                headers['X-CSRFToken'] = self.csrf_token
-            
             # Attempt login
-            response = self.session.post(login_url, data=login_data, headers=headers, allow_redirects=False)
+            print(f"   Posting login data to: {login_url}")
+            response = self.session.post(login_url, data=login_data, headers=headers, allow_redirects=True)
+            print(f"   Login response status: {response.status_code}")
+            print(f"   Final URL after login: {response.url}")
             
-            # Check if login was successful (redirect or 200 with success indicators)
-            if response.status_code in [200, 302, 303]:
-                # Verify we're logged in by checking a protected page
-                dashboard_response = self.session.get(self.base_url + '/')
-                if dashboard_response.status_code == 200 and 'login' not in dashboard_response.url.lower():
+            # Check if login was successful
+            if response.status_code == 200:
+                # Check if we're on dashboard or not on login page anymore
+                if 'login' not in response.url.lower() or 'dashboard' in response.text.lower() or 'logout' in response.text.lower():
                     print("✅ Login successful!")
                     return True
                 else:
-                    print(f"❌ Login verification failed. Redirected to: {dashboard_response.url}")
+                    print(f"❌ Still on login page. Checking for error messages...")
+                    if 'invalid' in response.text.lower() or 'error' in response.text.lower():
+                        print("   Possible invalid credentials")
                     return False
             else:
                 print(f"❌ Login failed with status: {response.status_code}")
