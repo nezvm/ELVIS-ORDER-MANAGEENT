@@ -289,6 +289,7 @@ def add_wabis_number(request):
         display_phone_number = data.get('display_phone_number')
         display_name = data.get('display_name')
         waba_id = data.get('waba_id', '')
+        wabis_bot_id = data.get('wabis_bot_id', '')
         
         if not phone_number_id or not display_phone_number or not display_name:
             return JsonResponse({
@@ -302,6 +303,7 @@ def add_wabis_number(request):
                 'display_phone_number': display_phone_number,
                 'display_name': display_name,
                 'waba_id': waba_id,
+                'wabis_bot_id': wabis_bot_id if wabis_bot_id else None,
                 'status': 'active',
                 'is_active': True,
             }
@@ -314,6 +316,7 @@ def add_wabis_number(request):
                 'id': str(number.id),
                 'phone_number_id': number.phone_number_id,
                 'display_name': number.display_name,
+                'wabis_bot_id': number.wabis_bot_id,
             }
         })
         
