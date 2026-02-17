@@ -338,6 +338,39 @@ def delete_wabis_number(request, pk):
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
+@csrf_exempt
+@require_http_methods(["POST"])
+def update_wabis_number_bot_id(request, pk):
+    """Update the Wabis Bot ID for a WhatsApp number."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Authentication required'}, status=401)
+    
+    try:
+        data = json.loads(request.body)
+        wabis_bot_id = data.get('wabis_bot_id', '').strip()
+        
+        number = WabisNumber.objects.get(id=pk)
+        number.wabis_bot_id = wabis_bot_id if wabis_bot_id else None
+        number.save()
+        
+        logger.info(f"Updated Bot ID for number {number.display_phone_number}: {wabis_bot_id}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Bot ID updated successfully',
+            'data': {
+                'id': str(number.id),
+                'wabis_bot_id': number.wabis_bot_id,
+                'display_name': number.display_name,
+            }
+        })
+    except WabisNumber.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Number not found'}, status=404)
+    except Exception as e:
+        logger.error(f"Error updating Bot ID: {e}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
 def sync_status(request):
     """Get sync status for health checks."""
     config = WabisConfig.objects.filter(is_active=True).first()
