@@ -416,7 +416,7 @@ class WabisSubscriberSyncService:
         Returns:
             int: Number of messages synced
         """
-        from integrations.wabis.models import WabisCustomer, WabisMessage
+        from integrations.wabis.models import WabisCustomer, WabisMessage, WabisNumber
         import re
         
         response = self.client.get_conversation(
@@ -439,17 +439,24 @@ class WabisSubscriberSyncService:
         if not customer:
             return 0
         
+        # Get default number
+        number = WabisNumber.objects.filter(is_active=True).first()
+        if not number:
+            return 0
+        
         for msg in messages:
             try:
+                msg_id = msg.get('wa_message_id', '') or f"wabis_{msg.get('id')}"
                 WabisMessage.objects.get_or_create(
-                    wamid=msg.get('wa_message_id', '') or f"wabis_{msg.get('id')}",
+                    message_id=msg_id,
                     defaults={
                         'customer': customer,
+                        'number': number,
                         'direction': 'inbound' if msg.get('type') == 'received' else 'outbound',
                         'msg_type': msg.get('message_type', 'text'),
                         'body': msg.get('message', '') or msg.get('body', ''),
                         'timestamp_utc': timezone.now(),
-                        'wabis_message_data': msg,
+                        'raw_payload': msg,
                     }
                 )
                 synced += 1
