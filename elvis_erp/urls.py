@@ -8,6 +8,12 @@ from registration.backends.default import urls as registration_urls
 # Import WhatsApp webhook for root-level access
 from integrations.whatsapp.views import whatsapp_webhook
 from integrations.wabis.views import wabis_webhook
+from integrations.shopify.views import (
+    shopify_webhook, 
+    shopify_orders_webhook,
+    shopify_checkouts_webhook,
+    shopify_fulfillments_webhook
+)
 
 urlpatterns = [
     path("", include("core.urls")),
@@ -30,6 +36,12 @@ urlpatterns = [
     
     # Wabis Webhook at root level for easy BSP configuration
     path("webhooks/wabis/", wabis_webhook, name='wabis_webhook_root'),
+    
+    # Shopify Webhooks at root level
+    path("webhooks/shopify/", shopify_webhook, name='shopify_webhook_root'),
+    path("webhooks/shopify/orders/", shopify_orders_webhook, name='shopify_orders_webhook_root'),
+    path("webhooks/shopify/checkouts/", shopify_checkouts_webhook, name='shopify_checkouts_webhook_root'),
+    path("webhooks/shopify/fulfillments/", shopify_fulfillments_webhook, name='shopify_fulfillments_webhook_root'),
     
     # REST API
     path("api/v1/", include("api.urls")),
