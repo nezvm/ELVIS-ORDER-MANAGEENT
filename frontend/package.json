@@ -1,0 +1,7 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "echo 'Django app - frontend served by Django templates' && sleep infinity"
+  }
+}
