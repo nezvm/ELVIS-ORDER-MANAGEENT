@@ -22,4 +22,5 @@ urlpatterns = [
     
     # API
     path('api/sync-status/', views.sync_status, name='sync_status'),
+    path('api/trigger-sync/', views.trigger_api_sync, name='trigger_sync'),
 ]
