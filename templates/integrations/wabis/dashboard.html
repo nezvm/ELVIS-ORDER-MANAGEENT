@@ -1,0 +1,383 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}Wabis WhatsApp Integration{% endblock %}
+{% block page_title %}Wabis WhatsApp BSP{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Connection Setup Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-100">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                        <i class="fab fa-whatsapp text-2xl text-green-600"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900">Wabis WhatsApp BSP</h2>
+                        <p class="text-sm text-gray-500">Connect your WhatsApp Business numbers via Wabis Business Solution Provider</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    {% if numbers.count > 0 %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800" data-testid="connection-status">
+                        <span class="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                        {{ numbers.count }} Number{% if numbers.count > 1 %}s{% endif %} Active
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800" data-testid="connection-status">
+                        <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
+                        Not Connected
+                    </span>
+                    {% endif %}
+                    <a href="{% url 'integrations:wabis:number_list' %}" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium" data-testid="manage-numbers-btn">
+                        <i class="fas fa-cog mr-2"></i>Manage Numbers
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Webhook Configuration -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Webhook Configuration</h3>
+                    
+                    <div class="bg-gray-50 rounded-xl p-4 space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Webhook URL</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="text" readonly value="{{ webhook_url }}" 
+                                       id="webhookUrl"
+                                       class="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-mono"
+                                       data-testid="webhook-url-input">
+                                <button onclick="copyToClipboard('webhookUrl')" 
+                                        class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                                        data-testid="copy-webhook-url">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Verify Token</label>
+                            <div class="flex items-center space-x-2">
+                                <input type="text" readonly value="{% if config %}{{ config.verify_token }}{% else %}elvis_wabis_verify_2024{% endif %}" 
+                                       id="verifyToken"
+                                       class="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-mono"
+                                       data-testid="verify-token-input">
+                                <button onclick="copyToClipboard('verifyToken')" 
+                                        class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                                        data-testid="copy-verify-token">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-sm text-gray-500">
+                        <p class="font-medium text-gray-700 mb-2">Configure in Wabis Dashboard:</p>
+                        <code class="bg-gray-100 px-2 py-1 rounded text-xs">https://bot.wabis.in/api/developer/console</code>
+                    </div>
+                </div>
+                
+                <!-- Setup Steps -->
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Quick Setup Guide</h3>
+                    
+                    <div class="bg-blue-50 rounded-xl p-4">
+                        <ol class="space-y-3 text-sm text-gray-700">
+                            <li class="flex items-start space-x-3">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">1</span>
+                                <span>Login to <strong>Wabis Developer Console</strong> at bot.wabis.in</span>
+                            </li>
+                            <li class="flex items-start space-x-3">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">2</span>
+                                <span>Navigate to <strong>Webhook Settings</strong> and paste the webhook URL above</span>
+                            </li>
+                            <li class="flex items-start space-x-3">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">3</span>
+                                <span>Set the <strong>Verify Token</strong> to match the value above</span>
+                            </li>
+                            <li class="flex items-start space-x-3">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">4</span>
+                                <span>Subscribe to <strong>messages</strong> events</span>
+                            </li>
+                            <li class="flex items-start space-x-3">
+                                <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">5</span>
+                                <span>Leads will automatically appear when customers message your numbers</span>
+                            </li>
+                        </ol>
+                    </div>
+                    
+                    <div class="text-xs text-gray-600 bg-gray-50 rounded-lg p-3">
+                        <i class="fas fa-lightbulb text-yellow-500 mr-1"></i>
+                        <strong>Tip:</strong> Wabis supports multiple WhatsApp Business numbers with one webhook endpoint.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6" data-testid="total-customers-stat">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">Total Leads</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ total_customers }}</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-users text-green-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6" data-testid="total-messages-stat">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">Total Messages</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ total_messages }}</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <i class="fas fa-comments text-blue-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6" data-testid="organic-customers-stat">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">Organic Leads</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ organic_customers }}</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center">
+                    <i class="fas fa-leaf text-emerald-600"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6" data-testid="ads-customers-stat">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-500">From Ads</p>
+                    <p class="text-3xl font-bold text-gray-900">{{ ads_customers }}</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center">
+                    <i class="fas fa-ad text-orange-600"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Active Numbers -->
+    {% if numbers %}
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-900">Active WhatsApp Numbers</h3>
+            <a href="{% url 'integrations:wabis:number_list' %}" class="text-primary-500 hover:text-primary-600 text-sm font-medium">
+                Manage <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full" data-testid="active-numbers-table">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Number</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone Number ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Messages</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Activity</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for num in numbers %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                                    <i class="fab fa-whatsapp text-green-600"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">{{ num.display_name }}</div>
+                                    <div class="text-sm text-gray-500">{{ num.display_phone_number }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <code class="text-xs bg-gray-100 px-2 py-1 rounded">{{ num.phone_number_id }}</code>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if num.status == 'active' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></span>Active
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                {{ num.status }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ num.total_messages_received }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {% if num.last_message_at %}
+                            {{ num.last_message_at|timesince }} ago
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Recent Leads -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-900">Recent WhatsApp Leads</h3>
+            <a href="{% url 'integrations:wabis:customer_list' %}" class="text-primary-500 hover:text-primary-600 text-sm font-medium">
+                View All <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+        
+        {% if recent_customers %}
+        <div class="overflow-x-auto">
+            <table class="w-full" data-testid="recent-leads-table">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Message</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Seen</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for customer in recent_customers %}
+                    <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='{% url 'integrations:wabis:customer_detail' customer.pk %}'">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center mr-3">
+                                    <span class="text-primary-600 font-bold">{{ customer.profile_name|slice:":1"|upper|default:"?" }}</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">{{ customer.profile_name|default:"Unknown" }}</div>
+                                    <div class="text-sm text-gray-500">+{{ customer.wa_id }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if customer.is_from_ad %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                <i class="fas fa-ad mr-1"></i> Ad
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <i class="fas fa-leaf mr-1"></i> Organic
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if customer.conversion_status == 'won' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Won
+                            </span>
+                            {% elif customer.conversion_status == 'lost' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                Lost
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                Pending
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-900 max-w-xs truncate">{{ customer.last_message_preview|default:"-"|truncatechars:50 }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ customer.first_seen|timesince }} ago</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-inbox text-gray-400 text-2xl"></i>
+            </div>
+            <h4 class="text-lg font-medium text-gray-900 mb-2">No Leads Yet</h4>
+            <p class="text-gray-500">Leads will appear here when customers message your WhatsApp numbers via Wabis.</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Recent Webhook Activity -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-900">Recent Webhook Activity</h3>
+            <a href="{% url 'integrations:wabis:webhook_logs' %}" class="text-primary-500 hover:text-primary-600 text-sm font-medium">
+                View All <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+        
+        {% if recent_webhooks %}
+        <div class="divide-y divide-gray-200">
+            {% for log in recent_webhooks %}
+            <div class="p-4 hover:bg-gray-50">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        {% if log.processed %}
+                        <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                        {% else %}
+                        <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+                        {% endif %}
+                        <span class="text-sm font-medium text-gray-900">{{ log.event_type|default:"webhook" }}</span>
+                        <span class="text-xs text-gray-500">{{ log.created|timesince }} ago</span>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        {% if log.messages_processed > 0 %}
+                        <span class="text-green-600">{{ log.messages_processed }} msg{% if log.messages_processed > 1 %}s{% endif %}</span>
+                        {% endif %}
+                        {% if log.customers_created > 0 %}
+                        <span class="ml-2 text-blue-600">{{ log.customers_created }} new</span>
+                        {% endif %}
+                        {% if log.processing_time_ms %}
+                        <span class="ml-2 text-gray-400">{{ log.processing_time_ms }}ms</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if log.error_message %}
+                <div class="mt-2 text-xs text-red-600">{{ log.error_message|truncatechars:100 }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-8 text-center text-gray-500">
+            No webhook activity yet
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    element.select();
+    document.execCommand('copy');
+    
+    // Show toast notification if available
+    if (typeof showToast === 'function') {
+        showToast('Copied to clipboard!', 'success');
+    } else {
+        alert('Copied to clipboard!');
+    }
+}
+</script>
+{% endblock %}
