@@ -286,12 +286,63 @@ class WabisSubscriberSyncService:
     def __init__(self, api_token=None):
         self.client = WabisAPIClient(api_token)
     
-    def sync_all_subscribers(self, whatsapp_bot_id, config=None):
+    def sync_all_numbers(self):
         """
-        Sync all subscribers from Wabis to local database.
+        Sync subscribers from ALL configured WhatsApp numbers.
+        
+        Returns:
+            dict: {total_created: int, total_updated: int, total_errors: int, numbers_synced: int, details: [...]}
+        """
+        from integrations.wabis.models import WabisNumber
+        
+        # Get all active numbers with bot IDs configured
+        numbers = WabisNumber.objects.filter(
+            is_active=True,
+            wabis_bot_id__isnull=False
+        ).exclude(wabis_bot_id='')
+        
+        total_stats = {
+            'total_created': 0,
+            'total_updated': 0,
+            'total_errors': 0,
+            'numbers_synced': 0,
+            'details': []
+        }
+        
+        for number in numbers:
+            try:
+                stats = self.sync_all_subscribers(
+                    whatsapp_bot_id=number.wabis_bot_id,
+                    wabis_number=number
+                )
+                total_stats['total_created'] += stats['created']
+                total_stats['total_updated'] += stats['updated']
+                total_stats['total_errors'] += stats['errors']
+                total_stats['numbers_synced'] += 1
+                total_stats['details'].append({
+                    'number': number.display_phone_number,
+                    'name': number.display_name,
+                    'bot_id': number.wabis_bot_id,
+                    'stats': stats
+                })
+            except Exception as e:
+                total_stats['total_errors'] += 1
+                total_stats['details'].append({
+                    'number': number.display_phone_number,
+                    'name': number.display_name,
+                    'bot_id': number.wabis_bot_id,
+                    'error': str(e)
+                })
+        
+        return total_stats
+    
+    def sync_all_subscribers(self, whatsapp_bot_id, wabis_number=None, config=None):
+        """
+        Sync all subscribers from a single Wabis bot to local database.
         
         Args:
             whatsapp_bot_id: The WhatsApp bot ID to sync from
+            wabis_number: WabisNumber instance (optional) - to link customers to specific number
             config: WabisConfig instance (optional)
         
         Returns:
