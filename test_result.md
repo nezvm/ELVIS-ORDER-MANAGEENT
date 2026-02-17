@@ -923,3 +923,48 @@ agent_communication:
       • Production deployment with full lead attribution and conversion tracking capabilities
       
       🚀 The implementation successfully bridges WhatsApp lead capture with business intelligence, providing a complete solution for tracking ROAS, conversion rates, and customer lifecycle analytics.
+
+  - agent: "main"
+    message: |
+      IMPLEMENTED: Enterprise WhatsApp ROAS + Meta Measurement Engine under Marketing section.
+      
+      ## Backend (New Files):
+      - marketing/meta_models.py: MetaIntegrationConfig, MetaDailyInsights, CapiEventLog, MarketingDailyRollup (migrated)
+      - marketing/meta_services.py: MetaCAPIService (Lead+Purchase CAPI events), MetaInsightsService, ProbabilisticAttributionEngine, MarketingRollupService
+      - marketing/meta_tasks.py: Celery tasks - sync_meta_daily_insights, run_attribution_and_rollups, send_capi_lead_event, send_capi_purchase_event, retry_failed_capi_events
+      - marketing/meta_views.py: MarketingOverviewView, MetaSettingsView, CampaignPerformanceView, CapiEventLogsView + 7 API endpoints
+      - marketing/signals.py: Updated with fire_capi_lead_event + fire_capi_purchase_event on Lead save
+      - marketing/admin.py: Registered MetaIntegrationConfig, MetaDailyInsights, CapiEventLog, MarketingDailyRollup
+
+      ## Frontend (New Templates):
+      - templates/marketing/meta/overview.html: ROAS Dashboard with date filters, KPIs, dual ROAS views, charts, attribution disclaimer
+      - templates/marketing/meta/settings.html: Meta API config form, test connection/events, setup guide
+      - templates/marketing/meta/campaigns.html: Campaign performance table with date filters
+      - templates/marketing/meta/capi_logs.html: Filterable CAPI event log viewer
+      - templates/ui/base.html: Updated sidebar with ROAS Dashboard, Campaign Performance, CAPI Event Logs, Meta Settings
+      - templates/marketing/leads/list.html: Added Attribution column to lead list
+      - templates/marketing/leads/detail.html: Added Attribution section with manual override buttons
+
+      ## Pages:
+      1. /marketing/overview/ - ROAS Dashboard (date filters, KPIs, charts, dual ROAS, manual actions)
+      2. /marketing/meta/settings/ - Meta config form + test actions
+      3. /marketing/meta/campaigns/ - Campaign performance table
+      4. /marketing/meta/capi-logs/ - CAPI event logs
+
+      ## API Endpoints:
+      - POST /marketing/api/meta/test-connection/
+      - POST /marketing/api/meta/send-test-event/
+      - POST /marketing/api/meta/sync-insights/
+      - POST /marketing/api/meta/run-attribution/
+      - POST /marketing/api/meta/send-pending-capi/
+      - POST /marketing/api/meta/lead/<uuid>/attribution/
+      - GET /marketing/api/meta/chart-data/
+
+      Login: admin/admin123
+      
+      Please test:
+      1. All 4 new pages load (/marketing/overview/, /marketing/meta/settings/, /marketing/meta/campaigns/, /marketing/meta/capi-logs/)
+      2. API endpoints respond properly
+      3. Sidebar navigation links work
+      4. Lead list shows Attribution column
+      5. Lead detail shows Attribution section
