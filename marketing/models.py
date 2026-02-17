@@ -25,6 +25,21 @@ class Lead(BaseModel):
         ('dormant', 'Dormant'),
     ]
     
+    # Conversion tracking status (for matching period logic)
+    CONVERSION_STATUS = [
+        ('pending', 'Pending'),
+        ('won', 'Won'),
+        ('lost', 'Lost'),
+    ]
+    
+    # Source type for attribution
+    SOURCE_TYPE_CHOICES = [
+        ('organic', 'Organic'),
+        ('ad', 'Ad'),
+        ('referral', 'Referral'),
+        ('unknown', 'Unknown'),
+    ]
+    
     LEAD_SOURCES = [
         ('manual', 'Manual Entry'),
         ('whatsapp_vcf_import', 'WhatsApp VCF Import'),
@@ -57,12 +72,44 @@ class Lead(BaseModel):
     email = models.EmailField(blank=True, null=True, db_index=True)
     email_normalized = models.EmailField(blank=True, null=True, db_index=True, help_text="Lowercase trimmed email")
     
-    # Lead Source
+    # Lead Source & Attribution
     lead_source = models.CharField(max_length=50, choices=LEAD_SOURCES, default='manual')
+    source_type = models.CharField(
+        max_length=20,
+        choices=SOURCE_TYPE_CHOICES,
+        default='unknown',
+        db_index=True,
+        help_text="Lead source type for attribution"
+    )
     source_ref_id = models.CharField(max_length=200, blank=True, null=True, help_text="External reference ID (Shopify checkout/cart ID)")
     source_payload = models.JSONField(default=dict, blank=True, help_text="Raw snapshot from source")
     captured_at = models.DateTimeField(null=True, blank=True, help_text="When lead was captured in ERP")
     needs_phone = models.BooleanField(default=False, help_text="True if lead created from email only")
+    
+    # Ad Attribution Fields
+    ad_platform = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text="Ad platform (facebook, instagram, google)"
+    )
+    meta_campaign_id = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text="Meta/Google Campaign ID"
+    )
+    meta_adset_id = models.CharField(max_length=100, blank=True, null=True, help_text="Meta Ad Set ID")
+    meta_ad_id = models.CharField(max_length=100, blank=True, null=True, help_text="Meta Ad ID")
+    meta_fbclid = models.CharField(max_length=200, blank=True, null=True, db_index=True, help_text="Facebook Click ID")
+    google_gclid = models.CharField(max_length=200, blank=True, null=True, db_index=True, help_text="Google Click ID")
+    utm_source = models.CharField(max_length=100, blank=True, null=True)
+    utm_medium = models.CharField(max_length=100, blank=True, null=True)
+    utm_campaign = models.CharField(max_length=200, blank=True, null=True)
+    utm_content = models.CharField(max_length=200, blank=True, null=True)
+    utm_term = models.CharField(max_length=200, blank=True, null=True)
     
     # Shopify Abandoned Checkout/Cart Fields
     recover_url = models.URLField(blank=True, null=True, help_text="Checkout recovery link")
@@ -93,9 +140,54 @@ class Lead(BaseModel):
     matched_customer = models.ForeignKey('master.Customer', on_delete=models.SET_NULL, null=True, blank=True, related_name='matched_leads')
     matched_order = models.ForeignKey('master.Order', on_delete=models.SET_NULL, null=True, blank=True, related_name='matched_leads')
     
-    # Conversion Tracking
-    converted_order = models.ForeignKey('master.Order', on_delete=models.SET_NULL, null=True, blank=True, related_name='converted_leads', help_text="Order that converted this lead")
-    conversion_days = models.IntegerField(null=True, blank=True, help_text="Days from abandoned to conversion")
+    # =============================================================================
+    # CONVERSION TRACKING (Matching Period Logic)
+    # =============================================================================
+    conversion_status = models.CharField(
+        max_length=20,
+        choices=CONVERSION_STATUS,
+        default='pending',
+        db_index=True,
+        help_text="Conversion status: Pending → Won/Lost after matching period"
+    )
+    conversion_status_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When conversion status was last changed"
+    )
+    won_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the lead was marked as Won"
+    )
+    lost_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the lead was marked as Lost"
+    )
+    converted_order = models.ForeignKey(
+        'master.Order',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='converted_leads',
+        help_text="Order that converted this lead"
+    )
+    conversion_value = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Value of the converted order"
+    )
+    conversion_days = models.IntegerField(null=True, blank=True, help_text="Days from lead capture to conversion")
+    
+    # Meta CAPI Tracking
+    conversion_sent_to_meta = models.BooleanField(
+        default=False,
+        help_text="Whether conversion was sent to Meta CAPI"
+    )
+    conversion_sent_at = models.DateTimeField(null=True, blank=True)
+    conversion_event_id = models.CharField(max_length=200, blank=True, null=True)
     
     # Lead Management
     lead_status = models.CharField(max_length=20, choices=LEAD_STATUS, default='new')
@@ -133,6 +225,11 @@ class Lead(BaseModel):
         verbose_name = "Lead"
         verbose_name_plural = "Leads"
         ordering = ['-created']
+        indexes = [
+            models.Index(fields=['conversion_status', 'captured_at']),
+            models.Index(fields=['source_type', 'lead_source']),
+            models.Index(fields=['meta_campaign_id']),
+        ]
     
     def __str__(self):
         return f"{self.name or 'Unknown'} ({self.phone_no})"
@@ -146,6 +243,40 @@ class Lead(BaseModel):
     
     def get_update_url(self):
         return reverse_lazy("marketing:lead_update", kwargs={"pk": str(self.pk)})
+    
+    def is_within_matching_period(self, days=7):
+        """Check if lead is still within the matching period."""
+        from django.utils import timezone
+        from datetime import timedelta
+        if not self.captured_at:
+            return True
+        cutoff = timezone.now() - timedelta(days=days)
+        return self.captured_at > cutoff
+    
+    def mark_as_won(self, order, conversion_value=None):
+        """Mark lead as Won with conversion details."""
+        from django.utils import timezone
+        self.conversion_status = 'won'
+        self.won_at = timezone.now()
+        self.conversion_status_at = timezone.now()
+        self.converted_order = order
+        self.conversion_value = conversion_value or order.total_amount
+        self.lead_status = 'converted'
+        self.conversion_date = timezone.now().date()
+        if self.captured_at:
+            self.conversion_days = (timezone.now() - self.captured_at).days
+        self.conversion_sent_to_meta = False
+        self.save()
+    
+    def mark_as_lost(self):
+        """Mark lead as Lost (no conversion within matching period)."""
+        from django.utils import timezone
+        self.conversion_status = 'lost'
+        self.lost_at = timezone.now()
+        self.conversion_status_at = timezone.now()
+        if self.lead_status == 'new':
+            self.lead_status = 'dormant'
+        self.save()
 
 
 class LeadActivity(BaseModel):
