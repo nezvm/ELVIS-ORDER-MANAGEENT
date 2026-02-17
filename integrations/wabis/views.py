@@ -143,6 +143,10 @@ class WabisDashboardView(LoginRequiredMixin, TemplateView):
     
     def get_context_data(self, **kwargs):
         from django.conf import settings
+        from django.db.models import Count, Sum, Q, F
+        from django.db.models.functions import TruncDate
+        from datetime import timedelta
+        from marketing.models import Lead
         
         context = super().get_context_data(**kwargs)
         context['title'] = 'Wabis WhatsApp Integration'
@@ -160,14 +164,75 @@ class WabisDashboardView(LoginRequiredMixin, TemplateView):
             reverse('integrations:wabis:webhook')
         )
         
-        # Numbers
-        context['numbers'] = WabisNumber.objects.filter(is_active=True).order_by('-last_message_at')
+        # Numbers with stats
+        numbers = WabisNumber.objects.filter(is_active=True).order_by('-last_message_at')
+        context['numbers'] = numbers
         
-        # Stats
+        # Overall Stats
         context['total_customers'] = WabisCustomer.objects.filter(is_active=True).count()
         context['total_messages'] = WabisMessage.objects.count()
         context['ads_customers'] = WabisCustomer.objects.filter(is_active=True, source_type='ads').count()
         context['organic_customers'] = WabisCustomer.objects.filter(is_active=True, source_type='organic').count()
+        
+        # Conversion Stats from Leads
+        whatsapp_leads = Lead.objects.filter(
+            Q(lead_source__startswith='whatsapp') | Q(source_type='whatsapp')
+        )
+        context['total_whatsapp_leads'] = whatsapp_leads.count()
+        context['pending_leads'] = whatsapp_leads.filter(conversion_status='pending').count()
+        context['won_leads'] = whatsapp_leads.filter(conversion_status='won').count()
+        context['lost_leads'] = whatsapp_leads.filter(conversion_status='lost').count()
+        
+        # Conversion rate
+        total_decided = context['won_leads'] + context['lost_leads']
+        context['conversion_rate'] = round((context['won_leads'] / total_decided * 100) if total_decided > 0 else 0, 1)
+        
+        # Revenue from WhatsApp leads
+        context['total_revenue'] = whatsapp_leads.filter(conversion_status='won').aggregate(
+            total=Sum('conversion_value')
+        )['total'] or 0
+        
+        # Leads by WhatsApp Number (from WabisCustomer linked to numbers)
+        leads_by_number = []
+        for num in numbers:
+            customer_count = WabisCustomerChannel.objects.filter(number=num).values('customer').distinct().count()
+            # Get linked leads for this number's customers
+            customer_ids = WabisCustomerChannel.objects.filter(number=num).values_list('customer_id', flat=True)
+            linked_leads = WabisCustomer.objects.filter(id__in=customer_ids, linked_lead__isnull=False)
+            won_count = linked_leads.filter(linked_lead__conversion_status='won').count()
+            leads_by_number.append({
+                'number': num,
+                'customer_count': customer_count,
+                'won_count': won_count,
+            })
+        context['leads_by_number'] = leads_by_number
+        
+        # Source distribution for pie chart
+        context['source_distribution'] = {
+            'organic': context['organic_customers'],
+            'ads': context['ads_customers'],
+            'unknown': context['total_customers'] - context['organic_customers'] - context['ads_customers']
+        }
+        
+        # Conversion funnel
+        context['conversion_funnel'] = {
+            'total': context['total_whatsapp_leads'],
+            'pending': context['pending_leads'],
+            'won': context['won_leads'],
+            'lost': context['lost_leads'],
+        }
+        
+        # Recent 7 days leads trend
+        today = timezone.now().date()
+        seven_days_ago = today - timedelta(days=7)
+        leads_trend = whatsapp_leads.filter(
+            created__date__gte=seven_days_ago
+        ).annotate(
+            date=TruncDate('created')
+        ).values('date').annotate(
+            count=Count('id')
+        ).order_by('date')
+        context['leads_trend'] = list(leads_trend)
         
         # Recent customers
         context['recent_customers'] = WabisCustomer.objects.filter(is_active=True).order_by('-last_message_at')[:10]
