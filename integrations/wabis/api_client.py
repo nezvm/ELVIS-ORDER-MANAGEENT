@@ -414,11 +414,10 @@ class WabisSubscriberSyncService:
                             }
                         )
                         
-                        # Add email if available
+                        # Extract email for Lead (if available from Wabis subscriber data)
                         email = sub.get('email', '')
-                        if email and email != 'null' and email != 'None':
-                            customer.email = email
-                            customer.save(update_fields=['email'])
+                        if email in ('null', 'None', None):
+                            email = ''
                         
                         # Create/update Lead
                         try:
