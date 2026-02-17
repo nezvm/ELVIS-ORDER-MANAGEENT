@@ -6,6 +6,48 @@
 
 {% block content %}
 <div class="space-y-6">
+    <!-- Auto-Sync Status Banner -->
+    <div class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                    <i class="fas fa-sync-alt text-green-600 {% if config and config.api_key %}animate-spin{% endif %}" style="animation-duration: 3s;"></i>
+                </div>
+                <div>
+                    <p class="font-medium text-green-800">
+                        {% if config and config.api_key %}
+                        <i class="fas fa-check-circle text-green-600 mr-1"></i>
+                        Auto-Sync Active
+                        {% else %}
+                        <i class="fas fa-exclamation-circle text-yellow-600 mr-1"></i>
+                        Auto-Sync Disabled
+                        {% endif %}
+                    </p>
+                    <p class="text-sm text-green-700">
+                        {% if config and config.api_key %}
+                        Syncing every 15 minutes automatically
+                        {% if config.last_sync_at %}
+                        • Last sync: {{ config.last_sync_at|timesince }} ago
+                        {% endif %}
+                        {% else %}
+                        Configure API token to enable automatic sync
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                {% if config and config.api_key %}
+                <span class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                    <i class="fas fa-clock mr-1"></i>Every 15 min
+                </span>
+                {% endif %}
+                <button onclick="triggerSync()" class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium {% if not config or not config.api_key %}opacity-50 cursor-not-allowed{% endif %}" {% if not config or not config.api_key %}disabled{% endif %}>
+                    <i class="fas fa-sync-alt mr-1"></i>Sync Now
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Header with Quick Actions -->
     <div class="flex items-center justify-between">
         <div class="flex items-center space-x-3">
@@ -27,9 +69,9 @@
             <a href="{% url 'integrations:wabis:config' %}" class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors font-medium">
                 <i class="fas fa-cog mr-2"></i>Settings
             </a>
-            <button onclick="triggerSync()" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium {% if not config or not config.api_key %}opacity-50 cursor-not-allowed{% endif %}" {% if not config or not config.api_key %}disabled{% endif %}>
-                <i class="fas fa-sync-alt mr-2"></i>Sync Now
-            </button>
+            <a href="{% url 'integrations:wabis:number_list' %}" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium">
+                <i class="fas fa-mobile-alt mr-2"></i>Numbers
+            </a>
         </div>
     </div>
 
