@@ -38,9 +38,8 @@ def sync_wabis_subscribers(self):
         logger.warning("Wabis sync skipped: No numbers with Bot ID configured")
         return {'status': 'skipped', 'reason': 'No numbers with Bot ID configured'}
     
-    # Initialize API client and sync service
-    client = WabisAPIClient(api_token=config.api_key)
-    sync_service = WabisSubscriberSyncService(client)
+    # Initialize sync service with API token
+    sync_service = WabisSubscriberSyncService(api_token=config.api_key)
     
     total_stats = {
         'numbers_synced': 0,
