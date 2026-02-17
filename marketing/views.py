@@ -20,6 +20,111 @@ from .forms import (
 from .services import LeadService, WhatsAppService, CampaignService, MarketInsightsService
 
 
+# Dashboard
+class DailyInsightsDashboardView(LoginRequiredMixin, TemplateView):
+    """Daily insights dashboard with lead metrics."""
+    template_name = 'marketing/dashboard.html'
+    
+    def get_context_data(self, **kwargs):
+        from datetime import timedelta
+        from integrations.models import ShopifyOrder, ShopifyAbandonedCheckout
+        from integrations.wabis.models import WabisCustomer, WabisMessage
+        
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Daily Insights'
+        
+        today = timezone.now().date()
+        yesterday = today - timedelta(days=1)
+        week_ago = today - timedelta(days=7)
+        month_ago = today - timedelta(days=30)
+        
+        # Lead counts
+        all_leads = Lead.objects.filter(is_active=True)
+        today_leads = all_leads.filter(created__date=today)
+        yesterday_leads = all_leads.filter(created__date=yesterday)
+        week_leads = all_leads.filter(created__date__gte=week_ago)
+        
+        context['leads_today'] = today_leads.count()
+        context['leads_yesterday'] = yesterday_leads.count()
+        context['leads_this_week'] = week_leads.count()
+        context['leads_total'] = all_leads.count()
+        
+        # By Source
+        context['whatsapp_leads_today'] = today_leads.filter(
+            Q(lead_source__icontains='whatsapp') | Q(source_type='whatsapp')
+        ).count()
+        context['shopify_leads_today'] = today_leads.filter(
+            Q(lead_source__icontains='shopify') | Q(source_type='shopify')
+        ).count()
+        
+        # Conversion stats
+        context['won_leads_today'] = today_leads.filter(conversion_status='won').count()
+        context['lost_leads_today'] = today_leads.filter(conversion_status='lost').count()
+        context['pending_leads_today'] = today_leads.filter(conversion_status='pending').count()
+        
+        total_today = context['leads_today'] or 1
+        context['conversion_rate_today'] = round(context['won_leads_today'] / total_today * 100, 1)
+        
+        # Organic vs Ads
+        context['organic_leads_today'] = today_leads.filter(source_type='organic').count()
+        context['ad_leads_today'] = today_leads.filter(source_type='ad').count()
+        
+        # Shopify specific
+        context['shopify_orders_today'] = ShopifyOrder.objects.filter(created__date=today).count()
+        context['shopify_checkouts_today'] = ShopifyAbandonedCheckout.objects.filter(
+            created__date=today
+        ).count()
+        context['shopify_recovered_today'] = ShopifyAbandonedCheckout.objects.filter(
+            completed_at__date=today,
+            is_recovered=True
+        ).count()
+        
+        # Recovery rate
+        total_checkouts = ShopifyAbandonedCheckout.objects.filter(
+            created__date__gte=week_ago
+        ).count()
+        recovered = ShopifyAbandonedCheckout.objects.filter(
+            created__date__gte=week_ago,
+            is_recovered=True
+        ).count()
+        context['recovery_rate'] = round(recovered / total_checkouts * 100, 1) if total_checkouts > 0 else 0
+        
+        # WhatsApp messages
+        context['wa_messages_today'] = WabisMessage.objects.filter(created__date=today).count()
+        context['wa_customers_today'] = WabisCustomer.objects.filter(first_seen__date=today).count()
+        
+        # ROAS Placeholder (to be implemented with Meta Ads integration)
+        context['roas_placeholder'] = True
+        context['estimated_roas'] = "N/A"
+        
+        # COD vs Prepaid
+        cod_orders = ShopifyOrder.objects.filter(
+            created__date__gte=week_ago,
+            financial_status='pending'
+        ).count()
+        prepaid_orders = ShopifyOrder.objects.filter(
+            created__date__gte=week_ago
+        ).exclude(financial_status='pending').count()
+        
+        total_orders = cod_orders + prepaid_orders
+        context['cod_orders_week'] = cod_orders
+        context['prepaid_orders_week'] = prepaid_orders
+        context['cod_percentage'] = round(cod_orders / total_orders * 100, 1) if total_orders > 0 else 0
+        
+        # Weekly trends (last 7 days)
+        daily_data = []
+        for i in range(7):
+            date = today - timedelta(days=6-i)
+            day_leads = all_leads.filter(created__date=date).count()
+            daily_data.append({
+                'date': date.strftime('%a'),
+                'leads': day_leads
+            })
+        context['daily_trends'] = daily_data
+        
+        return context
+
+
 # Leads
 class LeadListView(LoginRequiredMixin, TemplateView):
     template_name = 'marketing/leads/list.html'
