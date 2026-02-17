@@ -31,8 +31,11 @@
                         Not Connected
                     </span>
                     {% endif %}
+                    <a href="{% url 'integrations:wabis:config' %}" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium" data-testid="config-btn">
+                        <i class="fas fa-cog mr-2"></i>Configure
+                    </a>
                     <a href="{% url 'integrations:wabis:number_list' %}" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium" data-testid="manage-numbers-btn">
-                        <i class="fas fa-cog mr-2"></i>Manage Numbers
+                        <i class="fas fa-mobile-alt mr-2"></i>Numbers
                     </a>
                 </div>
             </div>
