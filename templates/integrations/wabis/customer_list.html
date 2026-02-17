@@ -1,0 +1,161 @@
+{% extends 'ui/base.html' %}
+{% load static %}
+
+{% block title %}WhatsApp Leads - Wabis{% endblock %}
+{% block page_title %}WhatsApp Leads{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Filters -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+        <form method="get" class="flex flex-wrap items-center gap-4">
+            <div>
+                <select name="source" class="px-4 py-2 border border-gray-300 rounded-lg text-sm" data-testid="source-filter">
+                    <option value="">All Sources</option>
+                    <option value="organic" {% if request.GET.source == 'organic' %}selected{% endif %}>Organic</option>
+                    <option value="ads" {% if request.GET.source == 'ads' %}selected{% endif %}>From Ads</option>
+                </select>
+            </div>
+            <div>
+                <select name="status" class="px-4 py-2 border border-gray-300 rounded-lg text-sm" data-testid="status-filter">
+                    <option value="">All Statuses</option>
+                    <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="won" {% if request.GET.status == 'won' %}selected{% endif %}>Won</option>
+                    <option value="lost" {% if request.GET.status == 'lost' %}selected{% endif %}>Lost</option>
+                </select>
+            </div>
+            <div>
+                <select name="number" class="px-4 py-2 border border-gray-300 rounded-lg text-sm" data-testid="number-filter">
+                    <option value="">All Numbers</option>
+                    {% for num in numbers %}
+                    <option value="{{ num.id }}" {% if request.GET.number == num.id|stringformat:"s" %}selected{% endif %}>
+                        {{ num.display_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors text-sm">
+                <i class="fas fa-filter mr-2"></i>Filter
+            </button>
+            <a href="{% url 'integrations:wabis:customer_list' %}" class="text-gray-500 hover:text-gray-700 text-sm">
+                Clear Filters
+            </a>
+        </form>
+    </div>
+    
+    <!-- Leads Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        {% if customers %}
+        <div class="overflow-x-auto">
+            <table class="w-full" data-testid="customers-table">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Messages</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Message</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Seen</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {% for customer in customers %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <a href="{% url 'integrations:wabis:customer_detail' customer.pk %}" class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center mr-3">
+                                    <span class="text-primary-600 font-bold">{{ customer.profile_name|slice:":1"|upper|default:"?" }}</span>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">{{ customer.profile_name|default:"Unknown" }}</div>
+                                    <div class="text-sm text-gray-500">+{{ customer.wa_id }}</div>
+                                </div>
+                            </a>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if customer.is_from_ad %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                <i class="fas fa-ad mr-1"></i> Ad
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <i class="fas fa-leaf mr-1"></i> Organic
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if customer.conversion_status == 'won' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <i class="fas fa-check mr-1"></i> Won
+                            </span>
+                            {% elif customer.conversion_status == 'lost' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                <i class="fas fa-times mr-1"></i> Lost
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                <i class="fas fa-clock mr-1"></i> Pending
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ customer.total_messages }}</td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-900 max-w-xs truncate">{{ customer.last_message_preview|default:"-"|truncatechars:40 }}</div>
+                            <div class="text-xs text-gray-500">
+                                {% if customer.last_message_at %}
+                                {{ customer.last_message_at|timesince }} ago
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ customer.first_seen|date:"d M Y" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <a href="{% url 'integrations:wabis:customer_detail' customer.pk %}" class="text-primary-500 hover:text-primary-700">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="p-4 border-t border-gray-100 flex items-center justify-between">
+            <div class="text-sm text-gray-500">
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} results
+            </div>
+            <div class="flex items-center space-x-2">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.source %}&source={{ request.GET.source }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" 
+                   class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+                {% endif %}
+                
+                <span class="px-3 py-1 bg-primary-500 text-white rounded-lg">{{ page_obj.number }}</span>
+                
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if request.GET.source %}&source={{ request.GET.source }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" 
+                   class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="p-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-inbox text-gray-400 text-2xl"></i>
+            </div>
+            <h4 class="text-lg font-medium text-gray-900 mb-2">No Leads Found</h4>
+            <p class="text-gray-500">{% if request.GET %}No leads match your filters.{% else %}Leads will appear here when customers message your WhatsApp numbers.{% endif %}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
