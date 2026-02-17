@@ -936,3 +936,180 @@ def send_pending_conversions_api(request):
     except Exception as e:
         logger.error(f"Error sending pending conversions: {e}")
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+
+# =============================================================================
+# DIRECT CONNECT API (for existing WABAs)
+# =============================================================================
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def verify_connection(request):
+    """
+    Verify connection to Meta WhatsApp Cloud API with provided credentials.
+    Tests that the access token and phone number ID are valid.
+    """
+    try:
+        data = json.loads(request.body)
+        waba_id = data.get('waba_id')
+        phone_number_id = data.get('phone_number_id')
+        access_token = data.get('access_token')
+        
+        if not phone_number_id or not access_token:
+            return JsonResponse({
+                'success': False,
+                'error': 'Phone Number ID and Access Token are required'
+            }, status=400)
+        
+        # Call Meta Graph API to verify credentials
+        import requests
+        url = f"https://graph.facebook.com/v18.0/{phone_number_id}"
+        params = {
+            'access_token': access_token,
+            'fields': 'display_phone_number,verified_name,code_verification_status,quality_rating'
+        }
+        
+        response = requests.get(url, params=params, timeout=30)
+        
+        if response.status_code == 200:
+            api_data = response.json()
+            return JsonResponse({
+                'success': True,
+                'phone_number': api_data.get('display_phone_number'),
+                'verified_name': api_data.get('verified_name'),
+                'status': api_data.get('code_verification_status', 'Unknown'),
+                'quality_rating': api_data.get('quality_rating', 'Unknown')
+            })
+        else:
+            error_data = response.json()
+            error_message = error_data.get('error', {}).get('message', 'Unknown error')
+            return JsonResponse({
+                'success': False,
+                'error': f"Meta API Error: {error_message}"
+            }, status=400)
+            
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f"Error verifying WhatsApp connection: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def direct_connect_number(request):
+    """
+    Direct Connect API - Connect an existing WABA number that you already own.
+    This bypasses Embedded Signup and directly registers the number using provided credentials.
+    """
+    try:
+        data = json.loads(request.body)
+        waba_id = data.get('waba_id')
+        phone_number_id = data.get('phone_number_id')
+        display_phone_number = data.get('display_phone_number')
+        display_name = data.get('display_name')
+        access_token = data.get('access_token')
+        
+        if not waba_id or not phone_number_id or not access_token:
+            return JsonResponse({
+                'success': False,
+                'error': 'WABA ID, Phone Number ID, and Access Token are required'
+            }, status=400)
+        
+        # Optionally verify the connection first
+        import requests
+        url = f"https://graph.facebook.com/v18.0/{phone_number_id}"
+        params = {
+            'access_token': access_token,
+            'fields': 'display_phone_number,verified_name'
+        }
+        
+        response = requests.get(url, params=params, timeout=30)
+        
+        if response.status_code != 200:
+            error_data = response.json()
+            error_message = error_data.get('error', {}).get('message', 'Unable to verify connection')
+            return JsonResponse({
+                'success': False,
+                'error': f"Invalid credentials: {error_message}"
+            }, status=400)
+        
+        # Get additional info from API response
+        api_data = response.json()
+        if not display_phone_number:
+            display_phone_number = api_data.get('display_phone_number')
+        if not display_name:
+            display_name = api_data.get('verified_name')
+        
+        # Create or update WhatsAppConnectedNumber
+        existing = WhatsAppConnectedNumber.objects.filter(
+            phone_number_id=phone_number_id
+        ).first()
+        
+        if existing:
+            existing.waba_id = waba_id
+            existing.display_phone_number = display_phone_number
+            existing.display_name = display_name
+            existing.access_token = access_token
+            existing.status = 'active'
+            existing.is_active = True
+            existing.webhook_verified = False  # User needs to configure webhook in Meta
+            existing.meta_data = {
+                'connection_type': 'direct',
+                'connected_at': timezone.now().isoformat(),
+            }
+            existing.save()
+            connected_number = existing
+            logger.info(f"Updated existing WhatsApp connection via Direct Connect: {phone_number_id}")
+        else:
+            connected_number = WhatsAppConnectedNumber.objects.create(
+                waba_id=waba_id,
+                phone_number_id=phone_number_id,
+                display_phone_number=display_phone_number,
+                display_name=display_name,
+                access_token=access_token,
+                status='active',
+                webhook_verified=False,
+                connected_by=request.user if request.user.is_authenticated else None,
+                meta_data={
+                    'connection_type': 'direct',
+                    'connected_at': timezone.now().isoformat(),
+                }
+            )
+            logger.info(f"Created new WhatsApp connection via Direct Connect: {phone_number_id}")
+        
+        # Also create WhatsAppNumberConfig for webhook tracking
+        number_config, _ = WhatsAppNumberConfig.objects.get_or_create(
+            phone_number_id=phone_number_id,
+            defaults={
+                'name': display_name or f'Number {phone_number_id[-4:]}',
+                'display_phone_number': display_phone_number
+            }
+        )
+        number_config.connected_number = connected_number
+        number_config.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'WhatsApp number connected successfully via Direct Connect',
+            'data': {
+                'id': str(connected_number.id),
+                'phone_number_id': connected_number.phone_number_id,
+                'waba_id': connected_number.waba_id,
+                'display_name': connected_number.display_name,
+                'display_phone_number': connected_number.display_phone_number,
+                'status': connected_number.status
+            },
+            'next_steps': [
+                'Configure webhook callback URL in Meta Developer Dashboard',
+                'Subscribe to "messages" webhook field',
+                'Test by sending a message to the connected number'
+            ]
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f"Error in Direct Connect: {e}", exc_info=True)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
