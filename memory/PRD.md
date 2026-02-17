@@ -49,7 +49,14 @@ Build a comprehensive lead management system within the existing Django ERP with
 - Sync Subscribers button
 - Step-by-step setup instructions in UI
 
-### Phase 7: Meta CAPI Integration (Future)
+### Phase 7: Multi-Number Wabis Support ✅ (Feb 17, 2026)
+- `WabisNumber` model now stores `wabis_bot_id` for each number
+- UI for managing Bot IDs: `/integrations/wabis/numbers/`
+- Edit Bot ID modal for individual numbers
+- Sync iterates through all numbers with configured Bot IDs
+- API correctly uses Wabis format: `{status: '1', message: [...]}`
+
+### Phase 8: Meta CAPI Integration (Future)
 - Send conversions to Meta for ROAS tracking
 - Ad spend sync
 
