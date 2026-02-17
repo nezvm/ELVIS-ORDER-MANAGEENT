@@ -8,7 +8,7 @@ import sys
 from urllib.parse import urljoin
 
 def test_cohort_endpoint():
-    base_url = "https://wabis-shopify-sync.preview.emergentagent.com"
+    base_url = "https://erp-roas-engine.preview.emergentagent.com"
     session = requests.Session()
     
     print("🔍 Debugging Cohort Analysis Endpoint")
