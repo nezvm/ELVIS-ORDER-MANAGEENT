@@ -497,8 +497,10 @@ class MarketingMetaERPTester:
         passed_tests = passed_pages + passed_apis + (1 if sidebar_result else 0) + (1 if attribution_result else 0)
         
         print(f"\n📈 Overall Success Rate: {(passed_tests/total_tests*100):.1f}% ({passed_tests}/{total_tests})")
-        print(f"📈 Pages: {(passed_pages/total_pages*100):.1f}% ({passed_pages}/{total_pages})")
-        print(f"📈 APIs: {(passed_apis/total_apis*100):.1f}% ({passed_apis}/{total_apis})")
+        if total_pages > 0:
+            print(f"📈 Pages: {(passed_pages/total_pages*100):.1f}% ({passed_pages}/{total_pages})")
+        if total_apis > 0:
+            print(f"📈 APIs: {(passed_apis/total_apis*100):.1f}% ({passed_apis}/{total_apis})")
         
         # Status determination
         if passed_tests == total_tests:
