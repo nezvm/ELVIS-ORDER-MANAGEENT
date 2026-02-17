@@ -1,0 +1,161 @@
+{% extends 'ui/base.html' %}
+{% load humanize %}
+
+{% block title %}Campaign Performance{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Campaign Performance</h1>
+            <p class="text-sm text-gray-500 mt-1">Meta Ads spend, conversations &amp; ERP-attributed outcomes &mdash; {{ date_label }}</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="?preset=today" class="px-3 py-1.5 text-xs font-medium rounded-lg border {% if date_preset == 'today' %}bg-primary-500 text-white border-primary-500{% else %}bg-white text-gray-600 border-gray-300 hover:bg-gray-50{% endif %} transition">Today</a>
+            <a href="?preset=yesterday" class="px-3 py-1.5 text-xs font-medium rounded-lg border {% if date_preset == 'yesterday' %}bg-primary-500 text-white border-primary-500{% else %}bg-white text-gray-600 border-gray-300 hover:bg-gray-50{% endif %} transition">Yesterday</a>
+            <a href="?preset=this_week" class="px-3 py-1.5 text-xs font-medium rounded-lg border {% if date_preset == 'this_week' %}bg-primary-500 text-white border-primary-500{% else %}bg-white text-gray-600 border-gray-300 hover:bg-gray-50{% endif %} transition">This Week</a>
+            <a href="?preset=this_month" class="px-3 py-1.5 text-xs font-medium rounded-lg border {% if date_preset == 'this_month' %}bg-primary-500 text-white border-primary-500{% else %}bg-white text-gray-600 border-gray-300 hover:bg-gray-50{% endif %} transition">This Month</a>
+            <a href="?preset=last_month" class="px-3 py-1.5 text-xs font-medium rounded-lg border {% if date_preset == 'last_month' %}bg-primary-500 text-white border-primary-500{% else %}bg-white text-gray-600 border-gray-300 hover:bg-gray-50{% endif %} transition">Last Month</a>
+            <form method="get" class="flex items-center gap-1 ml-2">
+                <input type="hidden" name="preset" value="custom">
+                <input type="date" name="start_date" value="{{ start_date }}" class="text-xs border border-gray-300 rounded-lg px-2 py-1.5">
+                <span class="text-gray-400 text-xs">to</span>
+                <input type="date" name="end_date" value="{{ end_date }}" class="text-xs border border-gray-300 rounded-lg px-2 py-1.5">
+                <button type="submit" class="px-3 py-1.5 text-xs font-medium bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition">Apply</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Totals Row -->
+    {% if totals %}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <p class="text-xs font-medium text-gray-500 uppercase">Total Spend</p>
+            <p class="text-2xl font-bold text-red-600 mt-1">&#8377;{{ totals.total_spend|floatformat:0|intcomma|default:"0" }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <p class="text-xs font-medium text-gray-500 uppercase">Total Impressions</p>
+            <p class="text-2xl font-bold text-gray-900 mt-1">{{ totals.total_impressions|intcomma|default:"0" }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <p class="text-xs font-medium text-gray-500 uppercase">Total Clicks</p>
+            <p class="text-2xl font-bold text-blue-600 mt-1">{{ totals.total_clicks|intcomma|default:"0" }}</p>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <p class="text-xs font-medium text-gray-500 uppercase">Conversations Started</p>
+            <p class="text-2xl font-bold text-green-600 mt-1">{{ totals.total_conversations|intcomma|default:"0" }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Campaign Summary Table -->
+    {% if campaign_summary %}
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-gray-100">
+            <h2 class="text-sm font-bold text-gray-900"><i class="fas fa-table mr-1"></i> Campaign Summary</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="text-left px-4 py-3 font-semibold text-gray-600">Campaign</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-600">Spend</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-600">Impressions</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-600">Clicks</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-600">Conversations</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-600">Meta Leads</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-600">Meta Purchases</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-600">Meta Revenue</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-600">ERP Leads</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-600">ERP Revenue</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-600">Est. ROAS</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for cs in campaign_summary %}
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-4 py-3">
+                            <p class="font-medium text-gray-900 truncate max-w-xs">{{ cs.campaign_name|default:"Unknown" }}</p>
+                            <p class="text-gray-400 text-[10px] mt-0.5">{{ cs.campaign_id }}</p>
+                        </td>
+                        <td class="px-4 py-3 text-right font-medium text-red-600">&#8377;{{ cs.total_spend|floatformat:0|intcomma }}</td>
+                        <td class="px-4 py-3 text-right text-gray-600">{{ cs.total_impressions|intcomma }}</td>
+                        <td class="px-4 py-3 text-right text-gray-600">{{ cs.total_clicks|intcomma }}</td>
+                        <td class="px-4 py-3 text-right text-green-600 font-medium">{{ cs.total_conversations|intcomma }}</td>
+                        <td class="px-4 py-3 text-right text-gray-600">{{ cs.total_meta_leads|intcomma }}</td>
+                        <td class="px-4 py-3 text-right text-gray-600">{{ cs.total_meta_purchases|intcomma }}</td>
+                        <td class="px-4 py-3 text-right text-gray-600">&#8377;{{ cs.total_meta_revenue|floatformat:0|intcomma }}</td>
+                        <td class="px-4 py-3 text-right text-blue-600 font-medium">{{ cs.total_erp_leads|intcomma }}</td>
+                        <td class="px-4 py-3 text-right text-green-600 font-medium">&#8377;{{ cs.total_erp_revenue|floatformat:0|intcomma }}</td>
+                        <td class="px-4 py-3 text-right">
+                            {% if cs.estimated_roas > 0 %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold {% if cs.estimated_roas >= 3 %}bg-green-100 text-green-700{% elif cs.estimated_roas >= 1 %}bg-amber-100 text-amber-700{% else %}bg-red-100 text-red-700{% endif %}">
+                                {{ cs.estimated_roas }}x
+                            </span>
+                            {% else %}
+                            <span class="text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Daily Breakdown Table -->
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-gray-100">
+            <h2 class="text-sm font-bold text-gray-900"><i class="fas fa-calendar-day mr-1"></i> Daily Breakdown</h2>
+        </div>
+        {% if insights %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+                <thead class="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                        <th class="text-left px-4 py-3 font-semibold text-gray-600">Date</th>
+                        <th class="text-left px-4 py-3 font-semibold text-gray-600">Campaign</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-600">Spend</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-600">Impr.</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-600">Clicks</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-600">Conv. Started</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-600">Meta Leads</th>
+                        <th class="text-right px-4 py-3 font-semibold text-gray-600">Meta Purchases</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for i in insights %}
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-4 py-3 text-gray-600">{{ i.insight_date }}</td>
+                        <td class="px-4 py-3">
+                            <p class="font-medium text-gray-900 truncate max-w-xs">{{ i.campaign_name|default:"Unknown" }}</p>
+                        </td>
+                        <td class="px-4 py-3 text-right font-medium text-red-600">&#8377;{{ i.spend|floatformat:0|intcomma }}</td>
+                        <td class="px-4 py-3 text-right text-gray-600">{{ i.impressions|intcomma }}</td>
+                        <td class="px-4 py-3 text-right text-gray-600">{{ i.clicks|intcomma }}</td>
+                        <td class="px-4 py-3 text-right text-green-600 font-medium">{{ i.messaging_conversations_started|intcomma }}</td>
+                        <td class="px-4 py-3 text-right text-gray-600">{{ i.meta_leads|intcomma }}</td>
+                        <td class="px-4 py-3 text-right text-gray-600">{{ i.meta_purchases|intcomma }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-8 text-center">
+            <i class="fas fa-chart-bar text-4xl text-gray-300 mb-3"></i>
+            <p class="text-sm text-gray-500">No campaign insights data for this period.</p>
+            <p class="text-xs text-gray-400 mt-1">Sync Meta insights from <a href="{% url 'marketing:meta_settings' %}" class="text-blue-600 underline">Settings</a> or wait for nightly sync at 2:00 AM IST.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 text-xs text-gray-600">
+        <i class="fas fa-info-circle text-blue-500 mr-1"></i>
+        <strong>Note:</strong> "ERP Leads" and "ERP Revenue" columns use proportional allocation based on each campaign's share of "conversations started". This is an <em>estimate</em> because Wabis/BSP does not pass campaign IDs from CTWA ads. For authoritative campaign-level performance, use Meta Ads Manager directly.
+    </div>
+</div>
+{% endblock %}
