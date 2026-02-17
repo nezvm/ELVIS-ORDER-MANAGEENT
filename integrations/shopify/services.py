@@ -174,7 +174,6 @@ class ShopifyOrderService:
                 email=email,
                 lead_source='shopify_order',
                 source_type='shopify',
-                status='Won',
                 conversion_status='won',
                 won_at=timezone.now(),
                 conversion_value=order_value,
