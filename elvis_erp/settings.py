@@ -302,6 +302,25 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'whatsapp.sync_ad_spend',
         'schedule': crontab(hour=21, minute=15),
     },
+    
+    # =============================================================================
+    # META MARKETING (ROAS Engine)
+    # =============================================================================
+    # Pull Meta Ads insights daily at 02:00 IST (20:30 UTC)
+    'sync-meta-daily-insights': {
+        'task': 'marketing.sync_meta_daily_insights',
+        'schedule': crontab(hour=20, minute=30),
+    },
+    # Run attribution + rollups at 02:15 IST (20:45 UTC)
+    'run-attribution-and-rollups': {
+        'task': 'marketing.run_attribution_and_rollups',
+        'schedule': crontab(hour=20, minute=45),
+    },
+    # Retry failed CAPI events at 03:00 IST (21:30 UTC)
+    'retry-failed-capi-events': {
+        'task': 'marketing.retry_failed_capi_events',
+        'schedule': crontab(hour=21, minute=30),
+    },
 }
 
 # =============================================================================
