@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}All Leads{% endblock %}
-{% block page_title %}All Leads{% endblock %}
+{% block page_title %}Lead Management{% endblock %}
 
 {% block page_subtitle %}
 <span class="ml-4 px-3 py-1 bg-gray-100 rounded-full text-sm font-medium text-gray-600">{{ total_count }} total</span>
@@ -10,6 +10,81 @@
 
 {% block content %}
 <div class="space-y-6" data-testid="leads-page">
+    <!-- Top Level Tabs -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-2">
+        <nav class="flex space-x-2" data-testid="lead-tabs">
+            <a href="{% url 'marketing:lead_list' %}" 
+               class="px-6 py-3 rounded-xl font-semibold transition-colors {% if not request.GET.lead_source %}bg-gray-900 text-white{% else %}text-gray-600 hover:bg-gray-100{% endif %}"
+               data-testid="tab-all-leads">
+                <i class="fas fa-layer-group mr-2"></i>All Leads
+                <span class="ml-2 px-2 py-0.5 rounded-full text-xs {% if not request.GET.lead_source %}bg-white text-gray-900{% else %}bg-gray-200{% endif %}">{{ total_count }}</span>
+            </a>
+            <a href="?lead_source=whatsapp" 
+               class="px-6 py-3 rounded-xl font-semibold transition-colors {% if request.GET.lead_source == 'whatsapp' %}bg-green-500 text-white{% else %}text-gray-600 hover:bg-gray-100{% endif %}"
+               data-testid="tab-whatsapp-leads">
+                <i class="fab fa-whatsapp mr-2"></i>WhatsApp Leads
+                <span class="ml-2 px-2 py-0.5 rounded-full text-xs {% if request.GET.lead_source == 'whatsapp' %}bg-white text-green-600{% else %}bg-gray-200{% endif %}">{{ source_counts.whatsapp|default:0 }}</span>
+            </a>
+            <a href="?lead_source=shopify" 
+               class="px-6 py-3 rounded-xl font-semibold transition-colors {% if request.GET.lead_source == 'shopify' %}bg-purple-500 text-white{% else %}text-gray-600 hover:bg-gray-100{% endif %}"
+               data-testid="tab-shopify-leads">
+                <i class="fab fa-shopify mr-2"></i>Shopify Leads
+                <span class="ml-2 px-2 py-0.5 rounded-full text-xs {% if request.GET.lead_source == 'shopify' %}bg-white text-purple-600{% else %}bg-gray-200{% endif %}">{{ source_counts.shopify|default:0 }}</span>
+            </a>
+            <a href="?lead_source=other" 
+               class="px-6 py-3 rounded-xl font-semibold transition-colors {% if request.GET.lead_source == 'other' %}bg-gray-700 text-white{% else %}text-gray-600 hover:bg-gray-100{% endif %}"
+               data-testid="tab-other-leads">
+                <i class="fas fa-globe mr-2"></i>Other Leads
+                <span class="ml-2 px-2 py-0.5 rounded-full text-xs {% if request.GET.lead_source == 'other' %}bg-white text-gray-700{% else %}bg-gray-200{% endif %}">{{ source_counts.other|default:0 }}</span>
+            </a>
+        </nav>
+    </div>
+    
+    <!-- Sub-tabs for source-specific views -->
+    {% if request.GET.lead_source == 'shopify' %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-4 py-2">
+        <nav class="flex space-x-2" data-testid="shopify-subtabs">
+            <a href="?lead_source=shopify&shopify_type=all" 
+               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {% if not request.GET.shopify_type or request.GET.shopify_type == 'all' %}bg-purple-100 text-purple-700{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+                All Shopify
+            </a>
+            <a href="?lead_source=shopify&shopify_type=orders" 
+               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {% if request.GET.shopify_type == 'orders' %}bg-purple-100 text-purple-700{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+                <i class="fas fa-shopping-cart mr-1"></i>Orders
+            </a>
+            <a href="?lead_source=shopify&shopify_type=checkouts" 
+               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {% if request.GET.shopify_type == 'checkouts' %}bg-purple-100 text-purple-700{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+                <i class="fas fa-shopping-bag mr-1"></i>Abandoned Checkouts
+            </a>
+            <a href="{% url 'integrations:shopify_store_list' %}" 
+               class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">
+                <i class="fas fa-cog mr-1"></i>Shopify Settings
+            </a>
+        </nav>
+    </div>
+    {% elif request.GET.lead_source == 'whatsapp' %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 px-4 py-2">
+        <nav class="flex space-x-2" data-testid="whatsapp-subtabs">
+            <a href="?lead_source=whatsapp&wa_type=all" 
+               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {% if not request.GET.wa_type or request.GET.wa_type == 'all' %}bg-green-100 text-green-700{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+                All WhatsApp
+            </a>
+            <a href="?lead_source=whatsapp&wa_type=organic" 
+               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {% if request.GET.wa_type == 'organic' %}bg-green-100 text-green-700{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+                <i class="fas fa-leaf mr-1"></i>Organic
+            </a>
+            <a href="?lead_source=whatsapp&wa_type=ads" 
+               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {% if request.GET.wa_type == 'ads' %}bg-green-100 text-green-700{% else %}text-gray-600 hover:bg-gray-50{% endif %}">
+                <i class="fas fa-ad mr-1"></i>From Ads
+            </a>
+            <a href="{% url 'integrations:wabis:dashboard' %}" 
+               class="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">
+                <i class="fas fa-cog mr-1"></i>WhatsApp Settings
+            </a>
+        </nav>
+    </div>
+    {% endif %}
+    
     <!-- Source Summary Cards -->
     <div class="grid grid-cols-6 gap-4">
         <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm cursor-pointer hover:border-green-300 transition-colors {% if request.GET.lead_source == 'whatsapp' %}border-green-500 ring-2 ring-green-200{% endif %}" onclick="filterBySource('whatsapp')" data-testid="source-whatsapp">
