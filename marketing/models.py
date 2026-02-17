@@ -941,3 +941,116 @@ class AbandonedMetrics(BaseModel):
             return f"Abandoned Metrics - {self.state} ({self.period_date})"
         return f"Abandoned Metrics - All ({self.period_date})"
 
+
+
+# =============================================================================
+# DAILY LEAD METRICS (Aggregate Table for Dashboard Performance)
+# =============================================================================
+class DailyLeadMetrics(BaseModel):
+    """
+    Pre-computed daily metrics for fast dashboard loading.
+    Computed nightly at 2 AM IST by Celery beat.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Date
+    metric_date = models.DateField(unique=True, db_index=True)
+    
+    # Overall Lead Counts
+    total_leads = models.IntegerField(default=0)
+    new_leads = models.IntegerField(default=0)  # Leads created on this date
+    pending_leads = models.IntegerField(default=0)
+    won_leads = models.IntegerField(default=0)
+    lost_leads = models.IntegerField(default=0)
+    
+    # Conversion Metrics
+    conversion_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    total_revenue = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    avg_conversion_days = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    
+    # By Source
+    whatsapp_leads = models.IntegerField(default=0)
+    whatsapp_won = models.IntegerField(default=0)
+    whatsapp_revenue = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    
+    shopify_leads = models.IntegerField(default=0)
+    shopify_won = models.IntegerField(default=0)
+    shopify_revenue = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    
+    other_leads = models.IntegerField(default=0)
+    other_won = models.IntegerField(default=0)
+    other_revenue = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    
+    # WhatsApp by Phone Number (JSON: {phone_number_id: {leads, won, lost, revenue}})
+    whatsapp_by_number = models.JSONField(default=dict)
+    
+    # Shopify Breakdown
+    shopify_orders_leads = models.IntegerField(default=0)
+    shopify_abandoned_leads = models.IntegerField(default=0)
+    shopify_recovered_leads = models.IntegerField(default=0)
+    shopify_cod_leads = models.IntegerField(default=0)
+    shopify_prepaid_leads = models.IntegerField(default=0)
+    
+    # Status Reasons Breakdown (JSON: {reason: count})
+    status_reasons = models.JSONField(default=dict)
+    
+    # Processing metadata
+    computed_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Daily Lead Metrics"
+        verbose_name_plural = "Daily Lead Metrics"
+        ordering = ['-metric_date']
+        indexes = [
+            models.Index(fields=['metric_date']),
+        ]
+    
+    def __str__(self):
+        return f"Lead Metrics - {self.metric_date}"
+
+
+class LeadMatchingConfig(BaseModel):
+    """Configuration for lead matching and expiry rules."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Matching Window (days)
+    matching_window_days = models.IntegerField(
+        default=7,
+        help_text="Days within which a lead must convert before being marked Lost"
+    )
+    
+    # Recovery Window for Abandoned Carts
+    recovery_window_days = models.IntegerField(
+        default=7,
+        help_text="Days within which an abandoned cart can be marked as Recovered"
+    )
+    
+    # Auto-processing
+    auto_expire_enabled = models.BooleanField(
+        default=True,
+        help_text="Automatically mark expired leads as Lost"
+    )
+    auto_match_orders = models.BooleanField(
+        default=True,
+        help_text="Automatically match new orders to existing leads"
+    )
+    
+    # Singleton pattern
+    @classmethod
+    def get_config(cls):
+        config, _ = cls.objects.get_or_create(
+            pk='00000000-0000-0000-0000-000000000001',
+            defaults={
+                'matching_window_days': 7,
+                'recovery_window_days': 7,
+            }
+        )
+        return config
+    
+    class Meta:
+        verbose_name = "Lead Matching Config"
+        verbose_name_plural = "Lead Matching Config"
+    
+    def __str__(self):
+        return f"Matching Config (Window: {self.matching_window_days} days)"
+
