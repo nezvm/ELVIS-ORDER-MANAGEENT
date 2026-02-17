@@ -60,24 +60,24 @@ class WabisAPIClient:
     
     # ==================== Subscriber APIs ====================
     
-    def get_subscribers_list(self, whatsapp_bot_id, limit=100, offset=0, order_by='desc'):
+    def get_subscribers_list(self, whatsapp_bot_id, limit=100, offset=0, order_by=1):
         """
         Get list of subscribers (contacts/leads).
         
         Args:
-            whatsapp_bot_id: The WhatsApp bot ID
+            whatsapp_bot_id: The WhatsApp bot ID (phone_number_id in API docs)
             limit: Number of records to fetch (max 100)
             offset: Pagination offset
-            order_by: 'asc' or 'desc'
+            order_by: 1 for latest first, 0 for default order
         
         Returns:
-            dict: {success: bool, data: [...subscribers]}
+            dict: {status: '1', message: [...subscribers]}
         """
-        return self._make_request('POST', '/whatsapp/subscriber-list', {
-            'whatsapp_bot_id': whatsapp_bot_id,
+        return self._make_request('POST', '/whatsapp/subscriber/list', {
+            'phone_number_id': whatsapp_bot_id,
             'limit': limit,
             'offset': offset,
-            'order_by': order_by
+            'orderBy': order_by
         })
     
     def get_subscriber(self, whatsapp_bot_id, phone_number):
@@ -85,14 +85,14 @@ class WabisAPIClient:
         Get single subscriber by phone number.
         
         Args:
-            whatsapp_bot_id: The WhatsApp bot ID
+            whatsapp_bot_id: The WhatsApp bot ID (phone_number_id in API docs)
             phone_number: Subscriber's phone number
         
         Returns:
             dict: Subscriber details
         """
-        return self._make_request('POST', '/whatsapp/subscriber-get', {
-            'whatsapp_bot_id': whatsapp_bot_id,
+        return self._make_request('POST', '/whatsapp/subscriber/get', {
+            'phone_number_id': whatsapp_bot_id,
             'phone_number': phone_number
         })
     
