@@ -45,6 +45,29 @@
         border-color: #3b82f6;
         background-color: #eff6ff;
     }
+    .connection-option {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+    }
+    .connection-option:hover {
+        border-color: #10b981;
+        transform: translateY(-2px);
+    }
+    .connection-option.selected {
+        border-color: #10b981;
+        background-color: #f0fdf4;
+    }
+    .step-badge {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        flex-shrink: 0;
+    }
 </style>
 {% endblock %}
 
@@ -66,340 +89,550 @@
                 </div>
                 <div>
                     <h1 class="text-2xl font-bold text-white">Connect WhatsApp Business Number</h1>
-                    <p class="text-green-100 mt-1">Use Embedded Signup to connect numbers from your Elvis Co portfolio</p>
+                    <p class="text-green-100 mt-1">Connect your existing WhatsApp Business numbers to receive leads</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Configuration Check -->
-    {% if not fb_app_id or not fb_config_id %}
-    <div class="bg-yellow-50 rounded-2xl border border-yellow-200 p-6">
-        <div class="flex items-start space-x-4">
-            <div class="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
-                <i class="fas fa-exclamation-triangle text-yellow-600 text-xl"></i>
-            </div>
-            <div>
-                <h3 class="text-lg font-semibold text-yellow-800 mb-2">Configuration Required</h3>
-                <p class="text-yellow-700 mb-4">
-                    Before you can connect numbers, you need to configure your Meta App credentials in <code class="bg-yellow-100 px-2 py-1 rounded">elvis_erp/settings.py</code>:
-                </p>
-                <div class="bg-white rounded-lg p-4 font-mono text-sm text-gray-800 mb-4">
-                    <p class="text-gray-500"># Add these after creating your Meta App:</p>
-                    <p>FB_APP_ID = '<span class="text-blue-600">your_app_id_here</span>'</p>
-                    <p>FB_CONFIG_ID = '<span class="text-blue-600">your_config_id_here</span>'</p>
+    <!-- Connection Method Selection -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Choose Connection Method</h2>
+        
+        <div class="grid md:grid-cols-2 gap-4 mb-6">
+            <!-- Option 1: Direct Connect (Recommended for existing WABAs) -->
+            <div id="option-direct" class="connection-option bg-white rounded-xl p-5 border-2 border-gray-200 selected" onclick="selectOption('direct')">
+                <div class="flex items-center space-x-3 mb-3">
+                    <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                        <i class="fas fa-link text-green-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-900">Direct Connect</h3>
+                        <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Recommended</span>
+                    </div>
                 </div>
-                <p class="text-sm text-yellow-600">
-                    <i class="fas fa-info-circle mr-1"></i>
-                    Get these from <a href="https://developers.facebook.com/apps" target="_blank" class="underline">developers.facebook.com</a> → Your App → WhatsApp → Getting Started
+                <p class="text-sm text-gray-600 mb-3">
+                    For numbers you <strong>already own</strong> in your Meta Business Portfolio.
                 </p>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Main Content -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Left: Connect Button -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <h2 class="text-xl font-semibold text-gray-900 mb-4">Connect Your Number</h2>
-            
-            <div class="bg-blue-50 rounded-xl p-4 mb-6">
-                <h3 class="text-sm font-semibold text-blue-800 mb-2"><i class="fas fa-info-circle mr-1"></i> What happens when you click:</h3>
-                <ol class="text-sm text-blue-700 space-y-2">
-                    <li>1. Facebook login popup will open</li>
-                    <li>2. Select your <strong>Elvis Co</strong> Business Portfolio</li>
-                    <li>3. Choose "Use existing WhatsApp Business App number"</li>
-                    <li>4. Enable Coexistence mode</li>
-                    <li>5. Scan QR code with your WhatsApp Business App</li>
-                    <li>6. Your number will be connected automatically!</li>
-                </ol>
-            </div>
-
-            <!-- Facebook Login Button -->
-            <div class="text-center py-6">
-                <div id="fb-root"></div>
-                {% if fb_app_id and fb_config_id %}
-                <button id="connectBtn" onclick="launchWhatsAppSignup()" class="fb-login-btn" data-testid="connect-whatsapp-btn">
-                    <i class="fab fa-facebook text-xl"></i>
-                    <span>Connect WhatsApp Number</span>
-                </button>
-                <p class="text-sm text-gray-500 mt-3">You'll be redirected to Facebook to complete the setup</p>
-                {% else %}
-                <button disabled class="fb-login-btn" data-testid="connect-whatsapp-btn-disabled">
-                    <i class="fab fa-facebook text-xl"></i>
-                    <span>Connect WhatsApp Number</span>
-                </button>
-                <p class="text-sm text-red-500 mt-3">Configure FB_APP_ID and FB_CONFIG_ID first</p>
-                {% endif %}
-            </div>
-
-            <!-- Status Card -->
-            <div id="statusCard" class="status-card hidden border-2 rounded-xl p-4 mt-4">
-                <div id="statusContent"></div>
-            </div>
-        </div>
-
-        <!-- Right: Requirements -->
-        <div class="space-y-6">
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <h2 class="text-xl font-semibold text-gray-900 mb-4">Requirements</h2>
-                <ul class="space-y-3">
-                    <li class="flex items-start space-x-3">
-                        <span class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <i class="fas fa-check text-xs"></i>
-                        </span>
-                        <span class="text-gray-600">WhatsApp Business App installed on your phone</span>
-                    </li>
-                    <li class="flex items-start space-x-3">
-                        <span class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <i class="fas fa-check text-xs"></i>
-                        </span>
-                        <span class="text-gray-600">App version 2.24.17 or higher</span>
-                    </li>
-                    <li class="flex items-start space-x-3">
-                        <span class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <i class="fas fa-check text-xs"></i>
-                        </span>
-                        <span class="text-gray-600">Phone number active on WhatsApp for 7+ days</span>
-                    </li>
-                    <li class="flex items-start space-x-3">
-                        <span class="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <i class="fas fa-check text-xs"></i>
-                        </span>
-                        <span class="text-gray-600">Facebook/Meta account with admin access to Elvis Co</span>
-                    </li>
+                <ul class="text-xs text-gray-500 space-y-1">
+                    <li><i class="fas fa-check text-green-500 mr-1"></i> Works with existing WABAs</li>
+                    <li><i class="fas fa-check text-green-500 mr-1"></i> No portfolio conflict</li>
+                    <li><i class="fas fa-check text-green-500 mr-1"></i> Co-existence compatible</li>
                 </ul>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                <h2 class="text-xl font-semibold text-gray-900 mb-4">How It Works</h2>
-                <div class="space-y-4">
-                    <div class="flex items-start space-x-3">
-                        <div class="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center flex-shrink-0 font-bold">1</div>
-                        <div>
-                            <p class="font-medium text-gray-900">Connect via Facebook</p>
-                            <p class="text-sm text-gray-500">Authenticate and link your WhatsApp Business</p>
-                        </div>
+            <!-- Option 2: Embedded Signup -->
+            <div id="option-embedded" class="connection-option bg-white rounded-xl p-5 border-2 border-gray-200" onclick="selectOption('embedded')">
+                <div class="flex items-center space-x-3 mb-3">
+                    <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+                        <i class="fab fa-facebook text-blue-600 text-xl"></i>
                     </div>
-                    <div class="flex items-start space-x-3">
-                        <div class="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center flex-shrink-0 font-bold">2</div>
-                        <div>
-                            <p class="font-medium text-gray-900">Scan QR Code</p>
-                            <p class="text-sm text-gray-500">Use WhatsApp Business App to scan and confirm</p>
-                        </div>
+                    <div>
+                        <h3 class="font-bold text-gray-900">Embedded Signup</h3>
+                        <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">For New WABAs</span>
                     </div>
-                    <div class="flex items-start space-x-3">
-                        <div class="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center flex-shrink-0 font-bold">3</div>
-                        <div>
-                            <p class="font-medium text-gray-900">Leads Auto-Captured</p>
-                            <p class="text-sm text-gray-500">All incoming messages become leads automatically</p>
-                        </div>
-                    </div>
-                    <div class="flex items-start space-x-3">
-                        <div class="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center flex-shrink-0 font-bold">4</div>
-                        <div>
-                            <p class="font-medium text-gray-900">Keep Using Your App</p>
-                            <p class="text-sm text-gray-500">Continue using WhatsApp Business App normally (Coexistence)</p>
+                </div>
+                <p class="text-sm text-gray-600 mb-3">
+                    For creating <strong>new WABAs</strong> or connecting to other businesses.
+                </p>
+                <ul class="text-xs text-gray-500 space-y-1">
+                    <li><i class="fas fa-info-circle text-blue-500 mr-1"></i> Creates new WABA</li>
+                    <li><i class="fas fa-exclamation-triangle text-yellow-500 mr-1"></i> Cannot select own portfolio</li>
+                    <li><i class="fas fa-check text-green-500 mr-1"></i> Guided Facebook flow</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================== -->
+    <!-- DIRECT CONNECT SECTION -->
+    <!-- ========================== -->
+    <div id="section-direct" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-6 border-b border-gray-100 bg-green-50">
+            <h2 class="text-xl font-bold text-gray-900 flex items-center">
+                <i class="fas fa-link text-green-600 mr-3"></i>
+                Direct Connect - Existing WABAs
+            </h2>
+            <p class="text-gray-600 mt-1">Connect numbers you already own in your Meta Business Portfolio</p>
+        </div>
+
+        <!-- Step 1: Get IDs from Meta -->
+        <div class="p-6 border-b border-gray-100">
+            <div class="flex items-start space-x-4">
+                <div class="step-badge bg-green-500 text-white">1</div>
+                <div class="flex-1">
+                    <h3 class="font-bold text-gray-900 mb-2">Get Your WABA & Phone Number IDs</h3>
+                    <p class="text-sm text-gray-600 mb-4">
+                        Go to <a href="https://business.facebook.com/settings/whatsapp-business-accounts" target="_blank" class="text-blue-600 underline">Meta Business Settings → WhatsApp Accounts</a>, 
+                        click on your account, then "Phone numbers" tab to find the IDs.
+                    </p>
+                    
+                    <!-- Your WABAs Reference -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <h4 class="font-semibold text-gray-700 mb-2">Your Elvis Co WABAs:</h4>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-sm">
+                                <thead>
+                                    <tr class="border-b">
+                                        <th class="text-left py-2 pr-4">Name</th>
+                                        <th class="text-left py-2 pr-4">WABA ID</th>
+                                        <th class="text-left py-2">Phone</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-gray-600">
+                                    <tr><td class="py-1">Elvis</td><td><code class="bg-gray-200 px-1 rounded text-xs">598532996010675</code></td><td>+91 93803 19107</td></tr>
+                                    <tr><td class="py-1">Elvis Beauty</td><td><code class="bg-gray-200 px-1 rounded text-xs">1314705419875488</code></td><td>+91 63669 78965</td></tr>
+                                    <tr><td class="py-1">Elvis Beauty</td><td><code class="bg-gray-200 px-1 rounded text-xs">1690042391951895</code></td><td>+91 63669 78966</td></tr>
+                                    <tr><td class="py-1">Elvis</td><td><code class="bg-gray-200 px-1 rounded text-xs">3425738453027660</code></td><td>+91 63669 78963</td></tr>
+                                    <tr><td class="py-1">Elvis Beauty</td><td><code class="bg-gray-200 px-1 rounded text-xs">502043062980927</code></td><td>+91 63643 96362</td></tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Step 2: Generate Access Token -->
+        <div class="p-6 border-b border-gray-100">
+            <div class="flex items-start space-x-4">
+                <div class="step-badge bg-green-500 text-white">2</div>
+                <div class="flex-1">
+                    <h3 class="font-bold text-gray-900 mb-2">Generate System User Access Token</h3>
+                    <p class="text-sm text-gray-600 mb-3">
+                        Create a permanent access token for API access:
+                    </p>
+                    <ol class="text-sm text-gray-600 space-y-2 list-decimal list-inside mb-4">
+                        <li>Go to <a href="https://business.facebook.com/settings/system-users" target="_blank" class="text-blue-600 underline">Business Settings → System Users</a></li>
+                        <li>Click "Add" → Name it "ERP Integration" → Select "Admin" role</li>
+                        <li>Click "Assign Assets" → Select your WABA → Give "Full Control"</li>
+                        <li>Click "Generate New Token" → Select your WhatsApp App</li>
+                        <li>Enable permissions: <code class="bg-gray-100 px-1 rounded">whatsapp_business_messaging</code> and <code class="bg-gray-100 px-1 rounded">whatsapp_business_management</code></li>
+                        <li>Set token expiry to "Never" → Generate and copy the token</li>
+                    </ol>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        <strong>Important:</strong> Copy the token immediately - it's shown only once!
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Configure Webhook in Meta -->
+        <div class="p-6 border-b border-gray-100">
+            <div class="flex items-start space-x-4">
+                <div class="step-badge bg-green-500 text-white">3</div>
+                <div class="flex-1">
+                    <h3 class="font-bold text-gray-900 mb-2">Configure Webhook in Meta Developer Dashboard</h3>
+                    <p class="text-sm text-gray-600 mb-3">
+                        Subscribe your app to receive WhatsApp messages:
+                    </p>
+                    <ol class="text-sm text-gray-600 space-y-2 list-decimal list-inside mb-4">
+                        <li>Go to <a href="https://developers.facebook.com/apps" target="_blank" class="text-blue-600 underline">Meta Developers → Your App</a></li>
+                        <li>Navigate to <strong>WhatsApp → Configuration</strong></li>
+                        <li>In "Webhook" section, click "Edit"</li>
+                        <li>Enter these values:
+                            <div class="bg-gray-50 rounded-lg p-3 mt-2 font-mono text-xs">
+                                <p><strong>Callback URL:</strong> <span id="webhook-url-direct" class="text-blue-600">{{ webhook_url }}</span> <button onclick="copyToClipboard('webhook-url-direct')" class="ml-2 text-gray-400 hover:text-gray-600"><i class="fas fa-copy"></i></button></p>
+                                <p class="mt-1"><strong>Verify Token:</strong> <span id="verify-token-direct" class="text-blue-600">{{ verify_token }}</span> <button onclick="copyToClipboard('verify-token-direct')" class="ml-2 text-gray-400 hover:text-gray-600"><i class="fas fa-copy"></i></button></p>
+                            </div>
+                        </li>
+                        <li>Click "Verify and Save"</li>
+                        <li>In "Webhook Fields", click "Manage" → Subscribe to <strong>messages</strong></li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Enter Details -->
+        <div class="p-6 border-b border-gray-100">
+            <div class="flex items-start space-x-4">
+                <div class="step-badge bg-green-500 text-white">4</div>
+                <div class="flex-1">
+                    <h3 class="font-bold text-gray-900 mb-4">Enter Connection Details</h3>
+                    
+                    <form id="direct-connect-form" class="space-y-4">
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">WABA ID *</label>
+                                <input type="text" id="waba_id" name="waba_id" required
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                    placeholder="e.g., 598532996010675">
+                                <p class="text-xs text-gray-500 mt-1">WhatsApp Business Account ID from Meta</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number ID *</label>
+                                <input type="text" id="phone_number_id" name="phone_number_id" required
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                    placeholder="e.g., 123456789012345">
+                                <p class="text-xs text-gray-500 mt-1">Found in WABA → Phone numbers tab</p>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Display Phone Number</label>
+                            <input type="text" id="display_phone" name="display_phone"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                placeholder="e.g., +91 93803 19107">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
+                            <input type="text" id="display_name" name="display_name"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                placeholder="e.g., Elvis Beauty">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Access Token *</label>
+                            <textarea id="access_token" name="access_token" required rows="3"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-sm"
+                                placeholder="Paste your System User access token here..."></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Generated in Step 2</p>
+                        </div>
+                        
+                        <!-- Status -->
+                        <div id="direct-status" class="hidden"></div>
+                        
+                        <div class="flex space-x-3">
+                            <button type="button" onclick="verifyDirectConnection()" 
+                                class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                                <i class="fas fa-check-circle mr-2"></i>Verify Connection
+                            </button>
+                            <button type="submit" 
+                                class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                                <i class="fas fa-plug mr-2"></i>Connect Number
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================== -->
+    <!-- EMBEDDED SIGNUP SECTION -->
+    <!-- ========================== -->
+    <div id="section-embedded" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hidden">
+        <div class="p-6 border-b border-gray-100 bg-blue-50">
+            <h2 class="text-xl font-bold text-gray-900 flex items-center">
+                <i class="fab fa-facebook text-blue-600 mr-3"></i>
+                Embedded Signup - New WABAs
+            </h2>
+            <p class="text-gray-600 mt-1">Create new WABAs or connect to other businesses (not for existing WABAs you own)</p>
+        </div>
+
+        <!-- Warning for Existing WABAs -->
+        <div class="p-6 border-b border-gray-100">
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div class="flex items-start">
+                    <i class="fas fa-exclamation-triangle text-yellow-600 text-xl mr-3 mt-1"></i>
+                    <div>
+                        <h4 class="font-bold text-yellow-800">Not for Existing WABAs</h4>
+                        <p class="text-sm text-yellow-700 mt-1">
+                            If you already own WABAs under your Meta Business Portfolio (like Elvis Co), 
+                            Embedded Signup will show: <em>"This business portfolio owns WALS. You can only select other..."</em>
+                        </p>
+                        <p class="text-sm text-yellow-700 mt-2">
+                            <strong>Solution:</strong> Use "Direct Connect" above for your existing numbers.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if not fb_app_id or not fb_config_id %}
+        <!-- Configuration Required -->
+        <div class="p-6">
+            <div class="bg-yellow-50 rounded-xl border border-yellow-200 p-6">
+                <div class="flex items-start space-x-4">
+                    <div class="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-cog text-yellow-600 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-yellow-800 mb-2">Configuration Required</h3>
+                        <p class="text-yellow-700 mb-4">
+                            Embedded Signup requires Meta App credentials. Add these to your <code class="bg-yellow-100 px-2 py-1 rounded">elvis_erp/settings.py</code>:
+                        </p>
+                        <div class="bg-white rounded-lg p-4 font-mono text-sm text-gray-800">
+                            <p class="text-gray-500"># Add these after creating your Meta App:</p>
+                            <p>FB_APP_ID = '<span class="text-blue-600">your_app_id_here</span>'</p>
+                            <p>FB_CONFIG_ID = '<span class="text-blue-600">your_config_id_here</span>'</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- Embedded Signup Flow -->
+        <div class="p-6">
+            <div id="embedded-status" class="status-card rounded-xl border-2 border-gray-200 p-6 mb-6 hidden"></div>
+            
+            <div class="text-center">
+                <button id="embedded-signup-btn" onclick="launchWhatsAppSignup()" class="fb-login-btn">
+                    <i class="fab fa-facebook-f"></i>
+                    Connect with Facebook
+                </button>
+                <p class="text-sm text-gray-500 mt-4">
+                    Opens Facebook's Embedded Signup flow for new WhatsApp Business Accounts
+                </p>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Connected Numbers -->
     {% if connected_numbers %}
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="p-6 border-b border-gray-100">
-            <h2 class="text-xl font-semibold text-gray-900">Connected Numbers</h2>
+            <h2 class="text-xl font-bold text-gray-900">Connected Numbers</h2>
+            <p class="text-gray-600">Numbers currently connected to receive leads</p>
         </div>
-        
-        <div class="overflow-x-auto">
-            <table class="w-full" data-testid="connected-numbers-table">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Number</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">WABA ID</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone Number ID</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Connected At</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200">
-                    {% for num in connected_numbers %}
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center">
-                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                                    <i class="fab fa-whatsapp text-green-600"></i>
-                                </div>
-                                <div>
-                                    <div class="font-medium text-gray-900">{{ num.display_name|default:num.display_phone_number }}</div>
-                                    <div class="text-sm text-gray-500">{{ num.display_phone_number }}</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <code class="text-xs bg-gray-100 px-2 py-1 rounded">{{ num.waba_id }}</code>
-                        </td>
-                        <td class="px-6 py-4">
-                            <code class="text-xs bg-gray-100 px-2 py-1 rounded">{{ num.phone_number_id }}</code>
-                        </td>
-                        <td class="px-6 py-4">
-                            {% if num.status == 'active' %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                <span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></span>Active
-                            </span>
-                            {% else %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                {{ num.status }}
-                            </span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-500">{{ num.created|date:"d M Y, H:i" }}</td>
-                        <td class="px-6 py-4">
-                            <button onclick="disconnectNumber('{{ num.id }}')" class="text-red-500 hover:text-red-700" title="Disconnect">
-                                <i class="fas fa-unlink"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="p-6">
+            <div class="space-y-3">
+                {% for number in connected_numbers %}
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                            <i class="fab fa-whatsapp text-green-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">{{ number.display_name|default:number.display_phone_number|default:number.phone_number_id }}</p>
+                            <p class="text-sm text-gray-500">
+                                WABA: {{ number.waba_id }} | 
+                                {% if number.status == 'active' %}
+                                <span class="text-green-600">● Active</span>
+                                {% else %}
+                                <span class="text-gray-400">● {{ number.status|title }}</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <button onclick="disconnectNumber('{{ number.id }}')" 
+                        class="text-red-500 hover:text-red-700 text-sm">
+                        <i class="fas fa-unlink mr-1"></i>Disconnect
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
         </div>
     </div>
     {% endif %}
 </div>
+{% endblock %}
 
+{% block extra_js %}
 {% if fb_app_id and fb_config_id %}
-<!-- Facebook SDK -->
 <script>
     const FB_APP_ID = '{{ fb_app_id }}';
     const FB_CONFIG_ID = '{{ fb_config_id }}';
-    const META_BUSINESS_ID = '{{ meta_business_id }}';  // Existing portfolio ID
+    const META_BUSINESS_ID = '{{ meta_business_id }}';
     const CSRF_TOKEN = '{{ csrf_token }}';
     const SAVE_URL = '{% url "integrations:whatsapp_save_connection" %}';
+    const DIRECT_CONNECT_URL = '{% url "integrations:whatsapp_direct_connect" %}';
+    const VERIFY_URL = '{% url "integrations:whatsapp_verify_connection" %}';
+</script>
+{% endif %}
 
-    // Initialize Facebook SDK
+<script>
+    let selectedOption = 'direct';
+
+    function selectOption(option) {
+        selectedOption = option;
+        
+        // Update UI
+        document.getElementById('option-direct').classList.toggle('selected', option === 'direct');
+        document.getElementById('option-embedded').classList.toggle('selected', option === 'embedded');
+        
+        document.getElementById('section-direct').classList.toggle('hidden', option !== 'direct');
+        document.getElementById('section-embedded').classList.toggle('hidden', option !== 'embedded');
+    }
+
+    function copyToClipboard(elementId) {
+        const text = document.getElementById(elementId).textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Copied to clipboard!');
+        });
+    }
+
+    function showStatus(containerId, type, content) {
+        const container = document.getElementById(containerId);
+        container.className = `status-card rounded-xl border-2 p-4 ${type}`;
+        container.innerHTML = content;
+        container.classList.remove('hidden');
+    }
+
+    // Direct Connect Functions
+    async function verifyDirectConnection() {
+        const wabaId = document.getElementById('waba_id').value;
+        const phoneNumberId = document.getElementById('phone_number_id').value;
+        const accessToken = document.getElementById('access_token').value;
+
+        if (!wabaId || !phoneNumberId || !accessToken) {
+            showStatus('direct-status', 'error', `
+                <div class="flex items-center">
+                    <i class="fas fa-times-circle text-red-500 mr-3"></i>
+                    <span>Please fill in WABA ID, Phone Number ID, and Access Token</span>
+                </div>
+            `);
+            return;
+        }
+
+        showStatus('direct-status', 'processing', `
+            <div class="flex items-center">
+                <i class="fas fa-spinner fa-spin text-blue-500 mr-3"></i>
+                <span>Verifying connection with Meta API...</span>
+            </div>
+        `);
+
+        try {
+            const response = await fetch(VERIFY_URL || '/integrations/whatsapp/verify-connection/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': CSRF_TOKEN || document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                },
+                body: JSON.stringify({
+                    waba_id: wabaId,
+                    phone_number_id: phoneNumberId,
+                    access_token: accessToken
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showStatus('direct-status', 'success', `
+                    <div class="flex items-start">
+                        <i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>
+                        <div>
+                            <p class="font-semibold text-green-800">Connection Verified!</p>
+                            <p class="text-sm text-green-600 mt-1">
+                                Phone: ${data.phone_number || 'N/A'}<br>
+                                Status: ${data.status || 'Ready'}
+                            </p>
+                        </div>
+                    </div>
+                `);
+            } else {
+                showStatus('direct-status', 'error', `
+                    <div class="flex items-start">
+                        <i class="fas fa-times-circle text-red-500 mr-3 mt-1"></i>
+                        <div>
+                            <p class="font-semibold text-red-800">Verification Failed</p>
+                            <p class="text-sm text-red-600 mt-1">${data.error || 'Unable to verify connection'}</p>
+                        </div>
+                    </div>
+                `);
+            }
+        } catch (err) {
+            showStatus('direct-status', 'error', `
+                <div class="flex items-center">
+                    <i class="fas fa-times-circle text-red-500 mr-3"></i>
+                    <span>Error: ${err.message}</span>
+                </div>
+            `);
+        }
+    }
+
+    document.getElementById('direct-connect-form')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const formData = {
+            waba_id: document.getElementById('waba_id').value,
+            phone_number_id: document.getElementById('phone_number_id').value,
+            display_phone_number: document.getElementById('display_phone').value,
+            display_name: document.getElementById('display_name').value,
+            access_token: document.getElementById('access_token').value
+        };
+
+        if (!formData.waba_id || !formData.phone_number_id || !formData.access_token) {
+            showStatus('direct-status', 'error', `
+                <div class="flex items-center">
+                    <i class="fas fa-times-circle text-red-500 mr-3"></i>
+                    <span>Please fill in all required fields</span>
+                </div>
+            `);
+            return;
+        }
+
+        showStatus('direct-status', 'processing', `
+            <div class="flex items-center">
+                <i class="fas fa-spinner fa-spin text-blue-500 mr-3"></i>
+                <span>Saving connection...</span>
+            </div>
+        `);
+
+        try {
+            const response = await fetch(DIRECT_CONNECT_URL || '/integrations/whatsapp/direct-connect/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': CSRF_TOKEN || document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showStatus('direct-status', 'success', `
+                    <div class="flex items-start">
+                        <i class="fas fa-check-circle text-green-500 mr-3 mt-1"></i>
+                        <div>
+                            <p class="font-semibold text-green-800">Number Connected Successfully!</p>
+                            <p class="text-sm text-green-600 mt-1">
+                                ${formData.display_name || formData.display_phone_number || formData.phone_number_id} is now receiving messages.
+                            </p>
+                            <p class="text-sm text-green-600 mt-2">
+                                <strong>Next:</strong> Ensure webhook is configured in Meta Developer Dashboard.
+                            </p>
+                        </div>
+                    </div>
+                `);
+                
+                // Refresh page after 3 seconds
+                setTimeout(() => location.reload(), 3000);
+            } else {
+                showStatus('direct-status', 'error', `
+                    <div class="flex items-start">
+                        <i class="fas fa-times-circle text-red-500 mr-3 mt-1"></i>
+                        <div>
+                            <p class="font-semibold text-red-800">Connection Failed</p>
+                            <p class="text-sm text-red-600 mt-1">${data.error || 'Unable to save connection'}</p>
+                        </div>
+                    </div>
+                `);
+            }
+        } catch (err) {
+            showStatus('direct-status', 'error', `
+                <div class="flex items-center">
+                    <i class="fas fa-times-circle text-red-500 mr-3"></i>
+                    <span>Error: ${err.message}</span>
+                </div>
+            `);
+        }
+    });
+
+    // Embedded Signup Functions (for new WABAs)
+    {% if fb_app_id and fb_config_id %}
     window.fbAsyncInit = function() {
         FB.init({
             appId: FB_APP_ID,
             autoLogAppEvents: true,
             xfbml: true,
-            version: 'v22.0'
+            version: 'v18.0'
         });
-        console.log('Facebook SDK initialized');
     };
 
-    // Message Event Listener for Embedded Signup
-    window.addEventListener('message', (event) => {
-        if (event.origin !== "https://www.facebook.com" && event.origin !== "https://web.facebook.com") {
-            return;
-        }
-        
-        try {
-            const data = JSON.parse(event.data);
-            
-            if (data.type === 'WA_EMBEDDED_SIGNUP') {
-                console.log('Received WA_EMBEDDED_SIGNUP event:', data);
-                
-                if (data.event === 'FINISH') {
-                    const { phone_number_id, waba_id } = data.data;
-                    console.log("Success! Phone ID:", phone_number_id, "WABA ID:", waba_id);
-                    
-                    showStatus('success', `
-                        <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
-                                <i class="fas fa-check text-white"></i>
-                            </div>
-                            <div>
-                                <p class="font-semibold text-green-800">WhatsApp Number Connected!</p>
-                                <p class="text-sm text-green-600">Phone ID: ${phone_number_id}</p>
-                            </div>
-                        </div>
-                    `);
-                    
-                    saveConnection(phone_number_id, waba_id);
-                    
-                } else if (data.event === 'CANCEL') {
-                    const { current_step } = data.data;
-                    console.warn("Cancelled at step:", current_step);
-                    showStatus('error', `
-                        <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center">
-                                <i class="fas fa-times text-white"></i>
-                            </div>
-                            <div>
-                                <p class="font-semibold text-yellow-800">Setup Cancelled</p>
-                                <p class="text-sm text-yellow-600">Cancelled at: ${current_step || 'Unknown step'}</p>
-                            </div>
-                        </div>
-                    `);
-                    enableButton();
-                    
-                } else if (data.event === 'ERROR') {
-                    const { error_message } = data.data;
-                    console.error("Error:", error_message);
-                    showStatus('error', `
-                        <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center">
-                                <i class="fas fa-exclamation text-white"></i>
-                            </div>
-                            <div>
-                                <p class="font-semibold text-red-800">Connection Error</p>
-                                <p class="text-sm text-red-600">${error_message || 'An error occurred'}</p>
-                            </div>
-                        </div>
-                    `);
-                    enableButton();
-                }
-            }
-        } catch (e) {
-            console.log('Non-JSON response:', event.data);
-        }
-    });
-
-    // Facebook Login Callback
-    const fbLoginCallback = (response) => {
-        console.log('FB Login callback:', response);
-        
-        if (response.authResponse) {
-            showStatus('processing', `
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
-                        <i class="fas fa-spinner fa-spin text-white"></i>
-                    </div>
-                    <div>
-                        <p class="font-semibold text-blue-800">Processing...</p>
-                        <p class="text-sm text-blue-600">Complete the WhatsApp Business setup in the popup</p>
-                    </div>
-                </div>
-            `);
-        } else {
-            enableButton();
-        }
-    };
-
-    // Launch WhatsApp Signup Flow
     const launchWhatsAppSignup = () => {
-        console.log('Launching WhatsApp Embedded Signup...');
-        disableButton();
-        
-        showStatus('processing', `
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
-                    <i class="fas fa-spinner fa-spin text-white"></i>
-                </div>
-                <div>
-                    <p class="font-semibold text-blue-800">Opening Facebook Login...</p>
-                    <p class="text-sm text-blue-600">Please complete the authentication</p>
-                </div>
+        showStatus('embedded-status', 'processing', `
+            <div class="flex items-center">
+                <i class="fas fa-spinner fa-spin text-blue-500 mr-3"></i>
+                <span>Opening Facebook Login...</span>
             </div>
         `);
         
-        // Build login options with existing portfolio support
         const loginOptions = {
             config_id: FB_CONFIG_ID,
             response_type: 'code',
@@ -407,20 +640,36 @@
             extras: {
                 "feature_type": "coexistence",
                 "version": "v3",
-                // Use existing portfolio - prevents Meta from creating a new one
-                "setup": {
-                    "business": META_BUSINESS_ID ? { "id": META_BUSINESS_ID } : undefined
-                }
+                "setup": META_BUSINESS_ID ? { "business": { "id": META_BUSINESS_ID } } : undefined
             }
         };
         
-        console.log('Login options:', loginOptions);
-        
-        FB.login(fbLoginCallback, loginOptions);
+        FB.login(function(response) {
+            if (response.authResponse) {
+                const authCode = response.authResponse.code;
+                showStatus('embedded-status', 'success', `
+                    <div class="flex items-center">
+                        <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                        <span>Authorization received! Processing...</span>
+                    </div>
+                `);
+                
+                // Extract and save the connection
+                if (response.authResponse.whatsappBusinessAccountId) {
+                    saveEmbeddedConnection(response.authResponse);
+                }
+            } else {
+                showStatus('embedded-status', 'error', `
+                    <div class="flex items-center">
+                        <i class="fas fa-times-circle text-red-500 mr-3"></i>
+                        <span>Login cancelled or failed</span>
+                    </div>
+                `);
+            }
+        }, loginOptions);
     };
 
-    // Save connection to backend
-    async function saveConnection(phoneNumberId, wabaId, authCode = null) {
+    async function saveEmbeddedConnection(authResponse) {
         try {
             const response = await fetch(SAVE_URL, {
                 method: 'POST',
@@ -429,107 +678,57 @@
                     'X-CSRFToken': CSRF_TOKEN
                 },
                 body: JSON.stringify({
-                    phone_number_id: phoneNumberId,
-                    waba_id: wabaId,
-                    auth_code: authCode
+                    phone_number_id: authResponse.phoneNumberId,
+                    waba_id: authResponse.whatsappBusinessAccountId,
+                    auth_code: authResponse.code
                 })
             });
-            
+
             const data = await response.json();
-            
             if (data.success) {
-                showStatus('success', `
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
-                            <i class="fas fa-check text-white"></i>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-green-800">Number Saved Successfully!</p>
-                            <p class="text-sm text-green-600">Refreshing page...</p>
-                        </div>
+                showStatus('embedded-status', 'success', `
+                    <div class="flex items-center">
+                        <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                        <span>Number connected successfully!</span>
                     </div>
                 `);
-                
-                setTimeout(() => { window.location.reload(); }, 2000);
-            } else {
-                showStatus('error', `
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center">
-                            <i class="fas fa-exclamation text-white"></i>
-                        </div>
-                        <div>
-                            <p class="font-semibold text-red-800">Save Failed</p>
-                            <p class="text-sm text-red-600">${data.error || 'Unknown error'}</p>
-                        </div>
-                    </div>
-                `);
-                enableButton();
+                setTimeout(() => location.reload(), 2000);
             }
-        } catch (error) {
-            console.error('Save error:', error);
-            showStatus('error', `
-                <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center">
-                        <i class="fas fa-exclamation text-white"></i>
-                    </div>
-                    <div>
-                        <p class="font-semibold text-red-800">Connection Error</p>
-                        <p class="text-sm text-red-600">Failed to save to server</p>
-                    </div>
+        } catch (err) {
+            showStatus('embedded-status', 'error', `
+                <div class="flex items-center">
+                    <i class="fas fa-times-circle text-red-500 mr-3"></i>
+                    <span>Error saving connection: ${err.message}</span>
                 </div>
             `);
-            enableButton();
         }
     }
+    {% endif %}
 
-    // Disconnect number
     async function disconnectNumber(numberId) {
-        if (!confirm('Are you sure you want to disconnect this number?')) {
-            return;
-        }
+        if (!confirm('Are you sure you want to disconnect this number?')) return;
         
         try {
             const response = await fetch(`/integrations/whatsapp/disconnect/${numberId}/`, {
                 method: 'POST',
-                headers: { 'X-CSRFToken': CSRF_TOKEN }
+                headers: {
+                    'X-CSRFToken': CSRF_TOKEN || document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                }
             });
             
             const data = await response.json();
-            
             if (data.success) {
-                window.location.reload();
+                location.reload();
             } else {
-                alert('Failed to disconnect: ' + (data.error || 'Unknown error'));
+                alert('Error: ' + data.error);
             }
-        } catch (error) {
-            alert('Error disconnecting number');
+        } catch (err) {
+            alert('Error: ' + err.message);
         }
-    }
-
-    // UI Helpers
-    function showStatus(type, html) {
-        const card = document.getElementById('statusCard');
-        const content = document.getElementById('statusContent');
-        
-        card.classList.remove('hidden', 'success', 'error', 'processing');
-        card.classList.add(type);
-        content.innerHTML = html;
-    }
-
-    function disableButton() {
-        const btn = document.getElementById('connectBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Connecting...</span>';
-    }
-
-    function enableButton() {
-        const btn = document.getElementById('connectBtn');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fab fa-facebook text-xl"></i> <span>Connect WhatsApp Number</span>';
     }
 </script>
 
-<!-- Load Facebook SDK -->
+{% if fb_app_id and fb_config_id %}
 <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
 {% endif %}
 {% endblock %}
