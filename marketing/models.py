@@ -37,6 +37,8 @@ class Lead(BaseModel):
         ('organic', 'Organic'),
         ('ad', 'Ad'),
         ('referral', 'Referral'),
+        ('shopify', 'Shopify'),
+        ('whatsapp', 'WhatsApp'),
         ('unknown', 'Unknown'),
     ]
     
@@ -48,6 +50,8 @@ class Lead(BaseModel):
         ('google_contacts_sync', 'Google Contacts Sync'),
         ('shopify_abandoned_checkout', 'Shopify Abandoned Checkout'),
         ('shopify_abandoned_cart', 'Shopify Abandoned Cart'),
+        ('shopify_order', 'Shopify Order'),
+        ('shopify_checkout', 'Shopify Checkout'),
         ('website_form', 'Website Form'),
         ('referral', 'Referral'),
         ('facebook_ad', 'Facebook Ad'),
