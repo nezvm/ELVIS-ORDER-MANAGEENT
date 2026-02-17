@@ -115,22 +115,43 @@
         </a>
     </div>
     
-    <!-- WhatsApp -->
+    <!-- WhatsApp via Wabis BSP -->
     <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between mb-6">
             <div class="flex items-center">
                 <div class="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center">
                     <i class="fab fa-whatsapp text-2xl text-green-600"></i>
                 </div>
                 <div class="ml-4">
-                    <h3 class="text-xl font-bold text-gray-900">WhatsApp Business</h3>
-                    <p class="text-base text-gray-500">Meta Cloud API for messaging</p>
+                    <h3 class="text-xl font-bold text-gray-900">WhatsApp Business (Wabis BSP)</h3>
+                    <p class="text-base text-gray-500">Connect WhatsApp numbers via Wabis Business Solution Provider</p>
                 </div>
             </div>
-            <a href="{% url 'marketing:whatsapp_dashboard' %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
-                Manage <i class="fas fa-arrow-right ml-2"></i>
-            </a>
+            {% if wabis_numbers_count > 0 %}
+            <span class="px-4 py-2 rounded-xl text-sm font-bold bg-green-100 text-green-700">
+                {{ wabis_numbers_count }} Number{% if wabis_numbers_count > 1 %}s{% endif %} Connected
+            </span>
+            {% endif %}
         </div>
+        
+        <div class="grid grid-cols-3 gap-4 mb-4">
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500">Total Leads</p>
+                <p class="text-2xl font-bold text-gray-900">{{ wabis_customers_count|default:0 }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500">Messages Received</p>
+                <p class="text-2xl font-bold text-gray-900">{{ wabis_messages_count|default:0 }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 rounded-xl">
+                <p class="text-sm text-gray-500">Active Numbers</p>
+                <p class="text-2xl font-bold text-gray-900">{{ wabis_numbers_count|default:0 }}</p>
+            </div>
+        </div>
+        
+        <a href="{% url 'integrations:wabis:dashboard' %}" class="px-4 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors inline-block">
+            <i class="fas fa-cog mr-2"></i>Configure WhatsApp
+        </a>
     </div>
 </div>
 {% endblock %}
