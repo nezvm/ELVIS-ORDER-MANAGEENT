@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import leads_views
+from . import meta_views
 
 app_name = 'marketing'
 
@@ -8,6 +9,23 @@ urlpatterns = [
     # Dashboard
     path('', views.DailyInsightsDashboardView.as_view(), name='dashboard'),
     path('dashboard/', views.DailyInsightsDashboardView.as_view(), name='daily_insights'),
+    
+    # ==========================================================================
+    # META MARKETING (ROAS + Attribution Dashboard)
+    # ==========================================================================
+    path('overview/', meta_views.MarketingOverviewView.as_view(), name='meta_overview'),
+    path('meta/settings/', meta_views.MetaSettingsView.as_view(), name='meta_settings'),
+    path('meta/campaigns/', meta_views.CampaignPerformanceView.as_view(), name='meta_campaigns'),
+    path('meta/capi-logs/', meta_views.CapiEventLogsView.as_view(), name='capi_logs'),
+    
+    # Meta API actions
+    path('api/meta/test-connection/', meta_views.api_test_meta_connection, name='api_test_meta_connection'),
+    path('api/meta/send-test-event/', meta_views.api_send_test_event, name='api_send_test_event'),
+    path('api/meta/sync-insights/', meta_views.api_sync_insights, name='api_sync_insights'),
+    path('api/meta/run-attribution/', meta_views.api_run_attribution, name='api_run_attribution'),
+    path('api/meta/send-pending-capi/', meta_views.api_send_pending_capi, name='api_send_pending_capi'),
+    path('api/meta/lead/<uuid:pk>/attribution/', meta_views.api_update_lead_attribution, name='api_update_lead_attribution'),
+    path('api/meta/chart-data/', meta_views.api_overview_chart_data, name='api_overview_chart_data'),
     
     # ==========================================================================
     # NEW LEADS MODULE (Revamped)
