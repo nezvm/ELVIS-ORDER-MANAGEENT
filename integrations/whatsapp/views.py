@@ -535,7 +535,7 @@ class WhatsAppCustomerDetailView(LoginRequiredMixin, DetailView):
 
 
 class WhatsAppConnectView(LoginRequiredMixin, TemplateView):
-    """Page to connect WhatsApp Business numbers via Embedded Signup."""
+    """Page to connect WhatsApp Business numbers via Embedded Signup or Direct Connect."""
     template_name = 'integrations/whatsapp/connect.html'
     
     def get_context_data(self, **kwargs):
@@ -550,6 +550,12 @@ class WhatsAppConnectView(LoginRequiredMixin, TemplateView):
         
         # Business Portfolio ID for existing portfolio
         context['meta_business_id'] = getattr(settings, 'META_BUSINESS_ID', '')
+        
+        # Webhook URL and verify token for Direct Connect instructions
+        context['webhook_url'] = self.request.build_absolute_uri(
+            reverse('integrations:whatsapp_webhook')
+        )
+        context['verify_token'] = getattr(settings, 'WA_VERIFY_TOKEN', 'elvis_whatsapp_verify_2024')
         
         # Connected numbers
         context['connected_numbers'] = WhatsAppConnectedNumber.objects.filter(
