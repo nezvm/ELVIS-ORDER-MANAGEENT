@@ -282,17 +282,11 @@ CELERY_BEAT_SCHEDULE = {
     },
     
     # =============================================================================
-    # UNIVERSAL LEAD SYNC (ALL LEADS)
+    # NIGHTLY LEAD PROCESSING (2 AM IST = 20:30 UTC previous day)
     # =============================================================================
-    # Daily lead status sync at 02:00 IST (20:30 UTC previous day)
-    'sync-all-lead-statuses-daily': {
-        'task': 'marketing.sync_lead_statuses',
-        'schedule': crontab(hour=20, minute=30),
-    },
-    # Generate daily lead stats at 02:15 IST
-    'generate-lead-daily-stats': {
-        'task': 'marketing.generate_lead_daily_stats',
-        'schedule': crontab(hour=20, minute=45),
+    'nightly-lead-processing': {
+        'task': 'marketing.nightly_lead_processing',
+        'schedule': crontab(hour=20, minute=30),  # 2 AM IST
     },
     
     # =============================================================================
