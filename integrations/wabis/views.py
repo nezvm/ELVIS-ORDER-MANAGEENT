@@ -142,6 +142,8 @@ class WabisDashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'integrations/wabis/dashboard.html'
     
     def get_context_data(self, **kwargs):
+        from django.conf import settings
+        
         context = super().get_context_data(**kwargs)
         context['title'] = 'Wabis WhatsApp Integration'
         context['is_integrations'] = True
@@ -149,6 +151,9 @@ class WabisDashboardView(LoginRequiredMixin, TemplateView):
         
         # Config
         context['config'] = WabisConfig.objects.filter(is_active=True).first()
+        
+        # API Token status
+        context['api_token_configured'] = bool(getattr(settings, 'WABIS_API_TOKEN', ''))
         
         # Webhook URL
         context['webhook_url'] = self.request.build_absolute_uri(
