@@ -35,7 +35,13 @@ Build a comprehensive lead management system within the existing Django ERP with
 - Sub-tabs for source-specific views
 - Daily Insights Dashboard with key metrics
 
-### Phase 5: Meta CAPI Integration (Future)
+### Phase 5: Cleanup Old Meta Cloud API ✅ (Feb 17, 2026)
+- Removed old `/integrations/whatsapp/` UI (now redirects to Wabis)
+- Removed old Lead Performance Dashboard (now redirects to Marketing Dashboard)
+- Updated sidebar navigation to use Wabis
+- Kept webhook endpoint for backward compatibility
+
+### Phase 6: Meta CAPI Integration (Future)
 - Send conversions to Meta for ROAS tracking
 - Ad spend sync
 
@@ -63,6 +69,12 @@ Build a comprehensive lead management system within the existing Django ERP with
 - **Tabs**: All Leads, WhatsApp Leads, Shopify Leads, Other Leads
 - **Sub-tabs**: Organic/Ads for WhatsApp, Orders/Checkouts for Shopify
 
+### Cleanup: Old Meta Cloud API Integration (REMOVED)
+- Old UI at `/integrations/whatsapp/` now redirects to `/integrations/wabis/`
+- Old Performance Dashboard redirects to `/marketing/dashboard/`
+- Sidebar updated to show "WhatsApp (Wabis)" instead of old "WhatsApp Setup"
+- Legacy webhook `/webhooks/whatsapp/` kept for any existing integrations
+
 ### Celery Tasks
 - `sync_lead_statuses` - Daily at 02:00 IST
 - `generate_lead_daily_stats` - Daily at 02:15 IST
@@ -71,11 +83,12 @@ Build a comprehensive lead management system within the existing Django ERP with
 
 ## Prioritized Backlog
 
-### P0 (Critical)
+### P0 (Critical) - COMPLETED
 - [x] Wabis webhook integration
 - [x] Shopify webhook integration
 - [x] Lead deduplication
 - [x] Dashboard with metrics
+- [x] Remove old Meta Cloud API UI duplication
 
 ### P1 (High Priority)
 - [ ] Meta Conversions API (CAPI) integration for ROAS
@@ -107,9 +120,9 @@ Build a comprehensive lead management system within the existing Django ERP with
 /app/
 ├── elvis_erp/          # Main Django project
 ├── integrations/       # 3rd-party integrations
-│   ├── wabis/          # Wabis WhatsApp BSP
-│   ├── shopify/        # Shopify webhooks
-│   └── whatsapp/       # Legacy Meta API (deprecated)
+│   ├── wabis/          # Wabis WhatsApp BSP (ACTIVE)
+│   ├── shopify/        # Shopify webhooks (ACTIVE)
+│   └── whatsapp/       # Legacy Meta API (DEPRECATED - redirects to wabis)
 ├── marketing/          # Leads, campaigns, analytics
 └── templates/          # Django templates
 ```
@@ -122,12 +135,20 @@ Build a comprehensive lead management system within the existing Django ERP with
 ### API Endpoints
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/webhooks/wabis/` | GET/POST | Wabis webhook |
+| `/webhooks/wabis/` | GET/POST | Wabis webhook (PRIMARY) |
 | `/webhooks/shopify/orders/` | POST | Shopify orders |
 | `/webhooks/shopify/checkouts/` | POST | Abandoned checkouts |
 | `/webhooks/shopify/fulfillments/` | POST | Fulfillment updates |
 | `/marketing/dashboard/` | GET | Daily insights |
 | `/marketing/leads/` | GET | Leads list |
+| `/integrations/wabis/` | GET | Wabis WhatsApp config |
+
+### Redirects (Old → New)
+| Old URL | Redirects To |
+|---------|-------------|
+| `/integrations/whatsapp/` | `/integrations/wabis/` |
+| `/integrations/whatsapp/performance/` | `/marketing/` |
+| `/integrations/whatsapp/leads/` | `/marketing/leads/?lead_source=whatsapp` |
 
 ---
 
