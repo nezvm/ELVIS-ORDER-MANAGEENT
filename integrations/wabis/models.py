@@ -23,18 +23,24 @@ class WabisConfig(BaseModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, default='Default Wabis Config')
     
-    # API Credentials
+    # API Credentials (from bot.wabis.in/api/developer/console)
     api_key = models.CharField(
         max_length=500,
         blank=True,
         null=True,
-        help_text="Wabis API Key from developer console"
+        help_text="Wabis API Token from developer console"
+    )
+    whatsapp_bot_id = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="WhatsApp Bot ID from Wabis Bot Manager"
     )
     api_secret = models.CharField(
         max_length=500,
         blank=True,
         null=True,
-        help_text="Wabis API Secret"
+        help_text="Wabis API Secret (optional)"
     )
     webhook_secret = models.CharField(
         max_length=200,
@@ -66,6 +72,7 @@ class WabisConfig(BaseModel):
         default='disconnected'
     )
     last_webhook_at = models.DateTimeField(null=True, blank=True)
+    last_sync_at = models.DateTimeField(null=True, blank=True)
     last_error = models.TextField(blank=True, null=True)
     
     # Stats
