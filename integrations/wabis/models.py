@@ -91,8 +91,18 @@ class WabisNumber(BaseModel):
     """
     WhatsApp Business Number registered with Wabis.
     Tracks each business number separately for per-number metrics.
+    Each number can have its own Wabis Bot ID for API sync.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Wabis Bot ID for this specific number
+    wabis_bot_id = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        db_index=True,
+        help_text="Wabis Bot ID for this WhatsApp number (from URL: bot.wabis.in/whatsapp/[BOT_ID]/...)"
+    )
     
     # Wabis/Meta identifiers
     phone_number_id = models.CharField(
