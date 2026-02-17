@@ -4,6 +4,10 @@ from . import views
 app_name = 'marketing'
 
 urlpatterns = [
+    # Dashboard
+    path('', views.DailyInsightsDashboardView.as_view(), name='dashboard'),
+    path('dashboard/', views.DailyInsightsDashboardView.as_view(), name='daily_insights'),
+    
     # Leads
     path('leads/', views.LeadListView.as_view(), name='lead_list'),
     path('lead/<uuid:pk>/', views.LeadDetailView.as_view(), name='lead_detail'),
