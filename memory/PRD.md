@@ -63,7 +63,35 @@ Build a comprehensive lead management system within the existing Django ERP with
 - **Key Metrics**: Total leads, Won, Pending, Conversion Rate, Revenue
 - **Source Configuration Guide**: Explains how attribution works with Wabis
 
-### Phase 9: Meta CAPI Integration (Future)
+### Phase 9: Leads Module UI Revamp ✅ (Feb 17, 2026)
+- **New Routes:**
+  - `/marketing/leads/` - Overview Dashboard with KPIs, charts, unified table
+  - `/marketing/leads/whatsapp/` - WhatsApp leads with per-number breakdown
+  - `/marketing/leads/shopify/` - Shopify leads with Orders/Abandoned/Recovered tabs
+  - `/marketing/leads/other/` - Other lead sources
+  - `/marketing/leads/<pk>/` - Lead detail with full lifecycle
+- **Date Filtering:** Today, Yesterday, This Week, This Month, Last 7/30 Days
+- **KPI Cards:** Total, Pending, Won, Lost, Conversion Rate, Revenue, Avg Days
+- **Charts:** Leads trend, Source breakdown (pie), Status breakdown
+- **Shopify:** COD vs Prepaid split, Recovery rate tracking
+- **Lead Detail:** Full lifecycle timeline, linked order, activity history
+
+### Phase 10: Lead Status Reason & DailyLeadMetrics ✅ (Feb 17, 2026)
+- Added `status_reason` field to Lead model with choices:
+  - `manual_win`, `order_placed`, `recovered`, `manual_loss`
+  - `cooling_period_expired`, `no_response`, `duplicate`, `invalid`, `not_interested`
+- Added `last_activity_at` field for tracking
+- Created `DailyLeadMetrics` aggregate model for dashboard performance
+- Created `LeadMatchingConfig` for configurable matching/recovery windows
+
+### Phase 11: Nightly Lead Processing ✅ (Feb 17, 2026)
+- Celery task `nightly_lead_processing` runs at 2 AM IST:
+  1. Expire pending leads older than matching window (CoolingPeriodExpired)
+  2. Match orders to leads and flip to Won (order_placed/recovered)
+  3. Compute DailyLeadMetrics for previous day
+- Configurable windows via `LeadMatchingConfig`
+
+### Phase 12: Meta CAPI Integration (Future)
 - Send conversions to Meta for ROAS tracking
 - Ad spend sync
 
