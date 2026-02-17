@@ -164,6 +164,9 @@ class WabisDashboardView(LoginRequiredMixin, TemplateView):
         context['ads_customers'] = WabisCustomer.objects.filter(is_active=True, source_type='ads').count()
         context['organic_customers'] = WabisCustomer.objects.filter(is_active=True, source_type='organic').count()
         
+        # Recent customers
+        context['recent_customers'] = WabisCustomer.objects.filter(is_active=True).order_by('-last_message_at')[:10]
+        
         # Recent webhooks
         context['recent_webhooks'] = WabisWebhookLog.objects.all()[:10]
         
