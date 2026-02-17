@@ -634,6 +634,234 @@ class LeadService:
             'unknown_leads': unknown_leads,
             'unknown_percentage': round(percentage, 1)
         }
+    
+    # =============================================================================
+    # CONVERSION TRACKING (Matching Period Logic)
+    # =============================================================================
+    
+    MATCHING_PERIOD_DAYS = 7
+    
+    @classmethod
+    def match_lead_to_order(cls, order):
+        """
+        Find and match a lead to an order.
+        
+        Matching logic:
+        1. Find lead by customer phone number or email
+        2. Lead must be in 'pending' conversion status
+        3. Lead must be within matching period (7 days)
+        
+        Returns: Lead or None
+        """
+        customer = order.customer
+        phone = customer.phone_no if customer else getattr(order, 'phone', None)
+        email = customer.email if customer else getattr(order, 'email', None)
+        
+        if not phone and not email:
+            return None
+        
+        # Normalize phone
+        phone_variants = []
+        if phone:
+            normalized = cls.normalize_phone(phone)
+            phone_clean = phone.replace('+', '').replace(' ', '').replace('-', '')
+            phone_variants = [phone, normalized, phone_clean]
+            if len(phone_clean) == 10:
+                phone_variants.append(f'91{phone_clean}')
+                phone_variants.append(f'+91{phone_clean}')
+        
+        cutoff_date = timezone.now() - timedelta(days=cls.MATCHING_PERIOD_DAYS)
+        
+        query = Q(conversion_status='pending', captured_at__gte=cutoff_date, is_active=True)
+        
+        if phone_variants:
+            phone_query = Q()
+            for pv in [p for p in phone_variants if p]:
+                phone_query |= Q(phone_no=pv) | Q(phone_normalized=pv)
+            query &= phone_query
+        elif email:
+            query &= Q(email=email) | Q(email_normalized=email.lower())
+        else:
+            return None
+        
+        return Lead.objects.filter(query).order_by('-captured_at').first()
+    
+    @classmethod
+    def process_order_conversion(cls, order):
+        """
+        Process an order and match it to a lead for conversion tracking.
+        Returns True if conversion was recorded.
+        """
+        lead = cls.match_lead_to_order(order)
+        
+        if not lead:
+            return False
+        
+        # Mark lead as won
+        lead.mark_as_won(order, order.total_amount)
+        
+        LeadActivity.objects.create(
+            lead=lead,
+            activity_type='converted',
+            description=f"Converted via Order #{getattr(order, 'order_no', order.id)}",
+            metadata={
+                'order_id': str(order.id),
+                'order_value': str(order.total_amount),
+                'conversion_days': lead.conversion_days,
+            }
+        )
+        
+        return True
+    
+    @classmethod
+    def expire_pending_leads(cls, matching_period_days=None):
+        """
+        Mark pending leads as Lost if they've exceeded the matching period.
+        Called by daily Celery task.
+        Returns number of leads marked as Lost.
+        """
+        if matching_period_days is None:
+            matching_period_days = cls.MATCHING_PERIOD_DAYS
+        
+        cutoff_date = timezone.now() - timedelta(days=matching_period_days)
+        
+        pending_leads = Lead.objects.filter(
+            conversion_status='pending',
+            captured_at__lt=cutoff_date,
+            is_active=True
+        )
+        
+        count = 0
+        for lead in pending_leads:
+            lead.mark_as_lost()
+            LeadActivity.objects.create(
+                lead=lead,
+                activity_type='status_changed',
+                description=f"Marked as Lost (no conversion within {matching_period_days} days)",
+            )
+            count += 1
+        
+        return count
+    
+    @classmethod
+    def check_late_conversions(cls):
+        """
+        Check for orders that converted previously lost leads.
+        Returns number of late conversions found.
+        """
+        cutoff = timezone.now() - timedelta(days=30)
+        lost_leads = Lead.objects.filter(
+            conversion_status='lost',
+            lost_at__gte=cutoff,
+            is_active=True
+        )
+        
+        late_conversions = 0
+        
+        for lead in lost_leads:
+            phone = lead.phone_normalized or lead.phone_no
+            if not phone:
+                continue
+            
+            phone_clean = phone.replace('+', '').replace(' ', '').replace('-', '')
+            phone_variants = [phone, f"+{phone_clean}", f"91{phone_clean}" if len(phone_clean) == 10 else phone_clean]
+            
+            matching_order = Order.objects.filter(
+                Q(customer__phone_no__in=phone_variants) | Q(phone__in=phone_variants),
+                created__gte=lead.lost_at,
+                stage__in=['Confirm', 'Booked', 'Delivered']
+            ).order_by('created').first()
+            
+            if matching_order:
+                lead.conversion_status = 'won'
+                lead.won_at = matching_order.created
+                lead.converted_order = matching_order
+                lead.conversion_value = matching_order.total_amount
+                lead.lead_status = 'converted'
+                lead.lost_at = None
+                lead.conversion_sent_to_meta = False
+                lead.save()
+                
+                LeadActivity.objects.create(
+                    lead=lead,
+                    activity_type='converted',
+                    description=f"Late conversion - Order #{getattr(matching_order, 'order_no', matching_order.id)}",
+                )
+                late_conversions += 1
+        
+        return late_conversions
+    
+    @classmethod
+    def get_conversion_stats(cls, lead_source=None, source_type=None, date_start=None, date_end=None):
+        """Get conversion statistics for reporting."""
+        filters = {'is_active': True}
+        
+        if lead_source:
+            filters['lead_source'] = lead_source
+        if source_type:
+            filters['source_type'] = source_type
+        if date_start:
+            filters['captured_at__gte'] = date_start
+        if date_end:
+            filters['captured_at__lte'] = date_end
+        
+        qs = Lead.objects.filter(**filters)
+        
+        total = qs.count()
+        won = qs.filter(conversion_status='won').count()
+        lost = qs.filter(conversion_status='lost').count()
+        pending = qs.filter(conversion_status='pending').count()
+        ad_leads = qs.filter(source_type='ad').count()
+        organic_leads = qs.filter(source_type='organic').count()
+        
+        revenue = qs.filter(conversion_status='won').aggregate(total=Sum('conversion_value'))['total'] or Decimal('0')
+        conversion_rate = (won / total * 100) if total > 0 else 0
+        
+        return {
+            'total_leads': total,
+            'won': won,
+            'lost': lost,
+            'pending': pending,
+            'ad_leads': ad_leads,
+            'organic_leads': organic_leads,
+            'revenue': revenue,
+            'conversion_rate': round(conversion_rate, 2),
+        }
+    
+    @classmethod
+    def send_pending_meta_conversions(cls):
+        """Send conversion events to Meta CAPI for won ad leads."""
+        try:
+            from integrations.whatsapp.services import MetaCAPIService
+            capi = MetaCAPIService()
+            
+            if not capi.is_configured():
+                return 0, 0
+            
+            meta_sources = ['facebook_ad', 'instagram_ad', 'whatsapp_ctwa_ad']
+            won_leads = Lead.objects.filter(
+                conversion_status='won',
+                conversion_sent_to_meta=False,
+                converted_order__isnull=False,
+                is_active=True
+            ).filter(
+                Q(lead_source__in=meta_sources) | Q(source_type='ad')
+            ).select_related('converted_order')
+            
+            sent, failed = 0, 0
+            for lead in won_leads:
+                success, _ = capi.send_purchase_event(lead, lead.converted_order)
+                if success:
+                    lead.conversion_sent_to_meta = True
+                    lead.conversion_sent_at = timezone.now()
+                    lead.save(update_fields=['conversion_sent_to_meta', 'conversion_sent_at'])
+                    sent += 1
+                else:
+                    failed += 1
+            
+            return sent, failed
+        except Exception:
+            return 0, 0
 
 
 class WhatsAppService:
