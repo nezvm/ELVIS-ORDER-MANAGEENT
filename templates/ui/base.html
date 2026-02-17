@@ -149,7 +149,7 @@
                     <span>All Leads</span>
                     <span class="ml-auto bg-primary-500 text-white text-xs px-2.5 py-1 rounded-full font-semibold">New</span>
                 </a>
-                <a href="{% url 'integrations:whatsapp_customer_list' %}" data-testid="nav-whatsapp-leads" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/integrations/whatsapp/customers' in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200 pl-8">
+                <a href="{% url 'marketing:lead_list' %}?lead_source=whatsapp" data-testid="nav-whatsapp-leads" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if 'lead_source=whatsapp' in request.get_full_path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200 pl-8">
                     <i class="fab fa-whatsapp w-5 mr-4 text-lg text-green-400"></i>
                     <span>WhatsApp Leads</span>
                 </a>
