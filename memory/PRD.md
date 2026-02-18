@@ -210,6 +210,39 @@ For real-time updates:
 - **Wabis Verify Token**: elvis_wabis_verify_2024
 - **Wabis Developer Console**: bot.wabis.in/api/developer/console (wowdeskdown@gmail.com)
 
-## Test Report
-- Latest: `/app/test_reports/iteration_5.json`
-- Status: 100% backend tests passed (31 tests: 20 Wabis API + 11 webhooks)
+## Test Reports
+- Latest: `/app/test_reports/iteration_6.json` (WhatsApp Dashboard - 100% pass)
+- Previous: `/app/test_reports/iteration_5.json` (31 backend tests passed)
+
+## Test Data (Created for WhatsApp Dashboard)
+- **3 WabisNumbers:** Sales Team 1, Sales Team 2, Support Line
+- **15 WhatsApp Leads:** Distributed across all 3 numbers
+  - 7 Won leads (₹32,800 total revenue)
+  - 4 Lost leads
+  - 4 Pending leads
+- **Conversion Rate:** 63.6%
+
+---
+
+## Backlog / Future Tasks (Prioritized)
+
+### P0 - Critical (Meta Integration Core)
+1. **Implement Meta CAPI Service** - `marketing/services/meta_capi_service.py`
+   - Send `Lead` events when new leads created
+   - Send `Purchase` events when lead status → Won with linked order
+2. **Implement Meta Insights Service** - `marketing/services/meta_insights_service.py`
+   - Pull daily ad spend from Meta Marketing API
+3. **Implement Attribution Engine** - `marketing/services/attribution_service.py`
+   - Probabilistic model to assign "Ads" or "Organic"
+
+### P1 - Important
+4. **Backfill Lead Data Migration**
+   - Populate `phone_number_id` on existing leads for historical analytics
+5. **Manual Attribution Override API**
+   - Backend endpoint for lead detail page override buttons
+
+### P2 - Nice to Have
+6. **Unit Tests for Critical Logic**
+   - Event creation, data hashing, attribution calculations
+7. **Secure Credential Storage**
+   - Encrypt Meta `access_token` at rest
