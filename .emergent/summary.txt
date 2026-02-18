@@ -1,169 +1,153 @@
 <analysis>**original_problem_statement:**
-The user wants to build a comprehensive lead management system within their existing Django ERP.
+The user wants to implement an Enterprise WhatsApp ROAS + Meta Measurement Engine within a Django ERP. The core goal is to track the return on ad spend (ROAS) for WhatsApp leads generated from Meta ads.
 
 **PRODUCT REQUIREMENTS:**
-
-1.  **WhatsApp Integration via Wabis BSP:**
-    *   Integrate with the Wabis Business Solution Provider to handle all WhatsApp communications.
-    *   Ingest incoming WhatsApp messages. The initial approach of using webhooks was incorrect; the integration now uses a PULL-based API model to sync subscribers and conversations.
-    *   Support multiple WhatsApp business numbers, each with its own configuration.
-    *   Deduplicate customers based on their phone number.
-    *   Identify lead source and store attribution data.
-
-2.  **Shopify All-in-One Integration:**
-    *   Create a single integration module to handle all Shopify interactions.
-    *   Capture leads from both new orders and abandoned checkouts via webhooks.
-    *   Track the recovery of abandoned checkouts.
-    *   Sync customer details from Shopify to the ERP.
-
-3.  **Leads Module UI Revamp:**
-    *   Restructure the Leads section with top-level tabs: , , , and .
-    *   Ensure every lead in the list view displays key information: source, status, owner, and timestamps.
-
-4.  **Dashboards and Analytics:**
-    *   Develop a daily insights dashboard.
-    *   Display key metrics: leads per day, orders per day, conversion rates, etc.
-
-5.  **Automation with Celery:**
-    *   Implement a daily Celery job to run at 02:00 AM IST.
-    *   The job will enforce a 7-day matching window: leads that do not convert within this period are marked as .
+1.  **Meta CAPI Integration:** Send  events to Meta's Conversions API (CAPI) when new leads are created and  events when a lead's status becomes Won and is linked to an order.
+2.  **Meta Marketing API Integration:** Pull daily ad spend and messaging metrics from the Meta Marketing API.
+3.  **ROAS Dashboards:** Create UI dashboards to display two ROAS views: one based on Meta's reported data and another estimated ROAS based on the ERP's internal data.
+4.  **Probabilistic Attribution:** Since the WhatsApp provider (Wabis) doesn't pass campaign identifiers (), implement a probabilistic model to attribute leads to either Ads or Organic based on the volume of ad-driven conversations vs. total new conversations in a given timeframe.
+5.  **Marketing Section UI:** Build a new Marketing section in the Django app with pages for an Overview Dashboard, Meta Integration Settings, Campaign Performance, and CAPI Event Logs.
+6.  **Data Models & Background Jobs:** Create new database models to store Meta configuration, daily insights, and event logs. Use Celery for scheduled tasks like syncing data from Meta and running the attribution engine.
+7.  **Leads UI Enhancement:** Update the existing Leads UI to display the new attribution data (e.g., Ads or Organic with a confidence score).
+8.  **Leads by Sales Number:** A specific user request was to enhance the WhatsApp Leads page to show insights and filter leads based on the specific business WhatsApp number that received the lead.
+9.  **Bug Fixes & UX:** Address various bugs and UX issues, such as template errors and disorganized navigation, that arose during implementation.
 
 **User's preferred language**: English
 
 **what currently exists?**
-The project is a Django ERP. The integration with the Wabis BSP has been implemented using a PULL-based API model, replacing an initial incorrect webhook approach. There is a configuration UI  for users to enter their API Token and manage multiple WhatsApp Bot IDs. A Celery task periodically syncs subscribers and conversations from Wabis, creating leads.
-
-The Shopify integration is complete, using webhooks to capture new orders and abandoned checkouts.
-
-The frontend has been revamped with a tabbed interface for leads and a new Daily Insights dashboard. The old, obsolete Meta Cloud API integration has been cleaned up, with its URLs redirecting to the new Wabis pages to avoid user confusion.
+A significant portion of the feature has been scaffolded. A new  Django app exists with data models, views, URLs, and templates for all the required pages (ROAS Dashboard, Settings, Logs, etc.). The sidebar navigation has been updated, and several bugs that appeared during the build have been fixed. The backend services and Celery tasks for Meta integration are created but contain only placeholder logic; the actual API calls to Meta are not yet implemented. The UI for the WhatsApp Leads page has been refactored to support showing analytics per sales number.
 
 **Last working item**:
-- **Last item agent was working:** Implementing support for multiple WhatsApp numbers within the Wabis integration. The agent updated the data model () to store a  for each number, modified the API sync service to iterate through all configured numbers, and updated the UI to allow users to add/edit the Bot ID for each number.
+The agent was in the middle of a major rewrite of the WhatsApp Leads page to address user feedback. The user wanted a more integrated dashboard that combined analytics (like funnels and trend charts) with the Performance by Sales Number table.
+
+- **Last item agent was working:** Rewriting the  () and its associated template () to create a comprehensive, single-page dashboard for WhatsApp leads.
 - **Status:** IN PROGRESS
 - **Agent Testing Done:** N
-- **Which testing method agent to use?** both
+- **Which testing method agent to use?** Frontend testing agent (using the screenshot tool to visually inspect the  page).
 - **User Testing Done:** N
 
 **All Pending/In progress Issue list**:
-- **Issue 1: Finalize and Test Multi-Number Wabis Sync (P0)**
-    - **Description:** The backend logic and UI for managing multiple Wabis numbers have been created, but the end-to-end flow has not been tested. It needs verification to ensure that the sync process correctly pulls data for all configured numbers and that the UI for managing Bot IDs is functional.
-    - **Status:** IN PROGRESS
-    - **Is recurring issue?** N
-    - **Should Test frontend/backend/both after fix?** Both
+-   **Issue 1: Complete and Verify the WhatsApp Leads Dashboard Revamp (P0)**
+    -   **Description:** The user requested a more integrated dashboard for WhatsApp leads, combining analytics and the leads by number table. The agent is in the middle of rewriting the view and template for this. The work needs to be completed and verified.
+    -   **Attempted fixes:** The agent has written new code for both the Python view and the Django template.
+    -   **Next debug checklist:**
+        1.  Restart the backend server to apply the latest changes.
+        2.  Log in to the application.
+        3.  Navigate to .
+        4.  Verify the page loads without any server or template errors.
+        5.  Confirm that the new dashboard layout is visible, including the analytics charts (funnel, trends, sources) and the Performance by Sales Number table.
+        6.  Ensure the page displays a correct empty state (e.g., No data available) if no WhatsApp numbers or leads are configured yet.
+    -   **Why fix this issue and what will be achieved with the fix?** This will directly address the user's latest feedback for a more logical and powerful dashboard, improving usability.
+    -   **Status:** IN PROGRESS
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** Frontend
+    -   **Blocked on other issue:** None
 
 **In progress Task List**:
-- **Task 1: Complete Multi-Number Wabis Integration (P0)**
-    - **Where to resume:** The code is in place. The next step is to test the functionality. This involves:
-        1.  Verifying the UI at  correctly allows adding and editing Bot IDs for each number.
-        2.  Triggering the sync process (manually via the button on the dashboard or by running the Celery task) and confirming it attempts to sync data for all numbers with a configured Bot ID.
-        3.  Checking the  to see the outcome of the sync for each number.
-    - **What will be achieved with this?** A robust Wabis integration that can connect to and sync data from multiple WhatsApp business accounts simultaneously.
-    - **Status:** IN PROGRESS
-    - **Should Test frontend/backend/both after fix?** Both
+There are no other tasks in progress. The current focus is entirely on the issue listed above.
 
 **Upcoming and Future Tasks**
+- **Upcoming Tasks:**
+  - **P0: Implement Core Meta API Logic:** The placeholder services must be replaced with real API calls.
+    -   In , implement  to send  and  events to the Meta Conversions API.
+    -   In , implement  to pull data from the Meta Marketing API.
+  - **P0: Implement Probabilistic Attribution Engine:** In , build the logic to calculate the ads share and assign attribution status and confidence scores to leads.
+  - **P1: Backfill Lead Data:** Create and run a data migration to populate the  on existing  records. This is crucial for the leads by number feature to work on historical data.
+
 - **Future Tasks:**
-    - **Phase 5: Meta Conversions API (CAPI) Integration (P1):** Implement the logic to send conversion events (when a lead status changes to ) back to Meta's CAPI to enable ROAS tracking.
+  - **P1: Implement Manual Attribution Override:** The UI buttons exist on the lead detail page, but the backend API endpoint to handle the form submission and update the lead's attribution status needs to be created.
+  - **P2: Add Unit Tests:** As per the original request, write unit tests for critical logic like event creation, data hashing, and attribution calculations.
+  - **P2: Secure Credential Storage:** The Meta  in the  model should be encrypted at rest instead of being stored in plaintext.
 
 **Completed work in this session**
-- **Wabis Integration (PULL Model):** Implemented a robust, API-based integration with Wabis to sync subscribers and conversations, replacing a faulty webhook approach.
-- **Multi-Number Wabis Support:** Extended the Wabis integration to support connecting and syncing from multiple WhatsApp numbers.
-- **Wabis Configuration UI:** Created a user-friendly frontend page for users to enter their Wabis API token and manage Bot IDs for each number.
-- **Shopify Webhook Integration:** Successfully implemented webhooks for capturing new orders and abandoned checkouts from Shopify.
-- **Leads UI Revamp:** Overhauled the leads list page with a tabbed navigation system (, , ).
-- **Daily Insights Dashboard:** Created a new dashboard to display key lead and order metrics.
-- **Code Cleanup:** Removed and redirected URLs from the old, obsolete Meta Cloud API integration to prevent duplication and confusion.
-- **Environment Correction:** Fixed the initial environment misconfiguration where the agent tried to run a Django project with a FastAPI/uvicorn setup.
+- **Marketing App Scaffolding:** Created the  Django app, including models (, , , etc.), admin registrations, services, tasks, views, and URL routing.
+- **UI Implementation:** Built all required HTML templates for the new marketing section and integrated them into the application's navigation and layout.
+- **Centralized Navigation:** Created a context processor () to manage the marketing sidebar menu dynamically, which resolved navigation inconsistencies.
+- **Lead Model Extension:** Added , , and  fields to the core  model.
+- **Task Scheduling:** Configured Celery Beat to schedule the (currently placeholder) Meta data sync and attribution tasks.
+- **Bug Fixes:** Resolved multiple critical bugs, including a  on the lead list page and  crashes on the Shopify leads page.
+- **WhatsApp Leads v1:** Implemented the initial version of the leads by sales number feature, which was later improved upon based on user feedback.
 
 **Earlier issues found/mentioned but not fixed**
-- None.
+None. The agent has been diligent in addressing issues as they were identified.
 
 **Known issue recurrence from previous fork**
-- N/A
+N/A
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Backend:** Django, Celery
-- **Database:** Django ORM (SQLite/PostgreSQL)
-- **Integrations:**
-    - **Wabis:** PULL-based API for syncing subscribers/conversations.
-    - **Shopify:** PUSH-based webhooks for orders/checkouts.
-- **Core Concepts:** API Polling, Background Job Processing (Celery), Webhooks.
+- **Backend:** Django
+- **Frontend:** Django Templates, Chart.js for visualizations
+- **Database:** PostgreSQL
+- **Asynchronous Tasks:** Celery with Celery Beat for scheduling
+- **Third-Party APIs:** Meta Marketing API, Meta Conversions API (CAPI)
 
 **key DB schema**
-- **marketing_lead**: Contains  ('whatsapp', 'shopify'), , and attribution data.
-- **integrations_wabisnumber**: Stores Wabis WhatsApp numbers, now includes a  field.
-- **integrations_wabisrawmessage**: Stores raw message data synced from Wabis.
-- **integrations_wabissynclog**: Logs the status of each API sync attempt.
-- **integrations_shopifyabandonedcheckout**: Stores abandoned cart data from Shopify.
+-   **MetaIntegrationConfig:**  - Stores the user's Meta credentials.
+-   **MetaDailyInsights:**  - Stores aggregated daily metrics from Meta.
+-   **CapiEventLog:**  - Logs all outgoing CAPI events for tracking and debugging.
+-   **leads_lead (extended):**  - Adds attribution data directly to the lead record.
 
 **changes in tech stack**
-- **Wabis Integration:** Major pivot from a PUSH (webhook) model to a PULL (API polling) model after discovering how the Wabis API actually works.
+None.
 
 **All files of reference**
-*   : The new API client for communicating with Wabis.
-*   : Contains the Celery task for periodic data syncing.
-*   : Holds the logic for the configuration UI, dashboard, and manual sync trigger.
-*   : Defines , , .
-*   : Templates for the config page, dashboard, and number list.
-*   : Logic for processing Shopify webhooks and creating leads.
-*   : Logic for the tabbed leads list and the daily insights dashboard.
-*   : The central  model.
+-   : Contains the  which is currently being refactored.
+-   : The Django template for the WhatsApp leads dashboard, also being rewritten.
+-   : This directory contains the placeholder service files (, , ) that need to be implemented.
+-   : The  model was modified here.
+-   : Defines the logic for the orderly sidebar navigation menu.
 
 **Areas that need refactoring**:
-- The  app is now obsolete. While its URLs are redirected, the app and its files could be completely removed in the future to further clean up the codebase.
+- The  in  is becoming large and complex. The data aggregation logic should be extracted into a separate helper function or service to improve readability and maintainability.
 
 **key api endpoints**
-- **Incoming Webhooks (from Shopify):**
-    - 
-    - 
-- **Internal Endpoints (UI-driven):**
-    - : View and save Wabis configuration.
-    - : Manually trigger the Wabis API sync.
+-   : Main ROAS dashboard.
+-   : WhatsApp leads dashboard (currently being reworked).
+-   : Page for users to enter their Meta API credentials.
+-   : List of all leads with attribution data.
+-   : Internal API to manually trigger the attribution engine.
+-   : Internal API to manually trigger data sync from Meta.
 
 **Critical Info for New Agent**
-- **Wabis is PULL, not PUSH:** Do not attempt to use webhooks for Wabis. The integration works by polling the Wabis API via a Celery task ().
-- **Configuration is in the UI:** All Wabis credentials (API Token, Bot IDs) are managed through the frontend at  and . Do not rely on environment variables for these.
-- **Multi-Number Support is Key:** The system is designed to handle multiple WhatsApp accounts. The sync logic must iterate through all  objects that have a  configured.
+-   The foundation for the Meta Measurement Engine is largely in place (UI, models, URLs), but the most critical pieces—the actual API calls to Meta—are currently placeholders. Your first major task will be to implement the logic in the  directory.
+-   You are resuming work mid-refactor. The immediate task is to finalize and test the new  and its template to ensure it meets the user's request for an integrated analytics dashboard.
+-   The application requires user-provided credentials to function. The user will enter these via the  page. The app is currently in a not configured state.
+-   A superuser account exists (, ) for accessing the admin and front-end application.
 
 **documents and test reports created in this job**
-- 
+- /app/test_result.md
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Asked if the implementation will work for multiple WhatsApp numbers connected in Wabis. (PENDING VERIFICATION)
-2.  **Agent:** Acknowledged the requirement and began implementing support for multiple numbers.
-3.  **User:** Configure your Wabis credentials in the UI.
-4.  **Agent:** Confirmed the API token was saved and instructed the user on how to find and add their Bot ID.
-5.  **User:** Provided instructions on how to find the Bot ID.
-6.  **Agent:** Provided clear, updated instructions on finding the Bot ID within the Wabis URL.
-7.  **User:** make all the configuration and webhook pointing possible in frontend ui as placeholders and give instructions.
-8.  **Agent:** Agreed and started building the comprehensive configuration UI.
-9.  **User:** Provided a detailed overview of the Wabis Developer Console, revealing it's an API-based (PULL) system, not webhook-based (PUSH).
-10. **Agent:** Correctly understood the pivot to a PULL model and started re-implementing the integration.
+1.  ****: User is confused about the UI, requesting that the WhatsApp insights be part of a combined dashboard, not a separate settings page, and re-emphasizing the need for the leads by number feature to work correctly. **This is the active task.** (Status: In Progress)
+2.  ****: A brief confirmation from the user. (Status: Completed)
+3.  ****: User reported the leads by sales number feature was not working. This initiated the refactor of the WhatsApp leads page. (Status: In Progress, addressed by the current work)
+4.  ****: User provided a detailed bug report about a template error and messy sidebar navigation. (Status: Resolved)
+5.  ****: User confirmed the initial plan to build all pages and prioritize the automatic attribution engine. (Status: Completed)
 
 **Project Health Check:**
-*   **Broken:** None
-*   **Mocked:** None
+-   **Broken:** The core functionality of integrating with Meta APIs is non-existent beyond placeholder files. The application cannot yet send CAPI events or fetch ad spend.
+-   **Mocked:** The entire Meta integration is effectively mocked at the service layer. The dashboards and pages load but display empty or dummy data.
 
 **3rd Party Integrations**
-*   **Wabis (WhatsApp BSP):** Integrated via PULL-based REST API. Requires a user-provided API Token and Bot ID(s).
-*   **Shopify:** Integrated via PUSH-based Webhooks.
-*   **Meta Conversions API (CAPI):** Planned for a future phase.
+-   **Meta Marketing API:** To fetch ad spend and campaign metrics. (Status: **Not Implemented**)
+-   **Meta Conversions API (CAPI):** To send server-side  and  events. (Status: **Not Implemented**)
+-   **Wabis (WhatsApp BSP):** Existing integration. The application consumes lead data stored by this integration.
+-   **Shopify:** Existing integration. The application consumes order and lead data stored by this integration.
 
 **Testing status**
-- **Testing agent used after significant changes:** YES (but before the Wabis API pivot and multi-number implementation).
-- **Troubleshoot agent used after agent stuck in loop:** NO
-- **Test files created:** None.
-- **Known regressions:** None.
+-   **Testing agent used after significant changes:** YES, the backend testing agent was used to validate API endpoints after the initial build.
+-   **Troubleshoot agent used after agent stuck in loop:** NO
+-   **Test files created:** None.
+-   **Known regressions:** A template syntax error on the  page and an attribute error on the  page were introduced and subsequently fixed.
 
 **Credentials to test flow:**
-*   **Wabis Developer Console:**
-    *   URL: 
-    *   Login: 
-    *   Password: 
-    *   **Note:** Use this to get the  to enter into the ERP's configuration UI. The  must be found from the Bot Manager URL as instructed.
+-   **Username:** 
+-   **Password:** 
 
 **What agent forgot to execute**
-- The agent initially misunderstood the project's tech stack (Django vs. FastAPI) and the Wabis integration model (PULL vs. PUSH), which required significant rework. These have since been corrected. The final implementation for multi-number support is logically complete but requires user verification and testing.</analysis>
+-   The agent has not implemented the actual API communication logic with Meta's services; the files in  are still placeholders.
+-   A data migration to backfill the  for existing leads has not been created. This is necessary for the leads by sales number feature to work for historical data.
+-   Unit tests, requested in the original problem statement, have not been written.</analysis>

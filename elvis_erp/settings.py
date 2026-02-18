@@ -19,9 +19,9 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8001",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://erp-roas-engine.preview.emergentagent.com",
-    "https://erp-roas-engine.preview.emergentagent.com",
-    "https://erp-roas-engine.preview.emergentagent.com",
+    "https://whatsapp-analytics-4.preview.emergentagent.com",
+    "https://whatsapp-analytics-4.preview.emergentagent.com",
+    "https://whatsapp-analytics-4.preview.emergentagent.com",
 ]
 
 # Application definition
