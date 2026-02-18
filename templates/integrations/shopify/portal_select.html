@@ -1,0 +1,57 @@
+{% extends "ui/base.html" %}
+{% load static %}
+
+{% block title %}Shopify Integration Portal{% endblock %}
+
+{% block content %}
+<div class="p-6 max-w-4xl mx-auto">
+    <div class="text-center mb-8">
+        <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i class="fab fa-shopify text-4xl text-green-500"></i>
+        </div>
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Shopify Integration Portal</h1>
+        <p class="text-gray-500">Manage your Shopify store integration, orders, customers, fulfillment & abandoned checkouts</p>
+    </div>
+    
+    {% if stores %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+        {% for store in stores %}
+        <a href="{% url 'integrations:shopify_portal' pk=store.pk %}" 
+           class="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-lg hover:border-green-300 transition-all group">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                        <i class="fab fa-shopify text-green-600"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-900">{{ store.store_name|default:store.name }}</h3>
+                        <p class="text-sm text-gray-500 font-mono">{{ store.shop_domain }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    {% if store.status == 'CONNECTED' %}
+                    <span class="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full flex items-center gap-1">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> CONNECTED
+                    </span>
+                    {% else %}
+                    <span class="px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">DISCONNECTED</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="flex items-center justify-between text-sm text-gray-500">
+                <span>API: {{ store.api_version }}</span>
+                <span class="text-primary-500 group-hover:text-primary-600 font-medium">Open Portal →</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <div class="text-center">
+        <a href="{% url 'integrations:shopify_store_create' %}" 
+           class="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors">
+            <i class="fas fa-plus"></i> Add New Shopify Store
+        </a>
+    </div>
+</div>
+{% endblock %}
