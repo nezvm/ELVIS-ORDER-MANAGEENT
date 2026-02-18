@@ -233,9 +233,13 @@
                     <i class="fas fa-sliders-h w-5 mr-4 text-lg"></i>
                     <span>Channels</span>
                 </a>
-                <a href="{% url 'integrations:dashboard' %}" data-testid="nav-integrations" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/integrations' in request.path and '/wabis' not in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
+                <a href="{% url 'integrations:dashboard' %}" data-testid="nav-integrations" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/integrations' in request.path and '/wabis' not in request.path and '/shopify' not in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200">
                     <i class="fas fa-plug w-5 mr-4 text-lg"></i>
                     <span>Integrations</span>
+                </a>
+                <a href="{% url 'integrations:shopify_portal_select' %}" data-testid="nav-shopify" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/integrations/shopify' in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200 pl-8">
+                    <i class="fab fa-shopify w-5 mr-4 text-lg text-green-400"></i>
+                    <span>Shopify Portal</span>
                 </a>
                 <a href="{% url 'integrations:wabis:dashboard' %}" data-testid="nav-whatsapp-setup" class="nav-link flex items-center px-4 py-3 text-base font-medium rounded-xl {% if '/integrations/wabis' in request.path %}active bg-sidebar-active text-white{% else %}text-white/70 hover:bg-sidebar-hover hover:text-white{% endif %} transition-all duration-200 pl-8">
                     <i class="fab fa-whatsapp w-5 mr-4 text-lg text-green-400"></i>
