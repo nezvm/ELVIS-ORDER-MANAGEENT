@@ -353,6 +353,11 @@ class WhatsAppLeadsView(LoginRequiredMixin, TemplateView):
                 }
         context['lead_number_map'] = lead_number_map
 
+        # JSON version for JavaScript (convert UUID keys to strings)
+        import json
+        json_map = {str(k): v for k, v in lead_number_map.items()}
+        context['lead_number_map_json'] = json.dumps(json_map)
+
         return context
 
 
