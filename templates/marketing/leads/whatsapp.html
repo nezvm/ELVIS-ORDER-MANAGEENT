@@ -1,38 +1,23 @@
 {% extends 'ui/base.html' %}
 {% load static humanize %}
-
 {% block title %}WhatsApp Leads{% endblock %}
 {% block page_title %}WhatsApp Leads{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
-    <!-- Header with Tabs -->
-    <div class="flex items-center justify-between">
+    <!-- Header with Tabs + Date -->
+    <div class="flex items-center justify-between flex-wrap gap-3">
         <div class="flex items-center space-x-6">
             <h2 class="text-2xl font-bold text-gray-900">Leads</h2>
             <nav class="flex space-x-1 bg-gray-100 rounded-lg p-1">
-                <a href="{% url 'marketing:leads_overview' %}?date_filter={{ date_filter }}" 
-                   class="px-4 py-2 text-sm font-medium rounded-md {% if active_tab == 'overview' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">
-                    All Leads
-                </a>
-                <a href="{% url 'marketing:leads_whatsapp' %}?date_filter={{ date_filter }}"
-                   class="px-4 py-2 text-sm font-medium rounded-md {% if active_tab == 'whatsapp' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">
-                    <i class="fab fa-whatsapp text-green-500 mr-1"></i>WhatsApp
-                </a>
-                <a href="{% url 'marketing:leads_shopify' %}?date_filter={{ date_filter }}"
-                   class="px-4 py-2 text-sm font-medium rounded-md {% if active_tab == 'shopify' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">
-                    <i class="fab fa-shopify text-green-600 mr-1"></i>Shopify
-                </a>
-                <a href="{% url 'marketing:leads_other' %}?date_filter={{ date_filter }}"
-                   class="px-4 py-2 text-sm font-medium rounded-md {% if active_tab == 'other' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">
-                    Other
-                </a>
+                <a href="{% url 'marketing:leads_overview' %}?date_filter={{ date_filter }}" class="px-4 py-2 text-sm font-medium rounded-md {% if active_tab == 'overview' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">All Leads</a>
+                <a href="{% url 'marketing:leads_whatsapp' %}?date_filter={{ date_filter }}" class="px-4 py-2 text-sm font-medium rounded-md {% if active_tab == 'whatsapp' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}"><i class="fab fa-whatsapp text-green-500 mr-1"></i>WhatsApp</a>
+                <a href="{% url 'marketing:leads_shopify' %}?date_filter={{ date_filter }}" class="px-4 py-2 text-sm font-medium rounded-md {% if active_tab == 'shopify' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}"><i class="fab fa-shopify text-green-600 mr-1"></i>Shopify</a>
+                <a href="{% url 'marketing:leads_other' %}?date_filter={{ date_filter }}" class="px-4 py-2 text-sm font-medium rounded-md {% if active_tab == 'other' %}bg-white text-gray-900 shadow-sm{% else %}text-gray-600 hover:text-gray-900{% endif %}">Other</a>
             </nav>
         </div>
-        
-        <!-- Date Filter -->
-        <div class="flex items-center space-x-3">
-            <select id="dateFilter" onchange="applyDateFilter()" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+        <div class="flex items-center space-x-2">
+            <select id="dateFilter" onchange="applyDateFilter()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
                 <option value="today" {% if date_filter == 'today' %}selected{% endif %}>Today</option>
                 <option value="yesterday" {% if date_filter == 'yesterday' %}selected{% endif %}>Yesterday</option>
                 <option value="this_week" {% if date_filter == 'this_week' %}selected{% endif %}>This Week</option>
@@ -40,230 +25,190 @@
                 <option value="last_7_days" {% if date_filter == 'last_7_days' %}selected{% endif %}>Last 7 Days</option>
                 <option value="last_30_days" {% if date_filter == 'last_30_days' %}selected{% endif %}>Last 30 Days</option>
             </select>
-            <span class="text-sm text-gray-500">{{ filter_label }}</span>
+            <span class="text-xs text-gray-400">{{ filter_label }}</span>
         </div>
     </div>
 
     <!-- KPI Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div class="grid grid-cols-3 md:grid-cols-6 gap-3">
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <div class="flex items-center space-x-2">
-                <div class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
-                    <i class="fab fa-whatsapp text-green-600"></i>
-                </div>
-                <div>
-                    <p class="text-xs text-gray-500">Total</p>
-                    <p class="text-xl font-bold text-gray-900">{{ total_leads }}</p>
-                </div>
-            </div>
+            <div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-green-100 flex items-center justify-center"><i class="fab fa-whatsapp text-green-600 text-sm"></i></div><p class="text-xs text-gray-500">Total</p></div>
+            <p class="text-2xl font-bold text-gray-900 mt-1">{{ total_leads }}</p>
         </div>
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
             <p class="text-xs text-gray-500 uppercase">Pending</p>
-            <p class="text-xl font-bold text-yellow-600 mt-1">{{ pending_leads }}</p>
+            <p class="text-2xl font-bold text-yellow-600 mt-1">{{ pending_leads }}</p>
         </div>
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
             <p class="text-xs text-gray-500 uppercase">Won</p>
-            <p class="text-xl font-bold text-green-600 mt-1">{{ won_leads }}</p>
+            <p class="text-2xl font-bold text-green-600 mt-1">{{ won_leads }}</p>
         </div>
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
             <p class="text-xs text-gray-500 uppercase">Lost</p>
-            <p class="text-xl font-bold text-red-600 mt-1">{{ lost_leads }}</p>
+            <p class="text-2xl font-bold text-red-600 mt-1">{{ lost_leads }}</p>
         </div>
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <p class="text-xs text-gray-500 uppercase">Conversion</p>
-            <p class="text-xl font-bold text-purple-600 mt-1">{{ conversion_rate }}%</p>
+            <p class="text-xs text-gray-500 uppercase">Conv. Rate</p>
+            <p class="text-2xl font-bold text-purple-600 mt-1">{{ conversion_rate }}%</p>
         </div>
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
             <p class="text-xs text-gray-500 uppercase">Revenue</p>
-            <p class="text-xl font-bold text-gray-900 mt-1">&#8377;{{ total_revenue|floatformat:0|intcomma }}</p>
+            <p class="text-2xl font-bold text-gray-900 mt-1">&#8377;{{ total_revenue|floatformat:0|intcomma }}</p>
         </div>
     </div>
 
-    <!-- Per Number Stats -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="p-6 border-b border-gray-100">
-            <h3 class="text-lg font-semibold text-gray-900"><i class="fas fa-phone-alt text-green-500 mr-2"></i>Performance by Sales Number</h3>
-            <p class="text-sm text-gray-500 mt-1">Lead intake &amp; outcomes for each connected WhatsApp number. Click a row to filter leads below.</p>
+    <!-- ROAS Row (if Meta configured) -->
+    {% if meta_spend > 0 %}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl border border-red-200 p-4">
+            <p class="text-xs text-red-700 uppercase font-medium">Ad Spend</p>
+            <p class="text-xl font-bold text-red-800 mt-1">&#8377;{{ meta_spend|floatformat:0|intcomma }}</p>
         </div>
-        
-        {% if numbers_stats %}
+        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-4">
+            <p class="text-xs text-blue-700 uppercase font-medium">Est. ROAS</p>
+            <p class="text-xl font-bold text-blue-800 mt-1">{{ est_roas }}x</p>
+        </div>
+        <div class="bg-gradient-to-br from-purple-50 to-fuchsia-50 rounded-xl border border-purple-200 p-4">
+            <p class="text-xs text-purple-700 uppercase font-medium">Cost/Lead</p>
+            <p class="text-xl font-bold text-purple-800 mt-1">&#8377;{{ cost_per_lead|floatformat:0|intcomma }}</p>
+        </div>
+        <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200 p-4">
+            <p class="text-xs text-green-700 uppercase font-medium">Meta Conversations</p>
+            <p class="text-xl font-bold text-green-800 mt-1">{{ meta_conversations|intcomma }}</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Charts Row: Funnel + Source + Trend -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <h4 class="text-sm font-bold text-gray-700 mb-3">Conversion Funnel</h4>
+            <canvas id="funnelChart" height="180"></canvas>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <h4 class="text-sm font-bold text-gray-700 mb-3">Lead Source</h4>
+            <canvas id="sourceChart" height="180"></canvas>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            <h4 class="text-sm font-bold text-gray-700 mb-3">Daily Leads Trend</h4>
+            <canvas id="trendChart" height="180"></canvas>
+        </div>
+    </div>
+
+    <!-- ═══ Leads by Sales Number ═══ -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-5 border-b border-gray-100">
+            <h3 class="text-base font-bold text-gray-900"><i class="fas fa-phone-alt text-green-500 mr-2"></i>Leads by Sales Number</h3>
+            <p class="text-xs text-gray-500 mt-0.5">Click a row to filter the leads table below</p>
+        </div>
         <div class="overflow-x-auto">
-            <table class="w-full">
+            <table class="w-full text-sm">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Number</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Leads</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Pending</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Won</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Lost</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Conv. %</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Last Msg</th>
+                        <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">Number</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Leads</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Pending</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Won</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Lost</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Conv%</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                    <!-- "All Numbers" row -->
-                    <tr class="cursor-pointer transition {% if not selected_number or selected_number == 'all' %}bg-blue-50 border-l-4 border-blue-500{% else %}hover:bg-gray-50{% endif %}"
-                        onclick="filterByNumber('all')">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
-                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                                    <i class="fas fa-layer-group text-blue-600"></i>
-                                </div>
-                                <div>
-                                    <div class="font-semibold text-gray-900">All Numbers</div>
-                                    <div class="text-xs text-gray-400">Combined view</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 text-right text-lg font-bold text-gray-900">{{ total_leads }}</td>
-                        <td class="px-6 py-4 text-right text-yellow-600 font-medium">{{ pending_leads }}</td>
-                        <td class="px-6 py-4 text-right text-green-600 font-medium">{{ won_leads }}</td>
-                        <td class="px-6 py-4 text-right text-red-600 font-medium">{{ lost_leads }}</td>
-                        <td class="px-6 py-4 text-right text-purple-600 font-semibold">{{ conversion_rate }}%</td>
-                        <td class="px-6 py-4 text-right text-gray-900 font-semibold">&#8377;{{ total_revenue|floatformat:0|intcomma }}</td>
-                        <td class="px-6 py-4 text-right text-sm text-gray-400">-</td>
+                    <!-- All row -->
+                    <tr class="cursor-pointer transition {% if not selected_number or selected_number == 'all' %}bg-blue-50 border-l-4 border-blue-500{% else %}hover:bg-gray-50{% endif %}" onclick="filterByNumber('all')">
+                        <td class="px-5 py-3 font-semibold text-gray-900"><i class="fas fa-layer-group text-blue-500 mr-2"></i>All Numbers</td>
+                        <td class="px-4 py-3 text-right font-bold text-gray-900">{{ total_leads }}</td>
+                        <td class="px-4 py-3 text-right text-yellow-600">{{ pending_leads }}</td>
+                        <td class="px-4 py-3 text-right text-green-600">{{ won_leads }}</td>
+                        <td class="px-4 py-3 text-right text-red-600">{{ lost_leads }}</td>
+                        <td class="px-4 py-3 text-right font-semibold text-purple-600">{{ conversion_rate }}%</td>
+                        <td class="px-4 py-3 text-right font-semibold">&#8377;{{ total_revenue|floatformat:0|intcomma }}</td>
                     </tr>
-                    {% for stat in numbers_stats %}
-                    <tr class="cursor-pointer transition {% if selected_number == stat.number_id %}bg-green-50 border-l-4 border-green-500{% else %}hover:bg-gray-50{% endif %}"
-                        onclick="filterByNumber('{{ stat.number_id }}')">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
-                                {% if stat.number %}
-                                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                                    <i class="fab fa-whatsapp text-green-600"></i>
+                    {% for s in numbers_stats %}
+                    <tr class="cursor-pointer transition {% if selected_number == s.number_id %}bg-green-50 border-l-4 border-green-500{% else %}hover:bg-gray-50{% endif %}" onclick="filterByNumber('{{ s.number_id }}')">
+                        <td class="px-5 py-3">
+                            {% if s.number %}
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0"><i class="fab fa-whatsapp text-green-600 text-sm"></i></div>
+                                <div class="min-w-0">
+                                    <div class="font-medium text-gray-900 truncate">{{ s.number.display_name|default:"Unnamed" }}</div>
+                                    <div class="text-xs text-gray-400">{{ s.number.display_phone_number|default:s.number.phone_number_id }}</div>
                                 </div>
-                                <div>
-                                    <div class="font-medium text-gray-900">{{ stat.number.display_name|default:"Unnamed" }}</div>
-                                    <div class="text-sm text-gray-500">{{ stat.number.display_phone_number|default:stat.number.phone_number_id }}</div>
-                                </div>
-                                {% else %}
-                                <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mr-3">
-                                    <i class="fas fa-question text-gray-400"></i>
-                                </div>
-                                <div>
-                                    <div class="font-medium text-gray-500">Unassigned</div>
-                                    <div class="text-xs text-gray-400">Not linked to a Wabis number</div>
-                                </div>
-                                {% endif %}
                             </div>
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                            <span class="text-lg font-semibold text-gray-900">{{ stat.leads_count }}</span>
-                        </td>
-                        <td class="px-6 py-4 text-right text-yellow-600 font-medium">{{ stat.pending }}</td>
-                        <td class="px-6 py-4 text-right text-green-600 font-medium">{{ stat.won }}</td>
-                        <td class="px-6 py-4 text-right text-red-600 font-medium">{{ stat.lost }}</td>
-                        <td class="px-6 py-4 text-right">
-                            {% if stat.conversion_rate > 0 %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold {% if stat.conversion_rate >= 50 %}bg-green-100 text-green-700{% elif stat.conversion_rate >= 25 %}bg-yellow-100 text-yellow-700{% else %}bg-red-100 text-red-700{% endif %}">
-                                {{ stat.conversion_rate }}%
-                            </span>
                             {% else %}
-                            <span class="text-gray-400">0%</span>
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"><i class="fas fa-question text-gray-400 text-sm"></i></div>
+                                <div class="text-gray-500">Unassigned</div>
+                            </div>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4 text-right text-gray-900 font-medium">&#8377;{{ stat.revenue|floatformat:0|intcomma }}</td>
-                        <td class="px-6 py-4 text-right text-sm text-gray-500">
-                            {% if stat.last_message %}{{ stat.last_message|timesince }} ago{% else %}-{% endif %}
+                        <td class="px-4 py-3 text-right font-semibold">{{ s.leads_count }}</td>
+                        <td class="px-4 py-3 text-right text-yellow-600">{{ s.pending }}</td>
+                        <td class="px-4 py-3 text-right text-green-600">{{ s.won }}</td>
+                        <td class="px-4 py-3 text-right text-red-600">{{ s.lost }}</td>
+                        <td class="px-4 py-3 text-right">
+                            {% if s.conversion_rate > 0 %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold {% if s.conversion_rate >= 50 %}bg-green-100 text-green-700{% elif s.conversion_rate >= 25 %}bg-yellow-100 text-yellow-700{% else %}bg-red-100 text-red-700{% endif %}">{{ s.conversion_rate }}%</span>
+                            {% else %}<span class="text-gray-400">0%</span>{% endif %}
                         </td>
+                        <td class="px-4 py-3 text-right font-medium">&#8377;{{ s.revenue|floatformat:0|intcomma }}</td>
                     </tr>
+                    {% empty %}
+                    <tr><td colspan="7" class="px-5 py-8 text-center text-gray-400"><i class="fab fa-whatsapp text-3xl mb-2"></i><p>No numbers configured. Connect in Wabis Settings.</p></td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-        {% else %}
-        <div class="p-12 text-center text-gray-500">
-            <i class="fab fa-whatsapp text-4xl text-gray-300 mb-4"></i>
-            <p>No WhatsApp numbers configured or no leads found.</p>
-            <p class="text-sm mt-2">Connect your numbers in <a href="{% url 'integrations:wabis:number_list' %}" class="text-blue-600 hover:underline">Wabis Settings</a></p>
-        </div>
-        {% endif %}
     </div>
 
-    <!-- Leads Table -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div class="p-6 border-b border-gray-100 flex items-center justify-between">
-            <div>
-                <h3 class="text-lg font-semibold text-gray-900">
-                    {% if selected_number and selected_number != 'all' %}
-                        {% if selected_number == 'unassigned' %}
-                        Leads &mdash; Unassigned
-                        {% else %}
-                        Leads &mdash; Filtered by Number
-                        {% endif %}
-                    {% else %}
-                    All WhatsApp Leads
-                    {% endif %}
-                </h3>
-                <p class="text-xs text-gray-400 mt-0.5">Showing up to 100 most recent leads</p>
-            </div>
+    <!-- ═══ Leads Table ═══ -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-base font-bold text-gray-900">
+                {% if selected_number == 'unassigned' %}Unassigned Leads
+                {% elif selected_number and selected_number != 'all' %}Filtered Leads
+                {% else %}All WhatsApp Leads{% endif %}
+                <span class="text-xs font-normal text-gray-400 ml-2">(up to 100)</span>
+            </h3>
             {% if selected_number and selected_number != 'all' %}
-            <a href="{% url 'marketing:leads_whatsapp' %}?date_filter={{ date_filter }}" class="text-xs text-blue-600 hover:underline"><i class="fas fa-times mr-1"></i>Clear filter</a>
+            <a href="{% url 'marketing:leads_whatsapp' %}?date_filter={{ date_filter }}" class="text-xs text-blue-600 hover:underline"><i class="fas fa-times mr-1"></i>Clear</a>
             {% endif %}
         </div>
-        
         <div class="overflow-x-auto">
-            <table class="w-full">
+            <table class="w-full text-sm">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lead</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                        <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sales Number</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attribution</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                        <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lead</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sales Number</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Attribution</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Value</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     {% for lead in recent_leads %}
                     <tr class="hover:bg-gray-50 cursor-pointer transition" onclick="window.location='{% url 'marketing:lead_detail_new' lead.pk %}'">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="font-medium text-gray-900">{{ lead.name|default:"Unknown" }}</div>
+                        <td class="px-5 py-3 font-medium text-gray-900">{{ lead.name|default:"Unknown" }}</td>
+                        <td class="px-4 py-3 text-gray-500">{{ lead.phone_no }}</td>
+                        <td class="px-4 py-3"><span class="sn-cell" data-lid="{{ lead.pk }}"></span></td>
+                        <td class="px-4 py-3">
+                            {% if lead.conversion_status == 'won' %}<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Won</span>
+                            {% elif lead.conversion_status == 'lost' %}<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Lost</span>
+                            {% else %}<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>{% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ lead.phone_no }}</td>
-                        <td class="px-5 py-4 whitespace-nowrap">
-                            {% with num_info=lead_number_map|dictsort:lead.pk %}{% endwith %}
-                            {% if lead.pk in lead_number_map %}
-                                <!-- will be filled via template tag below -->
-                            {% endif %}
-                            <span class="sales-number-cell" data-lead-id="{{ lead.pk }}"></span>
+                        <td class="px-4 py-3">
+                            {% if lead.attribution_model == 'probabilistic_ads' or lead.attribution_model == 'manual_ads' %}<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700"><i class="fas fa-ad mr-1"></i>Ads</span>
+                            {% elif lead.attribution_model == 'organic' or lead.attribution_model == 'manual_organic' %}<span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700"><i class="fas fa-leaf mr-1"></i>Organic</span>
+                            {% else %}<span class="text-gray-400 text-xs">-</span>{% endif %}
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            {% if lead.conversion_status == 'won' %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-check-circle mr-1"></i>Won</span>
-                            {% elif lead.conversion_status == 'lost' %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><i class="fas fa-times-circle mr-1"></i>Lost</span>
-                            {% else %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            {% if lead.attribution_model == 'probabilistic_ads' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700"><i class="fas fa-ad mr-1"></i>Ads</span>
-                            {% elif lead.attribution_model == 'manual_ads' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-200 text-blue-800">Manual Ads</span>
-                            {% elif lead.attribution_model == 'organic' or lead.attribution_model == 'manual_organic' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700"><i class="fas fa-leaf mr-1"></i>Organic</span>
-                            {% else %}
-                            <span class="text-gray-400 text-xs">-</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ lead.get_status_reason_display|default:"-" }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">
-                            {% if lead.conversion_value %}&#8377;{{ lead.conversion_value|floatformat:0|intcomma }}{% else %}-{% endif %}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ lead.created|date:"M d, H:i" }}</td>
+                        <td class="px-4 py-3 text-right font-medium">{% if lead.conversion_value %}&#8377;{{ lead.conversion_value|floatformat:0|intcomma }}{% else %}-{% endif %}</td>
+                        <td class="px-4 py-3 text-gray-500">{{ lead.created|date:"M d, H:i" }}</td>
                     </tr>
                     {% empty %}
-                    <tr>
-                        <td colspan="8" class="px-6 py-12 text-center text-gray-500">
-                            <i class="fab fa-whatsapp text-4xl text-gray-300 mb-3"></i>
-                            <p>No WhatsApp leads found for this period{% if selected_number and selected_number != 'all' %} and selected number{% endif %}.</p>
-                        </td>
-                    </tr>
+                    <tr><td colspan="7" class="px-5 py-12 text-center text-gray-400"><i class="fab fa-whatsapp text-4xl mb-3"></i><p>No leads found for this period{% if selected_number and selected_number != 'all' %} and selected number{% endif %}.</p></td></tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -271,38 +216,59 @@
     </div>
 </div>
 
+<!-- Charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
-// Number → lead mapping (JSON from Django)
-const leadNumberMap = {{ lead_number_map_json|safe }};
+const lnm = {{ lead_number_map_json|safe }};
+document.querySelectorAll('.sn-cell').forEach(c => {
+    const i = lnm[c.dataset.lid];
+    c.innerHTML = i
+        ? `<div class="flex items-center gap-1"><i class="fab fa-whatsapp text-green-500 text-xs"></i><span class="text-xs text-gray-700">${i.display_name||i.display_phone}</span></div>`
+        : '<span class="text-xs text-gray-300">&mdash;</span>';
+});
 
-// Populate sales number cells
-document.querySelectorAll('.sales-number-cell').forEach(cell => {
-    const leadId = cell.dataset.leadId;
-    const info = leadNumberMap[leadId];
-    if (info) {
-        cell.innerHTML = `<div class="flex items-center gap-1.5">
-            <i class="fab fa-whatsapp text-green-500 text-xs"></i>
-            <div>
-                <div class="text-xs font-medium text-gray-800">${info.display_name || ''}</div>
-                <div class="text-[10px] text-gray-400">${info.display_phone || ''}</div>
-            </div>
-        </div>`;
-    } else {
-        cell.innerHTML = '<span class="text-xs text-gray-300">—</span>';
-    }
+const funnel = {{ funnel_json|safe }};
+new Chart(document.getElementById('funnelChart'), {
+    type: 'bar',
+    data: {
+        labels: ['Total', 'Pending', 'Won', 'Lost'],
+        datasets: [{
+            data: [funnel.total, funnel.pending, funnel.won, funnel.lost],
+            backgroundColor: ['#6366f1','#eab308','#22c55e','#ef4444'],
+            borderRadius: 6, barPercentage: 0.6,
+        }]
+    },
+    options: {responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+});
+
+const src = {{ source_json|safe }};
+new Chart(document.getElementById('sourceChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Organic', 'Ads (Est.)'],
+        datasets: [{data:[src.organic, src.ads], backgroundColor:['#22c55e','#3b82f6']}]
+    },
+    options: {responsive:true, plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:11}}}}}
+});
+
+const trend = {{ trend_json|safe }};
+new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+        labels: trend.map(d=>d.date),
+        datasets: [{label:'Leads', data:trend.map(d=>d.count), borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,0.1)', fill:true, tension:0.3, pointRadius:2}]
+    },
+    options: {responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
 });
 
 function applyDateFilter() {
-    const filter = document.getElementById('dateFilter').value;
     const url = new URL(window.location.href);
-    url.searchParams.set('date_filter', filter);
-    // Keep number filter if active
+    url.searchParams.set('date_filter', document.getElementById('dateFilter').value);
     window.location.href = url.toString();
 }
-
-function filterByNumber(numberId) {
+function filterByNumber(id) {
     const url = new URL(window.location.href);
-    url.searchParams.set('number_id', numberId);
+    url.searchParams.set('number_id', id);
     window.location.href = url.toString();
 }
 </script>
