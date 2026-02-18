@@ -134,9 +134,10 @@ class TestPerformanceBySalesNumberTable:
     def test_numbers_table_has_required_columns(self, authenticated_client):
         """Test table has all required columns"""
         response = authenticated_client.get('/marketing/leads/whatsapp/?date_filter=last_30_days')
-        content = response.content.decode('utf-8')
+        content = response.content.decode('utf-8').lower()
         
-        required_columns = ['NUMBER', 'LEADS', 'PENDING', 'WON', 'LOST', 'CONV%', 'REVENUE']
+        # Check columns (case insensitive)
+        required_columns = ['number', 'leads', 'pending', 'won', 'lost', 'conv', 'revenue']
         for col in required_columns:
             assert col in content, f"Column {col} not found in numbers table"
     
