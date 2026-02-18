@@ -3,6 +3,12 @@ WhatsApp Leads Dashboard Backend Tests
 Tests for /marketing/leads/whatsapp/ endpoint
 Tests KPIs, sales number performance table, leads list, and filtering
 """
+import os
+import django
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'elvis_erp.settings')
+django.setup()
+
 import pytest
 from django.test import Client
 from django.contrib.auth import get_user_model
