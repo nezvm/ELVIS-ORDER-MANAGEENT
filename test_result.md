@@ -1136,3 +1136,50 @@ agent_communication:
       🚀 PRODUCTION READINESS: The backend implementation is complete and ready. The authentication issue (HTTP 403) is an environmental/credential issue that needs to be resolved to enable full functional testing, but does not indicate any problems with the Marketing Meta Measurement Engine implementation itself.
       
       RECOMMENDATION: Resolve authentication credentials to enable full UI and functional testing of the Marketing Meta features.
+## user_problem_statement: "Build a single Shopify integration module that manages Orders, Customers, Fulfillment, Abandoned Checkouts with channel split (WEB_PAID / WEB_COD), and provides an Integration Portal UI with configuration, testing tools, logs, and step-by-step instructions."
+
+## backend:
+##   - task: "Shopify Integration Portal - Enhanced Models (ShopifyExternalMap, ShopifyEventInbox, ShopifyOutbox)"
+##     implemented: true
+##     working: true
+##     file: "integrations/models.py"
+##     priority: "high"
+##     needs_retesting: false
+##     status_history:
+##         - working: true
+##           agent: "main"
+##           comment: "Added ShopifyExternalMap, ShopifyEventInbox, ShopifyOutbox models. Enhanced ShopifyStore with api_version, status, sync timestamps, cod_keywords, sync rules fields. Migration 0003 applied successfully."
+##
+##   - task: "Shopify Channel Split Logic (WEB_PAID/WEB_COD)"
+##     implemented: true
+##     working: true
+##     file: "integrations/shopify/portal_services.py"
+##     priority: "high"
+##     needs_retesting: false
+##     status_history:
+##         - working: true
+##           agent: "main"
+##           comment: "ShopifyChannelSplitService implemented. Tested via webhook simulator: COD gateway → WEB_COD, paid gateway → WEB_PAID. Correctly uses configurable COD keywords."
+##
+##   - task: "Shopify Portal API Endpoints (connect, sync-rules, diagnostics, logs)"
+##     implemented: true
+##     working: true
+##     file: "integrations/shopify/portal_views.py"
+##     priority: "high"
+##     needs_retesting: false
+##     status_history:
+##         - working: true
+##           agent: "main"
+##           comment: "All 13 API endpoints implemented: connect, disconnect, verify permissions, register webhooks, save sync rules, get shop info, test order, test customer, simulate webhook, test fulfillment, run abandoned sync, get logs, replay event."
+##
+## frontend:
+##   - task: "Shopify Integration Portal UI - 7 Tabs"
+##     implemented: true
+##     working: true
+##     file: "templates/integrations/shopify/portal.html"
+##     priority: "high"
+##     needs_retesting: false
+##     status_history:
+##         - working: true
+##           agent: "main"
+##           comment: "All 7 tabs implemented and working: Overview, Connect Store, Sync Rules, Connectors, Test & Diagnostics, Logs, Instructions. Channel split simulator verified working with WEB_PAID/WEB_COD detection."
