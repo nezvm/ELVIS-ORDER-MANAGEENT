@@ -16,7 +16,7 @@ import re
 from decimal import Decimal
 
 # Get base URL
-BASE_URL = "https://whatsapp-analytics-4.preview.emergentagent.com"
+BASE_URL = "https://elvis-shopify-sync.preview.emergentagent.com"
 
 User = get_user_model()
 

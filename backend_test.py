@@ -610,7 +610,7 @@ class MarketingMetaERPTester:
 def main():
     """Main test execution"""
     # Configuration from review request  
-    BASE_URL = "https://whatsapp-analytics-4.preview.emergentagent.com"
+    BASE_URL = "https://elvis-shopify-sync.preview.emergentagent.com"
     USERNAME = "admin"
     PASSWORD = "admin123"
     
