@@ -76,6 +76,24 @@ Build a comprehensive lead management system within the existing Django ERP with
 - **Shopify:** COD vs Prepaid split, Recovery rate tracking
 - **Lead Detail:** Full lifecycle timeline, linked order, activity history
 
+### Phase 9b: WhatsApp Leads Dashboard Complete ✅ (Feb 18, 2026)
+- **Performance by Sales Number Table:**
+  - Shows all WhatsApp numbers (Sales Team 1, Sales Team 2, Support Line, etc.)
+  - Each row displays: Leads Count, Pending, Won, Lost, Conversion Rate, Revenue
+  - Color-coded conversion rates (green ≥50%, yellow ≥25%, red <25%)
+  - "All Numbers" summary row with aggregated totals
+  - Click-to-filter: clicking a row filters the leads table below
+- **All WhatsApp Leads Table:**
+  - Individual lead entries with name, phone, sales number
+  - Status badges: Won (green), Lost (red), Pending (yellow)
+  - Attribution badges: Ads (blue), Organic (green)
+  - Value and Created date
+- **Charts:**
+  - Conversion Funnel (bar chart): Total → Pending → Won → Lost
+  - Lead Source (doughnut): Organic vs Ads distribution
+  - Daily Trend (line chart): Lead volume over time
+- **Test Coverage:** 14 pytest tests - 100% pass rate
+
 ### Phase 10: Lead Status Reason & DailyLeadMetrics ✅ (Feb 17, 2026)
 - Added `status_reason` field to Lead model with choices:
   - `manual_win`, `order_placed`, `recovered`, `manual_loss`
