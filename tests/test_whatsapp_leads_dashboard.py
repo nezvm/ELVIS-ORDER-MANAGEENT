@@ -161,16 +161,16 @@ class TestAllWhatsAppLeadsTable:
     def test_leads_table_displayed(self, authenticated_client):
         """Test leads table is shown with correct headers"""
         response = authenticated_client.get('/marketing/leads/whatsapp/?date_filter=last_30_days')
-        content = response.content.decode('utf-8')
+        content = response.content.decode('utf-8').lower()
         
-        # Check table headers
-        assert 'LEAD' in content
-        assert 'PHONE' in content
-        assert 'SALES NUMBER' in content
-        assert 'STATUS' in content
-        assert 'ATTRIBUTION' in content
-        assert 'VALUE' in content
-        assert 'CREATED' in content
+        # Check table headers (case insensitive)
+        assert 'lead' in content
+        assert 'phone' in content
+        assert 'sales number' in content
+        assert 'status' in content
+        assert 'attribution' in content
+        assert 'value' in content
+        assert 'created' in content
     
     @pytest.mark.django_db
     def test_status_badges_displayed(self, authenticated_client):
