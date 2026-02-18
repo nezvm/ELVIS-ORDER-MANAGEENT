@@ -248,10 +248,20 @@ class TestViewContext:
     @pytest.mark.django_db
     def test_context_has_required_data(self, authenticated_client):
         """Test view provides all required context data"""
-        response = authenticated_client.get('/marketing/leads/whatsapp/?date_filter=last_30_days')
+        from django.test import RequestFactory
+        from marketing.leads_views import WhatsAppLeadsView
+        from django.contrib.auth import get_user_model
         
-        # Check response context
-        context = response.context
+        User = get_user_model()
+        factory = RequestFactory()
+        request = factory.get('/marketing/leads/whatsapp/?date_filter=last_30_days')
+        request.user = User.objects.get(username='admin')
+        
+        view = WhatsAppLeadsView()
+        view.request = request
+        view.kwargs = {}
+        
+        context = view.get_context_data()
         
         assert 'total_leads' in context
         assert 'pending_leads' in context
