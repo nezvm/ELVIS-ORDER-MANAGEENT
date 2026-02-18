@@ -109,8 +109,8 @@ class SyncedContact(BaseModel):
 class ShopifyStore(BaseModel):
     """Shopify store configuration - single store controls all connectors."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    store_name = models.CharField(max_length=200)
-    name = models.CharField(max_length=200)  # kept for backward compat
+    store_name = models.CharField(max_length=200, blank=True, default='')
+    name = models.CharField(max_length=200, blank=True, default='')  # kept for backward compat
     shop_domain = models.CharField(max_length=200, unique=True, help_text="e.g., mystore.myshopify.com")
     api_key = models.CharField(max_length=200, blank=True, null=True)
     api_secret = models.CharField(max_length=200, blank=True, null=True)
