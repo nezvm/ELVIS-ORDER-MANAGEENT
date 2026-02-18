@@ -382,6 +382,106 @@ class ShopifyWebhookLog(BaseModel):
         return f"{self.webhook_topic} - {self.created}"
 
 
+class ShopifyExternalMap(BaseModel):
+    """Maps ERP internal IDs to Shopify external IDs."""
+    ENTITY_TYPES = [
+        ('ORDER', 'Order'),
+        ('CUSTOMER', 'Customer'),
+        ('ABANDONED_CHECKOUT', 'Abandoned Checkout'),
+        ('FULFILLMENT', 'Fulfillment'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    store = models.ForeignKey(ShopifyStore, on_delete=models.CASCADE, related_name='external_maps')
+    entity_type = models.CharField(max_length=30, choices=ENTITY_TYPES, db_index=True)
+    external_id = models.CharField(max_length=200, db_index=True, help_text="Shopify ID")
+    internal_id = models.CharField(max_length=200, db_index=True, help_text="ERP internal UUID/ID")
+    
+    class Meta:
+        verbose_name = "Shopify External Map"
+        verbose_name_plural = "Shopify External Maps"
+        unique_together = ['store', 'entity_type', 'external_id']
+        ordering = ['-created']
+    
+    def __str__(self):
+        return f"{self.entity_type}: {self.external_id} → {self.internal_id}"
+
+
+class ShopifyEventInbox(BaseModel):
+    """Idempotent inbox for incoming Shopify webhook events."""
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('PROCESSING', 'Processing'),
+        ('DONE', 'Done'),
+        ('FAILED', 'Failed'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    store = models.ForeignKey(ShopifyStore, on_delete=models.CASCADE, related_name='event_inbox')
+    topic = models.CharField(max_length=100, db_index=True)
+    webhook_id = models.CharField(max_length=200, blank=True, null=True, help_text="Shopify webhook ID or idempotency key")
+    idempotency_key = models.CharField(max_length=200, blank=True, null=True, db_index=True)
+    payload_json = models.JSONField(default=dict)
+    received_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', db_index=True)
+    retries = models.IntegerField(default=0)
+    last_error = models.TextField(blank=True, null=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Shopify Event Inbox"
+        verbose_name_plural = "Shopify Event Inbox"
+        unique_together = ['store', 'idempotency_key']
+        ordering = ['-received_at']
+        indexes = [
+            models.Index(fields=['topic', 'status']),
+            models.Index(fields=['status', 'received_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.topic} [{self.status}] @ {self.received_at}"
+
+
+class ShopifyOutbox(BaseModel):
+    """Outbound queue for ERP→Shopify pushes (fulfillments, tracking, tags)."""
+    TYPE_CHOICES = [
+        ('PUSH_FULFILLMENT', 'Push Fulfillment'),
+        ('UPDATE_TRACKING', 'Update Tracking'),
+        ('TAG_ORDER', 'Tag Order'),
+        ('NOTE_ORDER', 'Note Order'),
+    ]
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('PROCESSING', 'Processing'),
+        ('DONE', 'Done'),
+        ('FAILED', 'Failed'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    store = models.ForeignKey(ShopifyStore, on_delete=models.CASCADE, related_name='outbox')
+    type = models.CharField(max_length=30, choices=TYPE_CHOICES, db_index=True)
+    ref_internal_id = models.CharField(max_length=200, blank=True, null=True, help_text="ERP order/shipment ID")
+    ref_shopify_id = models.CharField(max_length=200, blank=True, null=True, help_text="Shopify order ID")
+    request_json = models.JSONField(default=dict, help_text="Request payload to send")
+    response_json = models.JSONField(default=dict, help_text="Response from Shopify")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING', db_index=True)
+    retries = models.IntegerField(default=0)
+    last_error = models.TextField(blank=True, null=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Shopify Outbox"
+        verbose_name_plural = "Shopify Outbox"
+        ordering = ['-created']
+        indexes = [
+            models.Index(fields=['type', 'status']),
+            models.Index(fields=['ref_internal_id', 'status']),
+        ]
+    
+    def __str__(self):
+        return f"{self.type} [{self.status}] {self.ref_internal_id}"
+
+
 # Generic Integration Config
 class IntegrationConfig(BaseModel):
     """Generic configuration for plug-and-play integrations."""
