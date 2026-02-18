@@ -91,6 +91,28 @@ class ShopifyPortalView(LoginRequiredMixin, TemplateView):
             'recovered_today': recovered_today,
             'cod_keywords_json': json.dumps(store.cod_keywords or ['COD', 'Cash on Delivery']),
             'active_tab': self.request.GET.get('tab', 'overview'),
+            'tab_items': [
+                ('overview', 'Overview', 'fas fa-chart-line'),
+                ('connect', 'Connect Store', 'fas fa-plug'),
+                ('sync-rules', 'Sync Rules', 'fas fa-sliders-h'),
+                ('connectors', 'Connectors', 'fas fa-link'),
+                ('diagnostics', 'Test & Diagnostics', 'fas fa-vial'),
+                ('logs', 'Logs', 'fas fa-list'),
+                ('instructions', 'Instructions', 'fas fa-book'),
+            ],
+            'webhook_topics': [
+                'orders/create', 'orders/updated', 'orders/paid', 'orders/cancelled',
+                'customers/create', 'customers/update',
+                'fulfillments/create', 'fulfillments/update',
+            ],
+            'troubleshooting_items': [
+                {'issue': 'Store shows DISCONNECTED after connecting', 'solution': 'Check that the access token has the required API scopes. Use "Verify Permissions" to confirm.'},
+                {'issue': 'Orders not appearing in ERP', 'solution': 'Check Logs tab for webhook errors. Ensure webhooks are registered using "Register Webhooks" button.'},
+                {'issue': 'COD orders showing as WEB_PAID', 'solution': 'Go to Sync Rules and add the exact gateway name used by your COD provider to the COD keywords list.'},
+                {'issue': 'Fulfillment push failing', 'solution': 'Verify the Shopify Order ID is correct. Check Outbound Logs for the specific error. Ensure write_fulfillments scope is granted.'},
+                {'issue': 'Abandoned checkouts not syncing', 'solution': 'Ensure "read_checkouts" scope is granted. Click "Run Abandoned Sync Now" in Diagnostics to test manually.'},
+                {'issue': 'Duplicate leads being created', 'solution': 'ERP merges by phone first, then email. Ensure Shopify customer records have phone/email filled in.'},
+            ],
             'is_integrations': True,
             'is_shopify': True,
         })
