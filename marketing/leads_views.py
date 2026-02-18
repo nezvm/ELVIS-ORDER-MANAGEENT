@@ -173,6 +173,7 @@ class LeadsOverviewDashboardView(LoginRequiredMixin, TemplateView):
         return context
 
 
+@method_decorator(never_cache, name='dispatch')
 class WhatsAppLeadsView(LoginRequiredMixin, TemplateView):
     """
     WhatsApp Leads Insights + Details — combined page.
