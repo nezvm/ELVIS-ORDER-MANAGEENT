@@ -174,79 +174,185 @@ class LeadsOverviewDashboardView(LoginRequiredMixin, TemplateView):
 class WhatsAppLeadsView(LoginRequiredMixin, TemplateView):
     """
     WhatsApp Leads subpage with per-number breakdown.
+    Links leads to specific sales numbers through:
+      WabisMessage.number → WabisNumber
+      WabisMessage.customer → WabisCustomer.linked_lead → Lead
     """
     template_name = 'marketing/leads/whatsapp.html'
-    
+
     def get_context_data(self, **kwargs):
-        from integrations.wabis.models import WabisNumber, WabisCustomer
-        
+        from integrations.wabis.models import WabisNumber, WabisCustomer, WabisMessage
+        from django.db.models import Subquery, OuterRef
+
         context = super().get_context_data(**kwargs)
         context['title'] = 'WhatsApp Leads'
         context['is_leads'] = True
         context['active_tab'] = 'whatsapp'
-        
+
         # Date filter
         start_date, end_date, filter_label = get_date_filter_params(self.request)
         context['date_filter'] = self.request.GET.get('date_filter', 'this_month')
         context['filter_label'] = filter_label
         context['start_date'] = start_date
         context['end_date'] = end_date
-        
-        # WhatsApp leads
+
+        # WhatsApp leads (base set)
         wa_filter = Q(lead_source__icontains='whatsapp') | Q(source_type='whatsapp')
         all_wa_leads = Lead.objects.filter(wa_filter, is_active=True)
         filtered_wa_leads = all_wa_leads.filter(
             created__date__gte=start_date,
-            created__date__lte=end_date
+            created__date__lte=end_date,
         )
-        
-        # KPIs
+
+        # ---- Build number → lead_ids map ----
+        # For each WabisCustomer that has a linked_lead, find the first message's number
+        numbers = WabisNumber.objects.filter(is_active=True).order_by('display_name')
+        context['all_numbers'] = numbers
+
+        # Get all WabisCustomers that have a linked lead in the date range
+        linked_customers = WabisCustomer.objects.filter(
+            linked_lead__isnull=False,
+            linked_lead__is_active=True,
+            linked_lead__created__date__gte=start_date,
+            linked_lead__created__date__lte=end_date,
+        ).filter(
+            Q(linked_lead__lead_source__icontains='whatsapp') | Q(linked_lead__source_type='whatsapp')
+        ).select_related('linked_lead')
+
+        # For each customer, find the number they first messaged through
+        # We use the earliest inbound message per customer
+        number_to_lead_ids = {}  # wabis_number_id → set of lead UUIDs
+        unassigned_lead_ids = set()
+
+        customer_ids = list(linked_customers.values_list('id', flat=True))
+
+        if customer_ids:
+            # Get first inbound message per customer with its number
+            from django.db.models import Min
+            first_msgs = (
+                WabisMessage.objects.filter(
+                    customer_id__in=customer_ids,
+                    direction='inbound',
+                    number__isnull=False,
+                )
+                .values('customer_id')
+                .annotate(first_msg_number=Min('number_id'))
+            )
+            customer_to_number = {
+                row['customer_id']: row['first_msg_number']
+                for row in first_msgs
+            }
+
+            # Map number → lead_ids
+            for wc in linked_customers:
+                lead_id = wc.linked_lead_id
+                number_id = customer_to_number.get(wc.id)
+                if number_id:
+                    number_to_lead_ids.setdefault(number_id, set()).add(lead_id)
+                else:
+                    unassigned_lead_ids.add(lead_id)
+        else:
+            # No linked customers — all leads are unassigned
+            unassigned_lead_ids = set(filtered_wa_leads.values_list('id', flat=True))
+
+        # ---- Also find leads NOT linked to any WabisCustomer ----
+        linked_lead_ids = set(linked_customers.values_list('linked_lead_id', flat=True))
+        all_wa_lead_ids = set(filtered_wa_leads.values_list('id', flat=True))
+        truly_unassigned = (all_wa_lead_ids - linked_lead_ids) | unassigned_lead_ids
+
+        # ---- KPIs (overall) ----
         context['total_leads'] = filtered_wa_leads.count()
         context['pending_leads'] = filtered_wa_leads.filter(conversion_status='pending').count()
         context['won_leads'] = filtered_wa_leads.filter(conversion_status='won').count()
         context['lost_leads'] = filtered_wa_leads.filter(conversion_status='lost').count()
-        
         decided = context['won_leads'] + context['lost_leads']
         context['conversion_rate'] = round((context['won_leads'] / decided * 100) if decided > 0 else 0, 1)
-        
         context['total_revenue'] = filtered_wa_leads.filter(
             conversion_status='won'
         ).aggregate(total=Sum('conversion_value'))['total'] or Decimal('0')
-        
-        # Per-Number Breakdown
-        numbers = WabisNumber.objects.filter(is_active=True)
+
+        # ---- Per-Number Stats ----
         numbers_stats = []
-        
+        selected_number = self.request.GET.get('number_id', '')
+        context['selected_number'] = selected_number
+
         for number in numbers:
-            # Get customers linked to this number
-            customers = WabisCustomer.objects.filter(is_active=True)
-            
-            # For now, we'll count all WhatsApp leads
-            # In production, link leads to specific numbers via phone matching
-            number_leads = filtered_wa_leads
-            
+            lead_ids = number_to_lead_ids.get(number.id, set())
+            if lead_ids:
+                num_leads = filtered_wa_leads.filter(id__in=lead_ids)
+            else:
+                num_leads = filtered_wa_leads.none()
+
+            leads_count = num_leads.count()
+            won = num_leads.filter(conversion_status='won').count()
+            lost = num_leads.filter(conversion_status='lost').count()
+            pending = num_leads.filter(conversion_status='pending').count()
+            d = won + lost
+            rev = num_leads.filter(conversion_status='won').aggregate(t=Sum('conversion_value'))['t'] or Decimal('0')
+
             stats = {
                 'number': number,
-                'leads_count': number_leads.count() // max(numbers.count(), 1),  # Distribute evenly for now
-                'pending': number_leads.filter(conversion_status='pending').count() // max(numbers.count(), 1),
-                'won': number_leads.filter(conversion_status='won').count() // max(numbers.count(), 1),
-                'lost': number_leads.filter(conversion_status='lost').count() // max(numbers.count(), 1),
-                'conversion_rate': context['conversion_rate'],
-                'revenue': float(context['total_revenue']) / max(numbers.count(), 1),
+                'number_id': str(number.id),
+                'leads_count': leads_count,
+                'pending': pending,
+                'won': won,
+                'lost': lost,
+                'conversion_rate': round((won / d * 100) if d > 0 else 0, 1),
+                'revenue': rev,
                 'last_message': number.last_message_at,
             }
             numbers_stats.append(stats)
-        
+
+        # Add "Unassigned" row if there are leads not linked to a number
+        if truly_unassigned:
+            un_leads = filtered_wa_leads.filter(id__in=truly_unassigned)
+            un_won = un_leads.filter(conversion_status='won').count()
+            un_lost = un_leads.filter(conversion_status='lost').count()
+            un_d = un_won + un_lost
+            un_rev = un_leads.filter(conversion_status='won').aggregate(t=Sum('conversion_value'))['t'] or Decimal('0')
+            numbers_stats.append({
+                'number': None,
+                'number_id': 'unassigned',
+                'leads_count': un_leads.count(),
+                'pending': un_leads.filter(conversion_status='pending').count(),
+                'won': un_won,
+                'lost': un_lost,
+                'conversion_rate': round((un_won / un_d * 100) if un_d > 0 else 0, 1),
+                'revenue': un_rev,
+                'last_message': None,
+            })
+
         context['numbers_stats'] = numbers_stats
-        
-        # Recent WhatsApp Leads
-        context['recent_leads'] = filtered_wa_leads.select_related('assigned_to').order_by('-created')[:50]
-        
-        # Phone number filter
-        phone_filter = self.request.GET.get('phone_number')
-        if phone_filter:
-            context['recent_leads'] = context['recent_leads'].filter(phone_no__icontains=phone_filter)
-        
+
+        # ---- Filtered leads list (optionally by number) ----
+        if selected_number and selected_number != 'all':
+            if selected_number == 'unassigned':
+                leads_qs = filtered_wa_leads.filter(id__in=truly_unassigned)
+            else:
+                # Find the UUID of the selected WabisNumber
+                try:
+                    import uuid as _uuid
+                    sel_uuid = _uuid.UUID(selected_number)
+                    sel_lead_ids = number_to_lead_ids.get(sel_uuid, set())
+                    leads_qs = filtered_wa_leads.filter(id__in=sel_lead_ids) if sel_lead_ids else filtered_wa_leads.none()
+                except (ValueError, KeyError):
+                    leads_qs = filtered_wa_leads
+        else:
+            leads_qs = filtered_wa_leads
+
+        context['recent_leads'] = leads_qs.order_by('-created')[:100]
+
+        # ---- Attach number display info to each lead for the table ----
+        # Build lead_id → number_display_name map
+        lead_number_map = {}
+        for num in numbers:
+            for lid in number_to_lead_ids.get(num.id, set()):
+                lead_number_map[lid] = {
+                    'display_name': num.display_name or '',
+                    'display_phone': num.display_phone_number or num.phone_number_id or '',
+                }
+        context['lead_number_map'] = lead_number_map
+
         return context
 
 
