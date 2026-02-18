@@ -1,0 +1,1360 @@
+{% extends "ui/base.html" %}
+{% load static %}
+
+{% block title %}Shopify Integration Portal{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .tab-btn.active { background: #AE1F25; color: white; border-color: #AE1F25; }
+    .connector-card:hover { transform: translateY(-2px); transition: all 0.2s; }
+    .status-badge-on { background: #dcfce7; color: #15803d; }
+    .status-badge-off { background: #f3f4f6; color: #6b7280; }
+    .status-badge-connected { background: #dbeafe; color: #1d4ed8; }
+    .status-badge-disconnected { background: #fee2e2; color: #dc2626; }
+    .keyword-chip { display: inline-flex; align-items: center; background: #e0f2fe; color: #0369a1; border-radius: 9999px; padding: 2px 10px; margin: 2px; font-size: 13px; }
+    .keyword-chip button { margin-left: 4px; color: #64748b; font-size: 14px; line-height: 1; }
+    .log-row:hover { background: #f9fafb; }
+    .connector-toggle:checked { background-color: #AE1F25; }
+    pre.json-output { background: #1e293b; color: #e2e8f0; border-radius: 8px; padding: 16px; font-size: 12px; overflow: auto; max-height: 300px; white-space: pre-wrap; }
+    .result-success { border-left: 4px solid #22c55e; background: #f0fdf4; }
+    .result-error { border-left: 4px solid #ef4444; background: #fef2f2; }
+    .step-number { width: 28px; height: 28px; background: #AE1F25; color: white; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="p-6 max-w-full">
+    
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center">
+                <i class="fab fa-shopify text-2xl text-green-600"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Shopify Integration Portal</h1>
+                <p class="text-gray-500 text-sm">Manage your Shopify store integration, orders, customers, fulfillment & abandoned checkouts</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            {% if store %}
+                {% if store.status == 'CONNECTED' %}
+                    <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-100 text-green-700 font-semibold text-sm">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        CONNECTED
+                    </span>
+                {% else %}
+                    <span class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-100 text-red-700 font-semibold text-sm">
+                        <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+                        DISCONNECTED
+                    </span>
+                {% endif %}
+                <span class="text-sm text-gray-500">{{ store.shop_domain }}</span>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% if not store %}
+    <!-- No Store - Create New -->
+    <div class="bg-white rounded-2xl border border-gray-200 p-12 text-center">
+        <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <i class="fab fa-shopify text-4xl text-green-500"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">No Shopify Store Configured</h2>
+        <p class="text-gray-500 mb-6">Add your first Shopify store to start syncing orders, customers, and more.</p>
+        <a href="{% url 'integrations:shopify_store_create' %}" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 transition-colors">
+            <i class="fas fa-plus"></i> Add Shopify Store
+        </a>
+    </div>
+    {% else %}
+    
+    <!-- Tab Navigation -->
+    <div class="flex items-center gap-1 mb-6 bg-white rounded-xl border border-gray-200 p-1 overflow-x-auto">
+        {% for tab_key, tab_label, tab_icon in tab_items %}
+        <button onclick="switchTab('{{ tab_key }}')" 
+                id="tab-btn-{{ tab_key }}"
+                class="tab-btn flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap border border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50">
+            <i class="{{ tab_icon }}"></i>
+            {{ tab_label }}
+        </button>
+        {% endfor %}
+    </div>
+    
+    <!-- TAB 1: Overview -->
+    <div id="tab-overview" class="tab-content">
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+            <!-- Connection Status -->
+            <div class="bg-white rounded-xl border border-gray-200 p-4 col-span-1">
+                <p class="text-xs text-gray-500 mb-1">Connection Status</p>
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full {% if store.status == 'CONNECTED' %}bg-green-500 animate-pulse{% else %}bg-red-400{% endif %}"></span>
+                    <span class="font-bold text-sm {% if store.status == 'CONNECTED' %}text-green-700{% else %}text-red-600{% endif %}">{{ store.status }}</span>
+                </div>
+                <p class="text-xs text-gray-400 mt-1">{{ store.shop_domain }}</p>
+            </div>
+            <!-- Last Webhook -->
+            <div class="bg-white rounded-xl border border-gray-200 p-4">
+                <p class="text-xs text-gray-500 mb-1">Last Webhook</p>
+                <p class="font-bold text-sm text-gray-900">
+                    {% if stats.last_webhook_received %}{{ stats.last_webhook_received|date:"M j H:i" }}{% else %}—{% endif %}
+                </p>
+                <p class="text-xs text-gray-400 mt-1">Received</p>
+            </div>
+            <!-- Orders Today -->
+            <div class="bg-white rounded-xl border border-gray-200 p-4">
+                <p class="text-xs text-gray-500 mb-1">Orders Synced Today</p>
+                <p class="font-bold text-2xl text-blue-600">{{ stats.orders_synced_today }}</p>
+                <p class="text-xs text-gray-400 mt-1">
+                    {% if stats.last_orders_sync %}Last: {{ stats.last_orders_sync|date:"H:i" }}{% else %}Never synced{% endif %}
+                </p>
+            </div>
+            <!-- Customers Today -->
+            <div class="bg-white rounded-xl border border-gray-200 p-4">
+                <p class="text-xs text-gray-500 mb-1">Customers Synced Today</p>
+                <p class="font-bold text-2xl text-purple-600">{{ stats.customers_synced_today }}</p>
+                <p class="text-xs text-gray-400 mt-1">As Leads + Customers</p>
+            </div>
+            <!-- Abandoned Today -->
+            <div class="bg-white rounded-xl border border-gray-200 p-4">
+                <p class="text-xs text-gray-500 mb-1">Abandoned Today</p>
+                <p class="font-bold text-2xl text-yellow-600">{{ stats.abandoned_synced_today }}</p>
+                <p class="text-xs text-gray-400 mt-1">Checkouts tracked</p>
+            </div>
+            <!-- Fulfillment Rate -->
+            <div class="bg-white rounded-xl border border-gray-200 p-4">
+                <p class="text-xs text-gray-500 mb-1">Fulfillment Push Rate</p>
+                <p class="font-bold text-2xl text-green-600">{{ stats.fulfillment_push_success_rate }}%</p>
+                <p class="text-xs text-gray-400 mt-1">Last 30 days</p>
+            </div>
+        </div>
+        
+        <!-- Abandoned Recovery Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white rounded-xl border border-gray-200 p-5">
+                <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-cart-arrow-down text-yellow-600"></i>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-900">Abandoned Recovery</p>
+                        <p class="text-xs text-gray-500">All time statistics</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3 mt-3">
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-gray-900">{{ stats.total_abandoned }}</p>
+                        <p class="text-xs text-gray-500">Total</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-green-600">{{ stats.total_recovered }}</p>
+                        <p class="text-xs text-gray-500">Recovered</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-2xl font-bold text-primary-500">{{ stats.recovery_rate }}%</p>
+                        <p class="text-xs text-gray-500">Rate</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-xl border border-gray-200 p-5">
+                <p class="font-semibold text-gray-900 mb-3">Quick Actions</p>
+                <div class="space-y-2">
+                    <button onclick="switchTab('diagnostics')" class="w-full text-left px-3 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-sm font-medium text-gray-700 flex items-center gap-2">
+                        <i class="fas fa-vial text-blue-500 w-4"></i> Test & Diagnostics
+                    </button>
+                    <button onclick="switchTab('logs')" class="w-full text-left px-3 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-sm font-medium text-gray-700 flex items-center gap-2">
+                        <i class="fas fa-list text-gray-500 w-4"></i> View Logs
+                    </button>
+                    <button onclick="switchTab('connect')" class="w-full text-left px-3 py-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-sm font-medium text-gray-700 flex items-center gap-2">
+                        <i class="fas fa-plug text-green-500 w-4"></i> Store Connection
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Sync Status -->
+            <div class="bg-white rounded-xl border border-gray-200 p-5">
+                <p class="font-semibold text-gray-900 mb-3">Last Sync Times</p>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Orders</span>
+                        <span class="font-medium">{% if stats.last_orders_sync %}{{ stats.last_orders_sync|date:"M j H:i" }}{% else %}Never{% endif %}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Customers</span>
+                        <span class="font-medium">{% if stats.last_customers_sync %}{{ stats.last_customers_sync|date:"M j H:i" }}{% else %}Never{% endif %}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Abandoned</span>
+                        <span class="font-medium">{% if stats.last_abandoned_sync %}{{ stats.last_abandoned_sync|date:"M j H:i" }}{% else %}Never{% endif %}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Webhook Logs -->
+        <div class="bg-white rounded-xl border border-gray-200 p-5">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-semibold text-gray-900">Recent Webhook Activity</h3>
+                <button onclick="switchTab('logs')" class="text-xs text-primary-500 hover:underline">View All</button>
+            </div>
+            {% if recent_webhook_logs %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-xs text-gray-500 border-b border-gray-100">
+                            <th class="text-left pb-2">Time</th>
+                            <th class="text-left pb-2">Topic</th>
+                            <th class="text-left pb-2">Action</th>
+                            <th class="text-left pb-2">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in recent_webhook_logs|slice:":8" %}
+                        <tr class="border-b border-gray-50 log-row">
+                            <td class="py-2 text-gray-500 text-xs">{{ log.created|date:"M j H:i" }}</td>
+                            <td class="py-2 font-mono text-xs text-blue-700">{{ log.webhook_topic }}</td>
+                            <td class="py-2 text-gray-600">{{ log.action_taken|default:"—" }}</td>
+                            <td class="py-2">
+                                {% if log.processed %}
+                                <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">OK</span>
+                                {% else %}
+                                <span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs">Failed</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-400">
+                <i class="fas fa-inbox text-3xl mb-2"></i>
+                <p>No webhooks received yet</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- TAB 2: Connect Store -->
+    <div id="tab-connect" class="tab-content">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Connection Form -->
+            <div class="bg-white rounded-2xl border border-gray-200 p-6">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-plug text-green-600"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-900">Store Connection</h2>
+                        <p class="text-sm text-gray-500">Connect your Shopify store via Access Token</p>
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Shop Domain</label>
+                        <input type="text" id="shop-domain" value="{{ store.shop_domain }}" 
+                               placeholder="your-store.myshopify.com"
+                               class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Admin API Access Token</label>
+                        <input type="password" id="access-token" value="{{ store.access_token|default:'' }}"
+                               placeholder="shpat_xxxxxxxxxxxxxxxxxxxxxxx"
+                               class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        <p class="text-xs text-gray-400 mt-1">Get this from: Shopify Admin → Settings → Apps and sales channels → Develop apps → Create app → Admin API access token</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">API Version</label>
+                        <select id="api-version" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            <option value="2024-01" {% if store.api_version == '2024-01' %}selected{% endif %}>2024-01 (Recommended)</option>
+                            <option value="2023-10" {% if store.api_version == '2023-10' %}selected{% endif %}>2023-10</option>
+                            <option value="2023-07" {% if store.api_version == '2023-07' %}selected{% endif %}>2023-07</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex gap-3">
+                        <button onclick="connectStore()" class="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2">
+                            <i class="fas fa-plug"></i> Connect Store
+                        </button>
+                        {% if store.status == 'CONNECTED' %}
+                        <button onclick="disconnectStore()" class="px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl text-sm font-medium hover:bg-red-100 transition-colors">
+                            <i class="fas fa-unlink"></i> Disconnect
+                        </button>
+                        {% endif %}
+                    </div>
+                    
+                    <div id="connect-result" class="hidden"></div>
+                    
+                    {% if store.status == 'CONNECTED' %}
+                    <div class="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl">
+                        <div class="flex items-center gap-2 text-green-700 font-medium mb-2">
+                            <i class="fas fa-check-circle"></i> Store is connected
+                        </div>
+                        <div class="text-sm text-green-600 space-y-1">
+                            <div>Domain: <span class="font-mono">{{ store.shop_domain }}</span></div>
+                            <div>API Version: <span class="font-mono">{{ store.api_version }}</span></div>
+                            {% if store.installed_at %}<div>Connected: {{ store.installed_at|date:"M j, Y H:i" }}</div>{% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Verify Permissions -->
+                <div class="mt-6 pt-6 border-t border-gray-100">
+                    <button onclick="verifyPermissions()" class="w-full px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+                        <i class="fas fa-shield-alt"></i> Verify API Permissions
+                    </button>
+                    <div id="permissions-result" class="mt-3 hidden"></div>
+                </div>
+                
+                <!-- Register Webhooks -->
+                <div class="mt-4">
+                    <button onclick="registerWebhooks()" class="w-full px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+                        <i class="fas fa-bell"></i> Register Webhooks
+                    </button>
+                    <div id="webhooks-result" class="mt-3 hidden"></div>
+                </div>
+            </div>
+            
+            <!-- Webhook URLs Info -->
+            <div class="bg-white rounded-2xl border border-gray-200 p-6">
+                <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <i class="fas fa-info-circle text-blue-500"></i> Webhook Configuration
+                </h3>
+                <p class="text-sm text-gray-500 mb-4">Configure these webhook URLs in your Shopify store (Notifications → Webhooks):</p>
+                
+                <div class="space-y-3">
+                    {% for topic in webhook_topics %}
+                    <div class="p-3 bg-gray-50 rounded-lg">
+                        <p class="text-xs font-semibold text-gray-600 mb-1">{{ topic }}</p>
+                        <div class="flex items-center gap-2">
+                            <code class="flex-1 text-xs font-mono text-gray-800 break-all">{{ request.scheme }}://{{ request.get_host }}/webhooks/shopify/</code>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="mt-4 p-4 bg-blue-50 rounded-xl text-sm text-blue-700">
+                    <i class="fas fa-lightbulb mr-2"></i>
+                    Click <strong>"Register Webhooks"</strong> to auto-register all webhooks via API.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- TAB 3: Sync Rules -->
+    <div id="tab-sync-rules" class="tab-content">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Channel Split Rules -->
+            <div class="bg-white rounded-2xl border border-gray-200 p-6">
+                <h2 class="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                    <i class="fas fa-code-branch text-blue-500"></i> Order Channel Split Rules
+                </h2>
+                <p class="text-sm text-gray-500 mb-5">Configure how orders are classified as WEB_PAID or WEB_COD</p>
+                
+                <!-- Current Rule Display -->
+                <div class="p-4 bg-blue-50 border border-blue-200 rounded-xl mb-5 text-sm">
+                    <p class="font-semibold text-blue-800 mb-2">Default Classification Logic:</p>
+                    <ol class="space-y-1 text-blue-700 list-decimal list-inside">
+                        <li>If <code class="bg-blue-100 px-1 rounded">financial_status = "paid"</code> → <span class="font-bold text-blue-800">WEB_PAID</span></li>
+                        <li>If gateway matches COD keyword list → <span class="font-bold text-orange-700">WEB_COD</span></li>
+                        <li>If pending AND gateway is not COD → <span class="font-bold text-blue-800">WEB_PAID</span></li>
+                    </ol>
+                </div>
+                
+                <!-- COD Keywords -->
+                <div class="mb-5">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">COD Gateway Keywords</label>
+                    <p class="text-xs text-gray-500 mb-3">Orders with gateways containing these keywords will be classified as WEB_COD</p>
+                    <div id="cod-keywords-container" class="min-h-12 p-3 border border-gray-300 rounded-xl flex flex-wrap gap-1 mb-2">
+                        <!-- Keywords populated by JS -->
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-keyword-input" placeholder="Add keyword (e.g., COD)" 
+                               onkeydown="if(event.key==='Enter') addKeyword()"
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        <button onclick="addKeyword()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">Add</button>
+                    </div>
+                </div>
+                
+                <!-- COD Toggle -->
+                <div class="flex items-center justify-between p-3 rounded-xl border border-gray-200 mb-4">
+                    <div>
+                        <p class="font-medium text-gray-900 text-sm">Treat Pending COD as Confirmed Orders</p>
+                        <p class="text-xs text-gray-500">When ON, pending orders matching COD keywords are treated as WEB_COD</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="treat-pending-cod" class="sr-only peer" {% if store.treat_pending_cod_as_confirmed %}checked{% endif %}>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                    </label>
+                </div>
+                
+                <!-- Rule Preview Panel -->
+                <div class="p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                    <p class="text-sm font-semibold text-gray-700 mb-3">Channel Preview (Sample Orders)</p>
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between p-2 bg-white rounded border border-gray-100">
+                            <span class="text-gray-600">Razorpay paid • financial_status=paid</span>
+                            <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-bold">WEB_PAID</span>
+                        </div>
+                        <div class="flex justify-between p-2 bg-white rounded border border-gray-100">
+                            <span class="text-gray-600">Gateway=COD • financial_status=pending</span>
+                            <span class="px-2 py-0.5 bg-orange-100 text-orange-700 rounded font-bold">WEB_COD</span>
+                        </div>
+                        <div class="flex justify-between p-2 bg-white rounded border border-gray-100">
+                            <span class="text-gray-600">Cash on Delivery • financial_status=pending</span>
+                            <span class="px-2 py-0.5 bg-orange-100 text-orange-700 rounded font-bold">WEB_COD</span>
+                        </div>
+                        <div class="flex justify-between p-2 bg-white rounded border border-gray-100">
+                            <span class="text-gray-600">UPI • financial_status=authorized</span>
+                            <span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-bold">WEB_PAID</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Lead/Customer Rules -->
+            <div class="space-y-4">
+                <div class="bg-white rounded-2xl border border-gray-200 p-6">
+                    <h2 class="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                        <i class="fas fa-users text-purple-500"></i> Lead / Customer Rules
+                    </h2>
+                    <p class="text-sm text-gray-500 mb-5">Configure how Shopify contacts sync to ERP</p>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-3 rounded-xl border border-gray-200">
+                            <div>
+                                <p class="font-medium text-gray-900 text-sm">Create Lead for Every New Customer</p>
+                                <p class="text-xs text-gray-500">Creates a lead in CRM for every new Shopify customer</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="create-lead-customer" class="sr-only peer" {% if store.create_lead_for_every_customer %}checked{% endif %}>
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                            </label>
+                        </div>
+                        
+                        <div class="flex items-center justify-between p-3 rounded-xl border border-gray-200">
+                            <div>
+                                <p class="font-medium text-gray-900 text-sm">Auto-Promote Lead to Customer</p>
+                                <p class="text-xs text-gray-500">Auto-promotes lead to Customer record on first order</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="auto-promote" class="sr-only peer" {% if store.auto_promote_lead_to_customer %}checked{% endif %}>
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Merge Priority Info -->
+                    <div class="mt-4 p-3 bg-purple-50 rounded-xl text-sm text-purple-700">
+                        <p class="font-semibold mb-1"><i class="fas fa-code-branch mr-1"></i> Duplicate Handling</p>
+                        <p class="text-xs">Merge priority: <strong>Phone Number</strong> → <strong>Email</strong> → <strong>Shopify Customer ID</strong></p>
+                    </div>
+                </div>
+                
+                <!-- Abandoned Checkout Rules -->
+                <div class="bg-white rounded-2xl border border-gray-200 p-6">
+                    <h2 class="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                        <i class="fas fa-cart-arrow-down text-yellow-500"></i> Abandoned Checkout Rules
+                    </h2>
+                    <p class="text-sm text-gray-500 mb-4">Configure abandoned checkout sync settings</p>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-3 rounded-xl border border-gray-200">
+                            <div>
+                                <p class="font-medium text-gray-900 text-sm">Enable Abandoned Checkout Sync</p>
+                                <p class="text-xs text-gray-500">Sync abandoned checkouts to Leads</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="sync-abandoned" class="sr-only peer" {% if store.sync_abandoned_checkouts %}checked{% endif %}>
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                            </label>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Sync Frequency</label>
+                            <select id="sync-frequency" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                <option value="5" {% if store.abandoned_sync_interval_minutes == 5 %}selected{% endif %}>Every 5 minutes</option>
+                                <option value="10" {% if store.abandoned_sync_interval_minutes == 10 %}selected{% endif %}>Every 10 minutes</option>
+                                <option value="15" {% if store.abandoned_sync_interval_minutes == 15 %}selected{% endif %}>Every 15 minutes</option>
+                                <option value="30" {% if store.abandoned_sync_interval_minutes == 30 %}selected{% endif %}>Every 30 minutes</option>
+                                <option value="60" {% if store.abandoned_sync_interval_minutes == 60 %}selected{% endif %}>Every 60 minutes</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Save Rules Button -->
+                <button onclick="saveSyncRules()" class="w-full px-4 py-3 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 transition-colors flex items-center justify-center gap-2">
+                    <i class="fas fa-save"></i> Save All Sync Rules
+                </button>
+                <div id="sync-rules-result" class="hidden"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- TAB 4: Connectors -->
+    <div id="tab-connectors" class="tab-content">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {% for connector in connectors %}
+            <div class="bg-white rounded-2xl border border-gray-200 p-5 connector-card">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl 
+                            {% if connector.color == 'green' %}bg-green-100 text-green-600
+                            {% elif connector.color == 'blue' %}bg-blue-100 text-blue-600
+                            {% elif connector.color == 'purple' %}bg-purple-100 text-purple-600
+                            {% elif connector.color == 'orange' %}bg-orange-100 text-orange-600
+                            {% elif connector.color == 'yellow' %}bg-yellow-100 text-yellow-600
+                            {% else %}bg-gray-100 text-gray-500{% endif %}
+                            flex items-center justify-center">
+                            <i class="fas {{ connector.icon }}"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 text-sm">{{ connector.name }}</h3>
+                            <p class="text-xs text-gray-500">{{ connector.description }}</p>
+                        </div>
+                    </div>
+                    <span class="px-2 py-1 rounded-full text-xs font-bold {% if connector.status == 'ON' %}status-badge-on{% else %}status-badge-off{% endif %}">
+                        {{ connector.status }}
+                    </span>
+                </div>
+                
+                <div class="text-xs text-gray-500 mb-4">
+                    Last run: {% if connector.last_run %}{{ connector.last_run|date:"M j H:i" }}{% else %}Never{% endif %}
+                </div>
+                
+                <div class="flex gap-2">
+                    {% if connector.key != 'connection' %}
+                    <button onclick="toggleConnector('{{ connector.key }}', {% if connector.status == 'ON' %}false{% else %}true{% endif %})"
+                            class="flex-1 px-3 py-2 text-xs font-medium rounded-lg border transition-colors
+                            {% if connector.status == 'ON' %}border-red-200 text-red-600 hover:bg-red-50{% else %}border-green-200 text-green-600 hover:bg-green-50{% endif %}">
+                        {% if connector.status == 'ON' %}Disable{% else %}Enable{% endif %}
+                    </button>
+                    {% endif %}
+                    <button onclick="runConnectorTest('{{ connector.key }}')"
+                            class="flex-1 px-3 py-2 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                        <i class="fas fa-vial mr-1"></i> Run Test
+                    </button>
+                    <button onclick="switchTab('diagnostics'); focusDiagnostic('{{ connector.key }}')"
+                            class="px-3 py-2 text-xs font-medium rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                        Configure
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Fulfillment Connector Details -->
+        <div class="mt-6 bg-white rounded-2xl border border-gray-200 p-6">
+            <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-truck text-orange-500"></i> Fulfillment Outbound Settings
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 rounded-xl border border-gray-200">
+                        <div>
+                            <p class="font-medium text-gray-900 text-sm">Push Fulfillment on SHIPPED</p>
+                            <p class="text-xs text-gray-500">Auto-push when ERP order marked as Shipped</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="auto-fulfill" class="sr-only peer" {% if store.auto_fulfill %}checked{% endif %}>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between p-3 rounded-xl border border-gray-200">
+                        <div>
+                            <p class="font-medium text-gray-900 text-sm">Push Partial Fulfillments</p>
+                            <p class="text-xs text-gray-500">Allow fulfilling individual line items</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="partial-fulfill" class="sr-only peer" {% if store.push_partial_fulfillments %}checked{% endif %}>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                        </label>
+                    </div>
+                </div>
+                <div class="p-4 bg-orange-50 rounded-xl text-sm text-orange-700">
+                    <p class="font-semibold mb-2"><i class="fas fa-info-circle mr-1"></i> What gets pushed to Shopify:</p>
+                    <ul class="space-y-1 text-xs list-disc list-inside">
+                        <li>Fulfillment status</li>
+                        <li>Tracking number</li>
+                        <li>Tracking URL</li>
+                        <li>Courier / Carrier name</li>
+                        <li>Customer notification</li>
+                    </ul>
+                </div>
+            </div>
+            <button onclick="saveFulfillmentSettings()" class="mt-4 px-4 py-2 bg-orange-500 text-white rounded-xl text-sm font-medium hover:bg-orange-600 transition-colors">
+                <i class="fas fa-save mr-1"></i> Save Fulfillment Settings
+            </button>
+        </div>
+    </div>
+    
+    <!-- TAB 5: Test & Diagnostics -->
+    <div id="tab-diagnostics" class="tab-content">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- A: API Connectivity -->
+            <div class="bg-white rounded-2xl border border-gray-200 p-6">
+                <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <i class="fas fa-wifi text-blue-500"></i> A. API Connectivity
+                </h3>
+                <div class="space-y-4">
+                    <div>
+                        <button onclick="testGetShopInfo()" class="w-full px-4 py-2.5 border border-blue-200 text-blue-700 bg-blue-50 rounded-xl text-sm font-medium hover:bg-blue-100 transition-colors flex items-center justify-center gap-2">
+                            <i class="fas fa-store"></i> Test "Get Shop Info"
+                        </button>
+                        <div id="shop-info-result" class="mt-2 hidden"></div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Shopify Order ID (optional)</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="test-order-id" placeholder="e.g., 5678901234"
+                                   class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button onclick="testReadOrder()" class="px-4 py-2 border border-blue-200 text-blue-700 bg-blue-50 rounded-xl text-sm font-medium hover:bg-blue-100">
+                                Read Order
+                            </button>
+                        </div>
+                        <div id="order-read-result" class="mt-2 hidden"></div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Shopify Customer ID</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="test-customer-id" placeholder="e.g., 123456789"
+                                   class="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <button onclick="testReadCustomer()" class="px-4 py-2 border border-blue-200 text-blue-700 bg-blue-50 rounded-xl text-sm font-medium hover:bg-blue-100">
+                                Read Customer
+                            </button>
+                        </div>
+                        <div id="customer-read-result" class="mt-2 hidden"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- B: Webhook Simulator -->
+            <div class="bg-white rounded-2xl border border-gray-200 p-6" id="diag-orders">
+                <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <i class="fas fa-terminal text-purple-500"></i> B. Webhook Simulator
+                </h3>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Topic</label>
+                        <select id="sim-topic" class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option value="orders/create">orders/create</option>
+                            <option value="orders/updated">orders/updated</option>
+                            <option value="orders/paid">orders/paid</option>
+                            <option value="orders/cancelled">orders/cancelled</option>
+                            <option value="customers/create">customers/create</option>
+                            <option value="customers/update">customers/update</option>
+                            <option value="checkouts/update">checkouts/update</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">JSON Payload</label>
+                        <textarea id="sim-payload" rows="8" placeholder='{"id": 12345, "financial_status": "paid", "gateway": "razorpay", "total_price": "999.00", "customer": {"id": 67890, "email": "test@example.com", "phone": "+91 99999 88888"}}'
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
+                    </div>
+                    <button onclick="simulateWebhook()" class="w-full px-4 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-medium hover:bg-purple-700 transition-colors flex items-center justify-center gap-2">
+                        <i class="fas fa-play"></i> Simulate Receive
+                    </button>
+                    <div id="sim-result" class="hidden"></div>
+                </div>
+            </div>
+            
+            <!-- C: Fulfillment Push Tester -->
+            <div class="bg-white rounded-2xl border border-gray-200 p-6" id="diag-fulfillment">
+                <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <i class="fas fa-truck text-orange-500"></i> C. Fulfillment Push Tester
+                </h3>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Shopify Order ID</label>
+                        <input type="text" id="fulfill-shopify-order-id" placeholder="e.g., 5678901234"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tracking Number</label>
+                        <input type="text" id="fulfill-tracking" placeholder="e.g., 1234567890"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tracking URL (optional)</label>
+                        <input type="text" id="fulfill-tracking-url" placeholder="https://track.example.com/1234"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Courier Name</label>
+                        <input type="text" id="fulfill-courier" placeholder="e.g., Delhivery"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    </div>
+                    <button onclick="testFulfillmentPush()" class="w-full px-4 py-2.5 bg-orange-600 text-white rounded-xl text-sm font-medium hover:bg-orange-700 transition-colors flex items-center justify-center gap-2">
+                        <i class="fas fa-paper-plane"></i> Send to Shopify
+                    </button>
+                    <div id="fulfill-result" class="hidden"></div>
+                </div>
+            </div>
+            
+            <!-- D: Abandoned Sync Tester -->
+            <div class="bg-white rounded-2xl border border-gray-200 p-6" id="diag-abandoned">
+                <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <i class="fas fa-cart-arrow-down text-yellow-500"></i> D. Abandoned Sync Tester
+                </h3>
+                <p class="text-sm text-gray-500 mb-4">Run an abandoned checkout sync immediately and see the results.</p>
+                
+                <div class="p-3 bg-gray-50 rounded-xl mb-4">
+                    <div class="grid grid-cols-2 gap-3 text-center text-sm">
+                        <div>
+                            <p class="text-2xl font-bold text-gray-800" id="abandoned-total">{{ total_abandoned }}</p>
+                            <p class="text-xs text-gray-500">Total Abandoned</p>
+                        </div>
+                        <div>
+                            <p class="text-2xl font-bold text-green-600" id="abandoned-recovered">{{ recovered_today }}</p>
+                            <p class="text-xs text-gray-500">Recovered Today</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <button onclick="runAbandonedSync()" class="w-full px-4 py-2.5 bg-yellow-500 text-white rounded-xl text-sm font-medium hover:bg-yellow-600 transition-colors flex items-center justify-center gap-2">
+                    <i class="fas fa-sync-alt"></i> Run Abandoned Sync Now
+                </button>
+                <div id="abandoned-result" class="mt-3 hidden"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- TAB 6: Logs -->
+    <div id="tab-logs" class="tab-content">
+        <div class="bg-white rounded-2xl border border-gray-200 p-6">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="font-semibold text-gray-900 text-lg">Log Streams</h3>
+                <div class="flex gap-3">
+                    <select id="log-type-filter" onchange="loadLogs()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option value="webhook">Webhook Inbox</option>
+                        <option value="outbox">Outbound (Fulfillment)</option>
+                    </select>
+                    <select id="log-status-filter" onchange="loadLogs()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option value="">All Status</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="DONE">Done</option>
+                        <option value="FAILED">Failed</option>
+                    </select>
+                    <button onclick="loadLogs()" class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200">
+                        <i class="fas fa-refresh"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="logs-container">
+                <div class="text-center py-8 text-gray-400">
+                    <i class="fas fa-spinner fa-spin text-3xl mb-2"></i>
+                    <p>Loading logs...</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-between mt-4">
+                <button onclick="prevLogsPage()" id="logs-prev" class="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50">
+                    <i class="fas fa-chevron-left"></i> Prev
+                </button>
+                <span id="logs-page-info" class="text-sm text-gray-500">Page 1</span>
+                <button onclick="nextLogsPage()" id="logs-next" class="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                    Next <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- TAB 7: Instructions -->
+    <div id="tab-instructions" class="tab-content">
+        <div class="bg-white rounded-2xl border border-gray-200 p-8 max-w-4xl">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                <i class="fas fa-book text-blue-500"></i> Shopify Integration Instructions
+            </h2>
+            <p class="text-gray-500 mb-8">Complete step-by-step guide to set up and use the Shopify integration.</p>
+            
+            <!-- Step 1: Connect Store -->
+            <div class="mb-8">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="step-number">1</div>
+                    <h3 class="text-lg font-bold text-gray-900">How to Connect Your Store</h3>
+                </div>
+                <div class="ml-10 space-y-3 text-sm text-gray-700">
+                    <ol class="list-decimal list-inside space-y-2">
+                        <li>Go to your Shopify Admin → <strong>Settings</strong> → <strong>Apps and sales channels</strong></li>
+                        <li>Click <strong>Develop apps</strong> (enable custom apps if asked)</li>
+                        <li>Create a new app and configure Admin API scopes: <br>
+                            Required: <code class="bg-gray-100 px-1 rounded">read_orders</code>, <code class="bg-gray-100 px-1 rounded">write_orders</code>, <code class="bg-gray-100 px-1 rounded">read_customers</code>, <code class="bg-gray-100 px-1 rounded">write_fulfillments</code>, <code class="bg-gray-100 px-1 rounded">read_checkouts</code>
+                        </li>
+                        <li>Install the app and copy the <strong>Admin API access token</strong></li>
+                        <li>Paste it in the <strong>Connect Store</strong> tab and click <strong>Connect Store</strong></li>
+                        <li>Click <strong>Verify API Permissions</strong> to confirm access</li>
+                        <li>Click <strong>Register Webhooks</strong> to set up real-time sync</li>
+                    </ol>
+                    <div class="p-3 bg-blue-50 rounded-lg text-blue-700 text-xs">
+                        [Screenshot Placeholder: Connect Store - showing API token entry and connect button]
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 2: Webhooks -->
+            <div class="mb-8">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="step-number">2</div>
+                    <h3 class="text-lg font-bold text-gray-900">How to Enable Webhooks</h3>
+                </div>
+                <div class="ml-10 space-y-2 text-sm text-gray-700">
+                    <p>Use the <strong>Register Webhooks</strong> button in the Connect Store tab. This automatically registers:</p>
+                    <ul class="list-disc list-inside space-y-1 text-xs font-mono bg-gray-50 p-3 rounded-lg">
+                        <li>orders/create → ERP creates order + lead</li>
+                        <li>orders/updated → ERP updates order status</li>
+                        <li>orders/paid → ERP confirms payment</li>
+                        <li>orders/cancelled → ERP cancels order</li>
+                        <li>customers/create → ERP creates lead</li>
+                        <li>customers/update → ERP updates lead</li>
+                        <li>fulfillments/create → ERP records fulfillment</li>
+                        <li>fulfillments/update → ERP updates tracking</li>
+                    </ul>
+                    <p class="text-xs text-gray-500">Manual webhook URL: <code>{{ request.scheme }}://{{ request.get_host }}/webhooks/shopify/</code></p>
+                </div>
+            </div>
+            
+            <!-- Step 3: Testing -->
+            <div class="mb-8">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="step-number">3</div>
+                    <h3 class="text-lg font-bold text-gray-900">How to Test the Integration</h3>
+                </div>
+                <div class="ml-10 space-y-2 text-sm text-gray-700">
+                    <ol class="list-decimal list-inside space-y-2">
+                        <li>Go to <strong>Test & Diagnostics</strong> tab</li>
+                        <li>Click <strong>"Test Get Shop Info"</strong> to verify API connectivity</li>
+                        <li>Use <strong>Webhook Simulator</strong> to paste a sample order payload and see how ERP would classify it (WEB_PAID or WEB_COD)</li>
+                        <li>Use <strong>Fulfillment Push Tester</strong> to test pushing tracking info to Shopify</li>
+                        <li>Click <strong>"Run Abandoned Sync Now"</strong> to fetch abandoned checkouts immediately</li>
+                    </ol>
+                    <div class="p-3 bg-blue-50 rounded-lg text-blue-700 text-xs">
+                        [Screenshot Placeholder: Test & Diagnostics - showing webhook simulator with result]
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Step 4: Orders -->
+            <div class="mb-8">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="step-number">4</div>
+                    <h3 class="text-lg font-bold text-gray-900">What Happens When Orders Arrive</h3>
+                </div>
+                <div class="ml-10 space-y-3 text-sm text-gray-700">
+                    <ol class="list-decimal list-inside space-y-2">
+                        <li>Shopify sends a webhook to ERP (orders/create or orders/paid)</li>
+                        <li>ERP validates the HMAC signature (if webhook secret is configured)</li>
+                        <li>ERP creates a <strong>ShopifyOrder</strong> record linked to the store</li>
+                        <li>ERP creates or updates a <strong>Lead</strong> with source = "Shopify Order"</li>
+                        <li>The order is classified as <strong>WEB_PAID</strong> or <strong>WEB_COD</strong> based on your sync rules</li>
+                        <li>If the customer matches an existing Lead, their record is updated</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <!-- Step 5: COD Split -->
+            <div class="mb-8">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="step-number">5</div>
+                    <h3 class="text-lg font-bold text-gray-900">How COD Channel Split Works</h3>
+                </div>
+                <div class="ml-10 text-sm text-gray-700">
+                    <div class="p-4 bg-gray-50 rounded-xl">
+                        <table class="w-full text-xs">
+                            <thead>
+                                <tr class="text-gray-600 border-b border-gray-200">
+                                    <th class="text-left py-1">Condition</th>
+                                    <th class="text-left py-1">Result</th>
+                                </tr>
+                            </thead>
+                            <tbody class="space-y-1">
+                                <tr class="border-b border-gray-100">
+                                    <td class="py-1.5">financial_status = "paid"</td>
+                                    <td><span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-bold">WEB_PAID</span></td>
+                                </tr>
+                                <tr class="border-b border-gray-100">
+                                    <td class="py-1.5">gateway contains "COD" or "Cash on Delivery"</td>
+                                    <td><span class="px-2 py-0.5 bg-orange-100 text-orange-700 rounded font-bold">WEB_COD</span></td>
+                                </tr>
+                                <tr class="border-b border-gray-100">
+                                    <td class="py-1.5">Captured transaction exists</td>
+                                    <td><span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-bold">WEB_PAID</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="py-1.5">No matching COD keyword</td>
+                                    <td><span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-bold">WEB_PAID</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="mt-3 text-xs text-gray-500">Configure your COD keywords in the Sync Rules tab. Default keywords: COD, Cash on Delivery, cash_on_delivery</p>
+                </div>
+            </div>
+            
+            <!-- Step 6: Fulfillment -->
+            <div class="mb-8">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="step-number">6</div>
+                    <h3 class="text-lg font-bold text-gray-900">How Fulfillment Pushes Back to Shopify</h3>
+                </div>
+                <div class="ml-10 space-y-2 text-sm text-gray-700">
+                    <ol class="list-decimal list-inside space-y-2">
+                        <li>When an ERP order is marked as <strong>Shipped</strong>, the system automatically pushes fulfillment to Shopify</li>
+                        <li>It sends: tracking number, tracking URL, courier name</li>
+                        <li>Shopify marks the order as <strong>fulfilled</strong> and can notify the customer</li>
+                        <li>You can also manually test this from the <strong>Fulfillment Push Tester</strong> in Diagnostics</li>
+                        <li>Check the <strong>Outbound Logs</strong> to see push status for each order</li>
+                    </ol>
+                    <p class="text-xs text-gray-500 mt-2">Enable "Push Fulfillment on SHIPPED" in the Connectors tab to activate auto-push.</p>
+                </div>
+            </div>
+            
+            <!-- Step 7: Abandoned -->
+            <div class="mb-8">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="step-number">7</div>
+                    <h3 class="text-lg font-bold text-gray-900">Abandoned Leads & Recovery Tracking</h3>
+                </div>
+                <div class="ml-10 space-y-2 text-sm text-gray-700">
+                    <ol class="list-decimal list-inside space-y-2">
+                        <li>The system polls Shopify for abandoned checkouts every <strong>{{ store.abandoned_sync_interval_minutes }} minutes</strong></li>
+                        <li>Each abandoned checkout creates a <strong>Lead</strong> with source = "Shopify Abandoned Checkout"</li>
+                        <li>The lead includes: cart value, item summary, and recovery URL</li>
+                        <li>When the customer completes the purchase, the lead is automatically marked as <strong>RECOVERED</strong></li>
+                        <li>View recovery stats in the <strong>Overview</strong> tab</li>
+                    </ol>
+                    <div class="p-3 bg-blue-50 rounded-lg text-blue-700 text-xs">
+                        [Screenshot Placeholder: Logs - showing abandoned checkouts with recovery status]
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Troubleshooting -->
+            <div class="mb-8">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="step-number">8</div>
+                    <h3 class="text-lg font-bold text-gray-900">Troubleshooting Checklist</h3>
+                </div>
+                <div class="ml-10 text-sm text-gray-700">
+                    <div class="space-y-2">
+                        {% for item in troubleshooting_items %}
+                        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                            <span class="text-gray-400 mt-0.5">
+                                <i class="fas fa-question-circle text-blue-500"></i>
+                            </span>
+                            <div>
+                                <p class="font-medium text-gray-800">{{ item.issue }}</p>
+                                <p class="text-xs text-gray-500 mt-0.5">{{ item.solution }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% endif %}
+</div>
+
+<script>
+const STORE_PK = "{{ store.pk }}";
+const API_BASE = "/integrations/shopify/api";
+let currentLogsPage = 1;
+let codKeywords = {{ cod_keywords_json|safe }};
+
+// Tab switching
+function switchTab(name) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    
+    const content = document.getElementById(`tab-${name}`);
+    if (content) content.classList.add('active');
+    
+    const btn = document.getElementById(`tab-btn-${name}`);
+    if (btn) btn.classList.add('active');
+    
+    if (name === 'logs') loadLogs();
+}
+
+function focusDiagnostic(key) {
+    const el = document.getElementById(`diag-${key}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', function() {
+    const activeTab = "{{ active_tab }}";
+    switchTab(activeTab);
+    renderKeywords();
+});
+
+// Keywords management
+function renderKeywords() {
+    const container = document.getElementById('cod-keywords-container');
+    if (!container) return;
+    container.innerHTML = '';
+    codKeywords.forEach((kw, i) => {
+        container.innerHTML += `<span class="keyword-chip">${kw}<button onclick="removeKeyword(${i})">&times;</button></span>`;
+    });
+}
+
+function addKeyword() {
+    const input = document.getElementById('new-keyword-input');
+    const kw = input.value.trim();
+    if (kw && !codKeywords.includes(kw)) {
+        codKeywords.push(kw);
+        renderKeywords();
+    }
+    input.value = '';
+}
+
+function removeKeyword(i) {
+    codKeywords.splice(i, 1);
+    renderKeywords();
+}
+
+// Show result helper
+function showResult(elId, data, isSuccess) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.classList.remove('hidden');
+    el.className = `mt-3 p-4 rounded-xl text-sm ${isSuccess ? 'result-success' : 'result-error'}`;
+    
+    if (typeof data === 'string') {
+        el.innerHTML = `<p>${data}</p>`;
+    } else {
+        el.innerHTML = `<pre class="json-output">${JSON.stringify(data, null, 2)}</pre>`;
+    }
+}
+
+function showLoading(elId) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.classList.remove('hidden');
+    el.className = 'mt-3 p-4 rounded-xl text-sm bg-gray-50 text-gray-600';
+    el.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+}
+
+// API helper
+async function apiCall(url, method = 'GET', data = null) {
+    const opts = {
+        method,
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+    };
+    if (data) opts.body = JSON.stringify(data);
+    const resp = await fetch(url, opts);
+    return resp.json();
+}
+
+function getCookie(name) {
+    let v = null;
+    document.cookie.split(';').forEach(c => {
+        c = c.trim();
+        if (c.startsWith(name + '=')) v = decodeURIComponent(c.slice(name.length + 1));
+    });
+    return v;
+}
+
+// Connect Store
+async function connectStore() {
+    showLoading('connect-result');
+    const data = {
+        shop_domain: document.getElementById('shop-domain').value,
+        access_token: document.getElementById('access-token').value,
+        api_version: document.getElementById('api-version').value,
+    };
+    try {
+        const result = await apiCall(`${API_BASE}/${STORE_PK}/connect/`, 'POST', data);
+        showResult('connect-result', result, result.success);
+        if (result.success) setTimeout(() => location.reload(), 1500);
+    } catch (e) {
+        showResult('connect-result', 'Error: ' + e.message, false);
+    }
+}
+
+async function disconnectStore() {
+    if (!confirm('Disconnect this Shopify store?')) return;
+    try {
+        const result = await apiCall(`${API_BASE}/${STORE_PK}/disconnect/`, 'POST');
+        showResult('connect-result', result, result.success);
+        if (result.success) setTimeout(() => location.reload(), 1500);
+    } catch (e) {
+        showResult('connect-result', 'Error: ' + e.message, false);
+    }
+}
+
+async function verifyPermissions() {
+    showLoading('permissions-result');
+    try {
+        const result = await apiCall(`${API_BASE}/${STORE_PK}/verify-permissions/`);
+        showResult('permissions-result', result, result.success);
+    } catch (e) {
+        showResult('permissions-result', 'Error: ' + e.message, false);
+    }
+}
+
+async function registerWebhooks() {
+    showLoading('webhooks-result');
+    try {
+        const result = await apiCall(`${API_BASE}/${STORE_PK}/register-webhooks/`, 'POST', { base_url: window.location.origin });
+        showResult('webhooks-result', result, result.success);
+    } catch (e) {
+        showResult('webhooks-result', 'Error: ' + e.message, false);
+    }
+}
+
+// Save Sync Rules
+async function saveSyncRules() {
+    showLoading('sync-rules-result');
+    const data = {
+        cod_keywords: codKeywords,
+        treat_pending_cod_as_confirmed: document.getElementById('treat-pending-cod').checked,
+        create_lead_for_every_customer: document.getElementById('create-lead-customer').checked,
+        auto_promote_lead_to_customer: document.getElementById('auto-promote').checked,
+        sync_abandoned_checkouts: document.getElementById('sync-abandoned').checked,
+        abandoned_sync_interval_minutes: parseInt(document.getElementById('sync-frequency').value),
+    };
+    try {
+        const result = await apiCall(`${API_BASE}/${STORE_PK}/save-sync-rules/`, 'POST', data);
+        showResult('sync-rules-result', result.success ? '✓ ' + result.message : '✗ ' + result.message, result.success);
+    } catch (e) {
+        showResult('sync-rules-result', 'Error: ' + e.message, false);
+    }
+}
+
+async function saveFulfillmentSettings() {
+    const data = {
+        auto_fulfill: document.getElementById('auto-fulfill').checked,
+        push_partial_fulfillments: document.getElementById('partial-fulfill').checked,
+    };
+    try {
+        await apiCall(`${API_BASE}/${STORE_PK}/save-sync-rules/`, 'POST', data);
+        alert('Fulfillment settings saved!');
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
+
+// Toggle connector
+async function toggleConnector(key, enabled) {
+    try {
+        const result = await apiCall(`${API_BASE}/${STORE_PK}/toggle-connector/`, 'POST', { connector: key, enabled });
+        if (result.success) location.reload();
+        else alert('Error: ' + result.message);
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
+
+function runConnectorTest(key) {
+    switchTab('diagnostics');
+    const diagEl = document.getElementById(`diag-${key}`);
+    if (diagEl) diagEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Diagnostics: API Connectivity
+async function testGetShopInfo() {
+    showLoading('shop-info-result');
+    try {
+        const result = await apiCall(`${API_BASE}/${STORE_PK}/get-shop-info/`);
+        showResult('shop-info-result', result, result.success);
+    } catch (e) {
+        showResult('shop-info-result', 'Error: ' + e.message, false);
+    }
+}
+
+async function testReadOrder() {
+    showLoading('order-read-result');
+    const orderId = document.getElementById('test-order-id').value;
+    try {
+        const result = await apiCall(`${API_BASE}/${STORE_PK}/test-order/?order_id=${orderId}`);
+        showResult('order-read-result', result, result.success);
+    } catch (e) {
+        showResult('order-read-result', 'Error: ' + e.message, false);
+    }
+}
+
+async function testReadCustomer() {
+    showLoading('customer-read-result');
+    const cid = document.getElementById('test-customer-id').value;
+    try {
+        const result = await apiCall(`${API_BASE}/${STORE_PK}/test-customer/?customer_id=${cid}`);
+        showResult('customer-read-result', result, result.success);
+    } catch (e) {
+        showResult('customer-read-result', 'Error: ' + e.message, false);
+    }
+}
+
+// Webhook Simulator
+async function simulateWebhook() {
+    showLoading('sim-result');
+    const topic = document.getElementById('sim-topic').value;
+    let payload = document.getElementById('sim-payload').value;
+    try {
+        payload = JSON.parse(payload || '{}');
+    } catch (e) {
+        showResult('sim-result', 'Invalid JSON payload', false);
+        return;
+    }
+    try {
+        const result = await apiCall(`${API_BASE}/${STORE_PK}/simulate-webhook/`, 'POST', { topic, payload });
+        
+        if (result.success) {
+            let html = `<div class="space-y-2 text-sm">`;
+            html += `<div class="flex justify-between"><span class="font-medium">Topic:</span><span class="font-mono text-blue-700">${result.topic}</span></div>`;
+            if (result.channel) html += `<div class="flex justify-between"><span class="font-medium">Channel:</span><span class="font-bold text-lg ${result.channel === 'WEB_PAID' ? 'text-blue-700' : 'text-orange-700'}">${result.channel}</span></div>`;
+            if (result.financial_status) html += `<div class="flex justify-between"><span class="font-medium">Financial Status:</span><span>${result.financial_status}</span></div>`;
+            if (result.gateway) html += `<div class="flex justify-between"><span class="font-medium">Gateway:</span><span>${result.gateway}</span></div>`;
+            if (result.would_create_lead !== undefined) html += `<div class="flex justify-between"><span class="font-medium">Would Create Lead?</span><span class="${result.would_create_lead ? 'text-green-600' : 'text-gray-500'}">${result.would_create_lead ? 'YES ✓' : 'NO'}</span></div>`;
+            if (result.would_create_order !== undefined) html += `<div class="flex justify-between"><span class="font-medium">Would Create Order?</span><span class="${result.would_create_order ? 'text-green-600' : 'text-gray-500'}">${result.would_create_order ? 'YES ✓' : 'NO'}</span></div>`;
+            if (result.channel_reasons) html += `<div><span class="font-medium">Reasons:</span><ul class="list-disc list-inside text-xs text-gray-600 mt-1">${result.channel_reasons.map(r => `<li>${r}</li>`).join('')}</ul></div>`;
+            html += `<p class="text-xs text-gray-400 mt-2">${result.note}</p>`;
+            html += `</div>`;
+            
+            const el = document.getElementById('sim-result');
+            el.classList.remove('hidden');
+            el.className = 'mt-3 p-4 rounded-xl text-sm result-success';
+            el.innerHTML = html;
+        } else {
+            showResult('sim-result', result, false);
+        }
+    } catch (e) {
+        showResult('sim-result', 'Error: ' + e.message, false);
+    }
+}
+
+// Fulfillment Push Tester
+async function testFulfillmentPush() {
+    showLoading('fulfill-result');
+    const data = {
+        shopify_order_id: document.getElementById('fulfill-shopify-order-id').value,
+        tracking_number: document.getElementById('fulfill-tracking').value,
+        tracking_url: document.getElementById('fulfill-tracking-url').value,
+        courier_name: document.getElementById('fulfill-courier').value,
+    };
+    try {
+        const result = await apiCall(`${API_BASE}/${STORE_PK}/test-fulfillment/`, 'POST', data);
+        showResult('fulfill-result', result, result.success);
+    } catch (e) {
+        showResult('fulfill-result', 'Error: ' + e.message, false);
+    }
+}
+
+// Abandoned Sync
+async function runAbandonedSync() {
+    showLoading('abandoned-result');
+    try {
+        const result = await apiCall(`${API_BASE}/${STORE_PK}/run-abandoned-sync/`, 'POST');
+        if (result.success) {
+            document.getElementById('abandoned-total').textContent = result.fetched || 0;
+        }
+        showResult('abandoned-result', result, result.success);
+    } catch (e) {
+        showResult('abandoned-result', 'Error: ' + e.message, false);
+    }
+}
+
+// Logs
+let logsCurrentPage = 1;
+
+async function loadLogs() {
+    const logType = document.getElementById('log-type-filter').value;
+    const status = document.getElementById('log-status-filter').value;
+    const container = document.getElementById('logs-container');
+    container.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Loading...</p></div>';
+    
+    try {
+        const result = await apiCall(`${API_BASE}/${STORE_PK}/logs/?type=${logType}&status=${status}&page=${logsCurrentPage}`);
+        
+        if (!result.success) {
+            container.innerHTML = `<p class="text-red-500 text-center py-4">${result.message}</p>`;
+            return;
+        }
+        
+        const logs = result.logs || [];
+        document.getElementById('logs-page-info').textContent = `Page ${logsCurrentPage}`;
+        
+        if (logs.length === 0) {
+            container.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-inbox text-3xl mb-2"></i><p>No logs found</p></div>';
+            return;
+        }
+        
+        let html = '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-xs text-gray-500 border-b border-gray-100">';
+        
+        if (logType === 'webhook') {
+            html += '<th class="text-left py-2 px-2">Time</th><th class="text-left py-2 px-2">Topic</th><th class="text-left py-2 px-2">Entity ID</th><th class="text-left py-2 px-2">Action</th><th class="text-left py-2 px-2">Status</th><th class="text-left py-2 px-2">Time</th><th class="text-left py-2 px-2">Actions</th>';
+        } else {
+            html += '<th class="text-left py-2 px-2">Time</th><th class="text-left py-2 px-2">Type</th><th class="text-left py-2 px-2">Order ID</th><th class="text-left py-2 px-2">Shopify ID</th><th class="text-left py-2 px-2">Status</th><th class="text-left py-2 px-2">Retries</th><th class="text-left py-2 px-2">Actions</th>';
+        }
+        html += '</tr></thead><tbody>';
+        
+        logs.forEach(log => {
+            const isOk = log.status === 'processed' || log.status === 'DONE';
+            const statusBadge = `<span class="px-2 py-0.5 rounded text-xs font-medium ${isOk ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${log.status}</span>`;
+            
+            html += `<tr class="border-b border-gray-50 log-row">`;
+            if (logType === 'webhook') {
+                const time = log.timestamp ? new Date(log.timestamp).toLocaleString() : '—';
+                html += `<td class="py-2 px-2 text-xs text-gray-500 whitespace-nowrap">${time}</td>`;
+                html += `<td class="py-2 px-2 font-mono text-xs text-blue-700">${log.topic || '—'}</td>`;
+                html += `<td class="py-2 px-2 text-xs text-gray-600">${log.entity_id || '—'}</td>`;
+                html += `<td class="py-2 px-2 text-xs">${log.action || '—'}</td>`;
+                html += `<td class="py-2 px-2">${statusBadge}</td>`;
+                html += `<td class="py-2 px-2 text-xs text-gray-500">${log.processing_time_ms ? log.processing_time_ms + 'ms' : '—'}</td>`;
+                html += `<td class="py-2 px-2"><button onclick="replayEvent('${log.id}', 'webhook')" class="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200" title="${log.error || ''}">Replay</button></td>`;
+            } else {
+                const time = log.timestamp ? new Date(log.timestamp).toLocaleString() : '—';
+                html += `<td class="py-2 px-2 text-xs text-gray-500 whitespace-nowrap">${time}</td>`;
+                html += `<td class="py-2 px-2 text-xs text-gray-700">${log.type || '—'}</td>`;
+                html += `<td class="py-2 px-2 font-mono text-xs">${log.ref_id || '—'}</td>`;
+                html += `<td class="py-2 px-2 font-mono text-xs text-gray-500">${log.shopify_id || '—'}</td>`;
+                html += `<td class="py-2 px-2">${statusBadge}</td>`;
+                html += `<td class="py-2 px-2 text-xs text-center">${log.retries}</td>`;
+                html += `<td class="py-2 px-2"><button onclick="replayEvent('${log.id}', 'outbox')" class="text-xs px-2 py-1 ${!isOk ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'} rounded" title="${log.error || ''}">Retry</button></td>`;
+            }
+            html += '</tr>';
+            
+            // Show error if present
+            if (log.error) {
+                html += `<tr class="bg-red-50"><td colspan="7" class="py-1 px-2 text-xs text-red-600 font-mono">${log.error}</td></tr>`;
+            }
+        });
+        
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+        
+    } catch (e) {
+        container.innerHTML = `<p class="text-red-500 text-center py-4">Error loading logs: ${e.message}</p>`;
+    }
+}
+
+async function replayEvent(eventId, type) {
+    try {
+        const result = await apiCall(`${API_BASE}/${STORE_PK}/replay-event/`, 'POST', { event_id: eventId, type });
+        if (result.success) {
+            alert('Event queued for replay!');
+            loadLogs();
+        } else {
+            alert('Error: ' + result.message);
+        }
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
+
+function prevLogsPage() {
+    if (logsCurrentPage > 1) { logsCurrentPage--; loadLogs(); }
+}
+function nextLogsPage() {
+    logsCurrentPage++;
+    loadLogs();
+}
+</script>
+{% endblock %}
