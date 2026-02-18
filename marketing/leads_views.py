@@ -519,6 +519,8 @@ class LeadDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'lead'
     
     def get_context_data(self, **kwargs):
+        from integrations.wabis.models import WabisCustomer, WabisMessage
+
         context = super().get_context_data(**kwargs)
         lead = self.object
         context['title'] = f'Lead: {lead.name or lead.phone_no}'
@@ -547,6 +549,22 @@ class LeadDetailView(LoginRequiredMixin, DetailView):
             context['days_in_status'] = (timezone.now() - lead.conversion_status_at).days
         else:
             context['days_in_status'] = (timezone.now() - lead.created).days
+        
+        # ---- Sales Number linkage ----
+        # Find which Wabis number this lead came through
+        context['sales_number'] = None
+        try:
+            wabis_customer = WabisCustomer.objects.filter(linked_lead=lead).first()
+            if wabis_customer:
+                first_msg = WabisMessage.objects.filter(
+                    customer=wabis_customer,
+                    direction='inbound',
+                    number__isnull=False,
+                ).order_by('timestamp_utc').select_related('number').first()
+                if first_msg and first_msg.number:
+                    context['sales_number'] = first_msg.number
+        except Exception:
+            pass
         
         return context
 
