@@ -155,7 +155,7 @@
                         <td class="px-4 py-3 text-right font-medium">&#8377;{{ s.revenue|floatformat:0|intcomma }}</td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="7" class="px-5 py-8 text-center text-gray-400"><i class="fab fa-whatsapp text-3xl mb-2"></i><p>No numbers configured. Connect in Wabis Settings.</p></td></tr>
+                    <tr><td colspan="7" class="px-5 py-8 text-center text-gray-400"><i class="fab fa-whatsapp text-3xl mb-2 block"></i><p>No WhatsApp numbers configured or no leads found.</p><p class="text-xs mt-1">Connect your numbers in <a href="{% url 'integrations:wabis_dashboard' %}" class="text-blue-500 hover:underline">Wabis Settings</a></p></td></tr>
                     {% endfor %}
                 </tbody>
             </table>
