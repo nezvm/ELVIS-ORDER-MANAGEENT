@@ -20,6 +20,8 @@ from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
+from django.views.decorators.cache import never_cache
+from django.utils.decorators import method_decorator
 
 from .models import Lead, DailyLeadMetrics, LeadMatchingConfig, LeadActivity
 
