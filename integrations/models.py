@@ -107,13 +107,35 @@ class SyncedContact(BaseModel):
 
 # Shopify Integration
 class ShopifyStore(BaseModel):
-    """Shopify store configuration."""
+    """Shopify store configuration - single store controls all connectors."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=200)
+    store_name = models.CharField(max_length=200)
+    name = models.CharField(max_length=200)  # kept for backward compat
     shop_domain = models.CharField(max_length=200, unique=True, help_text="e.g., mystore.myshopify.com")
     api_key = models.CharField(max_length=200, blank=True, null=True)
     api_secret = models.CharField(max_length=200, blank=True, null=True)
     access_token = models.TextField(blank=True, null=True)
+    api_version = models.CharField(max_length=20, default='2024-01', help_text="Shopify API version")
+    
+    # Status
+    status = models.CharField(max_length=30, choices=[
+        ('CONNECTED', 'Connected'),
+        ('DISCONNECTED', 'Disconnected'),
+        ('ERROR', 'Error'),
+    ], default='DISCONNECTED')
+    connection_status = models.CharField(max_length=30, choices=[
+        ('connected', 'Connected'),
+        ('disconnected', 'Disconnected'),
+        ('error', 'Error'),
+    ], default='disconnected')
+    installed_at = models.DateTimeField(null=True, blank=True)
+    
+    # Sync timestamps
+    last_sync_at = models.DateTimeField(null=True, blank=True)
+    last_orders_sync_at = models.DateTimeField(null=True, blank=True)
+    last_customers_sync_at = models.DateTimeField(null=True, blank=True)
+    last_abandoned_sync_at = models.DateTimeField(null=True, blank=True)
+    webhook_last_received_at = models.DateTimeField(null=True, blank=True)
     
     # Channel mapping
     web_paid_channel = models.ForeignKey('channels_config.DynamicChannel', on_delete=models.SET_NULL, 
@@ -123,38 +145,44 @@ class ShopifyStore(BaseModel):
                                         null=True, blank=True, related_name='shopify_cod_stores',
                                         help_text="Channel for COD Shopify orders")
     
+    # Channel split rules
+    cod_keywords = models.JSONField(default=list, help_text='COD gateway keywords e.g. ["COD", "Cash on Delivery"]')
+    treat_pending_cod_as_confirmed = models.BooleanField(default=True, help_text="Treat pending COD as confirmed orders")
+    
+    # Lead/Customer rules
+    create_lead_for_every_customer = models.BooleanField(default=True, help_text="Create lead for every new Shopify customer")
+    auto_promote_lead_to_customer = models.BooleanField(default=True, help_text="Auto-promote lead to customer on first order")
+    
     # Sync settings
     sync_enabled = models.BooleanField(default=False)
     sync_orders = models.BooleanField(default=True)
+    sync_customers = models.BooleanField(default=True)
     sync_products = models.BooleanField(default=False)
     sync_inventory = models.BooleanField(default=False)
-    auto_fulfill = models.BooleanField(default=False, help_text="Auto-mark orders as fulfilled when shipped")
+    auto_fulfill = models.BooleanField(default=False, help_text="Push fulfillment on SHIPPED status")
+    push_partial_fulfillments = models.BooleanField(default=True)
     
     # Abandoned Checkout Sync Settings
-    sync_abandoned_checkouts = models.BooleanField(default=False, help_text="Sync abandoned checkouts to Leads")
-    sync_abandoned_carts = models.BooleanField(default=False, help_text="Sync abandoned carts to Leads (if supported)")
-    abandoned_sync_interval_minutes = models.IntegerField(default=30, help_text="How often to fetch abandoned checkouts")
-    last_abandoned_sync_at = models.DateTimeField(null=True, blank=True)
+    sync_abandoned_checkouts = models.BooleanField(default=True, help_text="Sync abandoned checkouts to Leads")
+    sync_abandoned_carts = models.BooleanField(default=False)
+    abandoned_sync_interval_minutes = models.IntegerField(default=15, help_text="How often to fetch abandoned checkouts")
     
     # Webhook settings
     webhook_secret = models.CharField(max_length=200, blank=True, null=True)
     orders_webhook_id = models.CharField(max_length=100, blank=True, null=True)
-    checkouts_webhook_id = models.CharField(max_length=100, blank=True, null=True, help_text="Webhook for abandoned checkouts")
+    checkouts_webhook_id = models.CharField(max_length=100, blank=True, null=True)
+    customers_webhook_id = models.CharField(max_length=100, blank=True, null=True)
+    fulfillments_webhook_id = models.CharField(max_length=100, blank=True, null=True)
     
-    # Status
-    last_sync_at = models.DateTimeField(null=True, blank=True)
-    connection_status = models.CharField(max_length=30, choices=[
-        ('connected', 'Connected'),
-        ('disconnected', 'Disconnected'),
-        ('error', 'Error'),
-    ], default='disconnected')
+    # Scopes
+    granted_scopes = models.TextField(blank=True, null=True)
     
     class Meta:
         verbose_name = "Shopify Store"
         verbose_name_plural = "Shopify Stores"
     
     def __str__(self):
-        return self.name
+        return self.store_name or self.name or self.shop_domain
     
     @staticmethod
     def get_list_url():
@@ -165,6 +193,14 @@ class ShopifyStore(BaseModel):
     
     def get_update_url(self):
         return reverse_lazy("integrations:shopify_store_update", kwargs={"pk": str(self.pk)})
+    
+    def get_portal_url(self):
+        return reverse_lazy("integrations:shopify_portal", kwargs={"pk": str(self.pk)})
+    
+    def get_cod_keywords_list(self):
+        if not self.cod_keywords:
+            return ['COD', 'Cash on Delivery', 'cash_on_delivery']
+        return self.cod_keywords
 
 
 class ShopifyOrder(BaseModel):
