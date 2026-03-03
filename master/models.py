@@ -80,8 +80,19 @@ class Account(BaseModel):
 
 
 class Channel(BaseModel):
-    channel_type = models.CharField(max_length=100,choices=[("WhatsApp","WhatsApp"),("WhatsApp_COD","WhatsApp COD"),("Swiggy","Swiggy"),("Kumar","Kumar"),("Wholesale","Wholesale"),("Promo","Promo"),("Return_or_Replace","RETURN/REPLACE"),("Counter","Counter")],default="WhatsApp")
-    prefix = models.CharField(max_length=100,unique = True)
+    channel_type = models.CharField(max_length=100,choices=[
+        ("WhatsApp","WhatsApp"),
+        ("WhatsApp_COD","WhatsApp COD"),
+        ("Swiggy","Swiggy"),
+        ("Kumar","Kumar"),
+        ("Wholesale","Wholesale"),
+        ("Promo","Promo"),
+        ("Return_or_Replace","RETURN/REPLACE"),
+        ("Counter","Counter"),
+        ("WEB_PAID","Web Paid (Shopify)"),
+        ("WEB_COD","Web COD (Shopify)"),
+    ], default="WhatsApp")
+    prefix = models.CharField(max_length=100, unique=True)
 
     def __str__(self):
         return self.channel_type
@@ -303,6 +314,13 @@ class Order(BaseModel):
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     order_no = models.CharField(max_length=20, null=True, blank=True,unique=True)
     order_by = models.ForeignKey(User, on_delete=models.CASCADE,related_name="order_by")
+    
+    # Source tracking
+    source = models.CharField(max_length=30, choices=[
+        ('manual', 'Manual'),
+        ('shopify', 'Shopify'),
+        ('whatsapp', 'WhatsApp'),
+    ], default='manual', db_index=True)
     
     # Stage and shipping fields (from original ZIP)
     stage = models.CharField(max_length=100, default="Pending", choices=ORDER_STATUS)

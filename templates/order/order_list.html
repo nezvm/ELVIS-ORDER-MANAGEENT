@@ -10,60 +10,117 @@
 
 {% block content %}
 <div class="space-y-6" data-testid="orders-page">
+
+    <!-- Shopify Channel Summary Cards -->
+    {% if web_paid_count or web_cod_count %}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <a href="?type=WEB_PAID" class="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-blue-300 transition-all group {% if request.GET.type == 'WEB_PAID' %}ring-2 ring-blue-500{% endif %}">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                    <i class="fab fa-shopify text-green-500 text-lg"></i>
+                    <span class="text-xs font-bold text-blue-600 uppercase tracking-wide">WEB PAID</span>
+                </div>
+                <span class="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">+{{ web_paid_count_today }} today</span>
+            </div>
+            <p class="text-2xl font-bold text-gray-900">{{ web_paid_count }}</p>
+            <p class="text-xs text-gray-500 mt-1">Prepaid Shopify Orders</p>
+        </a>
+        <a href="?type=WEB_COD" class="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-orange-300 transition-all group {% if request.GET.type == 'WEB_COD' %}ring-2 ring-orange-500{% endif %}">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                    <i class="fab fa-shopify text-green-500 text-lg"></i>
+                    <span class="text-xs font-bold text-orange-600 uppercase tracking-wide">WEB COD</span>
+                </div>
+                <span class="text-xs px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full font-medium">+{{ web_cod_count_today }} today</span>
+            </div>
+            <p class="text-2xl font-bold text-gray-900">{{ web_cod_count }}</p>
+            <p class="text-xs text-gray-500 mt-1">Cash on Delivery Orders</p>
+        </a>
+        <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200 p-4">
+            <div class="flex items-center gap-2 mb-2">
+                <i class="fab fa-shopify text-green-600 text-lg"></i>
+                <span class="text-xs font-bold text-green-700 uppercase tracking-wide">Total Shopify</span>
+            </div>
+            <p class="text-2xl font-bold text-gray-900">{{ shopify_total_count }}</p>
+            <p class="text-xs text-gray-500 mt-1">+{{ shopify_today_count }} today</p>
+        </div>
+        <a href="{% url 'integrations:shopify_portal_select' %}" class="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-green-300 transition-all flex flex-col justify-center items-center text-center">
+            <i class="fab fa-shopify text-green-500 text-2xl mb-1"></i>
+            <p class="text-xs font-semibold text-green-700">Shopify Portal</p>
+            <p class="text-xs text-gray-400">Manage Integration</p>
+        </a>
+    </div>
+    {% endif %}
+
     <!-- Filters & Actions -->
     <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-        <form method="GET" class="flex items-center justify-between" data-testid="orders-filter-form">
-            <div class="flex items-center space-x-4">
-                <!-- Search -->
-                <div class="relative">
-                    <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search orders..." class="w-72 pl-12 pr-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:bg-white">
-                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                </div>
-                
-                <!-- Status Filter -->
-                <select name="status" onchange="this.form.submit()" class="px-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                    <option value="">All Status</option>
-                    <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
-                    <option value="confirmed" {% if request.GET.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
-                    <option value="processing" {% if request.GET.status == 'processing' %}selected{% endif %}>Processing</option>
-                    <option value="shipped" {% if request.GET.status == 'shipped' %}selected{% endif %}>Shipped</option>
-                    <option value="delivered" {% if request.GET.status == 'delivered' %}selected{% endif %}>Delivered</option>
-                    <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
-                </select>
-                
-                <!-- Channel Filter -->
-                <select name="channel" onchange="this.form.submit()" class="px-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                    <option value="">All Channels</option>
-                    {% for channel in channels %}
-                    <option value="{{ channel.id }}" {% if request.GET.channel == channel.id|stringformat:"s" %}selected{% endif %}>{{ channel.name }}</option>
-                    {% endfor %}
-                </select>
-                
-                <!-- Date Filter -->
-                <select name="date" onchange="this.form.submit()" class="px-4 py-3 text-base border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                    <option value="">All Time</option>
-                    <option value="today" {% if request.GET.date == 'today' %}selected{% endif %}>Today</option>
-                    <option value="yesterday" {% if request.GET.date == 'yesterday' %}selected{% endif %}>Yesterday</option>
-                    <option value="week" {% if request.GET.date == 'week' %}selected{% endif %}>This Week</option>
-                    <option value="month" {% if request.GET.date == 'month' %}selected{% endif %}>This Month</option>
-                </select>
-                
-                <button type="submit" class="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
-                    <i class="fas fa-filter mr-2"></i>Filter
-                </button>
-                
-                {% if request.GET.q or request.GET.status or request.GET.channel or request.GET.date %}
-                <a href="{% url 'master:order_list' %}" class="px-4 py-3 text-gray-500 hover:text-gray-700 font-medium">
-                    <i class="fas fa-times mr-1"></i>Clear
-                </a>
-                {% endif %}
+        <form method="GET" class="flex flex-wrap items-center gap-3" data-testid="orders-filter-form">
+            <!-- Search -->
+            <div class="relative">
+                <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search orders..." class="w-64 pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
             </div>
             
-            <div class="flex items-center space-x-3">
-                <a href="{% url 'master:quick_order_entry' %}" data-testid="quick-entry-btn" class="px-5 py-3 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600 transition-colors flex items-center">
+            <!-- Source Filter -->
+            <select name="source" onchange="this.form.submit()" class="px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                <option value="">All Sources</option>
+                <option value="shopify" {% if request.GET.source == 'shopify' %}selected{% endif %}>
+                    Shopify
+                </option>
+                <option value="manual" {% if request.GET.source == 'manual' %}selected{% endif %}>Manual</option>
+                <option value="whatsapp" {% if request.GET.source == 'whatsapp' %}selected{% endif %}>WhatsApp</option>
+            </select>
+            
+            <!-- Channel Type Filter -->
+            <select name="type" onchange="this.form.submit()" class="px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                <option value="">All Channels</option>
+                <optgroup label="Shopify">
+                    <option value="WEB_PAID" {% if request.GET.type == 'WEB_PAID' %}selected{% endif %}>Web Paid (Shopify)</option>
+                    <option value="WEB_COD" {% if request.GET.type == 'WEB_COD' %}selected{% endif %}>Web COD (Shopify)</option>
+                </optgroup>
+                <optgroup label="Other">
+                    <option value="WhatsApp" {% if request.GET.type == 'WhatsApp' %}selected{% endif %}>WhatsApp</option>
+                    <option value="WhatsApp_COD" {% if request.GET.type == 'WhatsApp_COD' %}selected{% endif %}>WhatsApp COD</option>
+                    <option value="Swiggy" {% if request.GET.type == 'Swiggy' %}selected{% endif %}>Swiggy</option>
+                    <option value="Counter" {% if request.GET.type == 'Counter' %}selected{% endif %}>Counter</option>
+                </optgroup>
+            </select>
+            
+            <!-- Status Filter -->
+            <select name="status" onchange="this.form.submit()" class="px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                <option value="">All Status</option>
+                <option value="Pending" {% if request.GET.status == 'Pending' %}selected{% endif %}>Pending</option>
+                <option value="Confirm" {% if request.GET.status == 'Confirm' %}selected{% endif %}>Confirmed</option>
+                <option value="Booked" {% if request.GET.status == 'Booked' %}selected{% endif %}>Booked</option>
+                <option value="Shipped" {% if request.GET.status == 'Shipped' %}selected{% endif %}>Shipped</option>
+                <option value="Delivered" {% if request.GET.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                <option value="Cancelled" {% if request.GET.status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+            </select>
+            
+            <!-- Date Filter -->
+            <select name="date" onchange="this.form.submit()" class="px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                <option value="">All Time</option>
+                <option value="today" {% if request.GET.date == 'today' %}selected{% endif %}>Today</option>
+                <option value="yesterday" {% if request.GET.date == 'yesterday' %}selected{% endif %}>Yesterday</option>
+                <option value="this_week" {% if request.GET.date == 'this_week' %}selected{% endif %}>This Week</option>
+                <option value="this_month" {% if request.GET.date == 'this_month' %}selected{% endif %}>This Month</option>
+            </select>
+            
+            <button type="submit" class="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors">
+                <i class="fas fa-filter mr-1"></i>Filter
+            </button>
+            
+            {% if request.GET.q or request.GET.status or request.GET.type or request.GET.date or request.GET.source %}
+            <a href="{% url 'master:order_list' %}" class="px-3 py-2.5 text-gray-500 hover:text-gray-700 text-sm font-medium">
+                <i class="fas fa-times mr-1"></i>Clear
+            </a>
+            {% endif %}
+            
+            <div class="ml-auto flex items-center space-x-3">
+                <a href="{% url 'master:quick_order_entry' %}" data-testid="quick-entry-btn" class="px-5 py-2.5 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600 transition-colors flex items-center text-sm">
                     <i class="fas fa-bolt mr-2"></i>Quick Entry
                 </a>
-                <a href="{% url 'master:order_create' %}" data-testid="add-order-btn" class="px-5 py-3 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors flex items-center">
+                <a href="{% url 'master:order_create' %}" data-testid="add-order-btn" class="px-5 py-2.5 bg-black text-white rounded-xl font-semibold hover:bg-gray-800 transition-colors flex items-center text-sm">
                     <i class="fas fa-plus mr-2"></i>New Order
                 </a>
             </div>
@@ -75,75 +132,116 @@
         <table class="w-full">
             <thead class="bg-gray-50 border-b border-gray-200">
                 <tr>
-                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Order</th>
-                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Customer</th>
-                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Channel</th>
-                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Amount</th>
-                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">Date</th>
-                    <th class="px-6 py-4 text-right text-sm font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Order</th>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Customer</th>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Source / Channel</th>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Amount</th>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Payment</th>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                    <th class="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Date</th>
+                    <th class="px-4 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
                 {% for order in orders %}
                 <tr class="table-row transition-colors hover:bg-gray-50" data-testid="order-row-{{ order.id }}">
-                    <td class="px-6 py-4">
-                        <p class="text-base font-semibold text-gray-900">#{{ order.order_no }}</p>
-                        <p class="text-sm text-gray-500">{{ order.items.count }} item(s)</p>
+                    <td class="px-4 py-3">
+                        <p class="text-sm font-semibold text-gray-900">#{{ order.order_no }}</p>
+                        {% if order.shopify_order %}
+                        <p class="text-xs text-green-600 font-mono">
+                            <i class="fab fa-shopify mr-0.5"></i>#{{ order.shopify_order.shopify_order_number }}
+                        </p>
+                        {% endif %}
+                        <p class="text-xs text-gray-400">{{ order.orderitem_set.count }} item(s)</p>
                     </td>
-                    <td class="px-6 py-4">
-                        <div class="flex items-center">
-                            <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 font-bold">
-                                {{ order.customer.customer_name|slice:":1"|upper }}
-                            </div>
-                            <div class="ml-3">
-                                <p class="text-base font-medium text-gray-900">{{ order.customer.customer_name }}</p>
-                                <p class="text-sm text-gray-500">{{ order.customer.phone_no }}</p>
-                            </div>
+                    <td class="px-4 py-3">
+                        <p class="text-sm font-medium text-gray-900">{{ order.customer.customer_name }}</p>
+                        <p class="text-xs text-gray-500">{{ order.phone|default:order.customer.phone_no }}</p>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if order.source == 'shopify' or order.channel.channel_type == 'WEB_PAID' or order.channel.channel_type == 'WEB_COD' %}
+                        <div class="flex items-center gap-1.5 mb-1">
+                            <i class="fab fa-shopify text-green-500 text-sm"></i>
+                            <span class="text-xs font-medium text-green-700">Shopify</span>
                         </div>
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-700">
-                            {{ order.channel.name|default:"-" }}
+                        {% if order.channel.channel_type == 'WEB_PAID' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-bold">
+                            <i class="fas fa-credit-card text-xs"></i> WEB PAID
                         </span>
+                        {% elif order.channel.channel_type == 'WEB_COD' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">
+                            <i class="fas fa-money-bill text-xs"></i> WEB COD
+                        </span>
+                        {% endif %}
+                        {% if order.shopify_order.gateway %}
+                        <p class="text-xs text-gray-400 mt-0.5">via {{ order.shopify_order.gateway }}</p>
+                        {% endif %}
+                        {% else %}
+                        <span class="px-2 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700">
+                            {{ order.channel.channel_type|default:"-" }}
+                        </span>
+                        {% endif %}
                     </td>
-                    <td class="px-6 py-4">
-                        <p class="text-base font-bold text-gray-900">₹{{ order.total_amount|floatformat:0|intcomma }}</p>
-                        {% if order.cod_charge > 0 %}
+                    <td class="px-4 py-3">
+                        <p class="text-sm font-bold text-gray-900">₹{{ order.total_amount|floatformat:0|intcomma }}</p>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if order.shopify_order %}
+                            {% if order.shopify_order.financial_status == 'paid' %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
+                                <i class="fas fa-check-circle text-xs"></i> Paid
+                            </span>
+                            {% elif order.shopify_order.financial_status == 'pending' %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 text-xs font-semibold">
+                                <i class="fas fa-clock text-xs"></i> Pending
+                            </span>
+                            {% elif order.shopify_order.financial_status == 'refunded' %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-semibold">
+                                <i class="fas fa-undo text-xs"></i> Refunded
+                            </span>
+                            {% else %}
+                            <span class="text-xs text-gray-500">{{ order.shopify_order.financial_status|default:"—" }}</span>
+                            {% endif %}
+                            {% if order.shopify_order.fulfillment_status %}
+                            <p class="text-xs text-gray-400 mt-0.5">
+                                {{ order.shopify_order.fulfillment_status|title }}
+                            </p>
+                            {% endif %}
+                        {% elif order.cod_charge > 0 %}
                         <span class="text-xs text-orange-600 font-medium">COD</span>
                         {% else %}
                         <span class="text-xs text-green-600 font-medium">Prepaid</span>
                         {% endif %}
                     </td>
-                    <td class="px-6 py-4">
-                        {% if order.status == 'delivered' %}
-                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold bg-green-100 text-green-700">
-                            <i class="fas fa-check-circle mr-1.5"></i>Delivered
+                    <td class="px-4 py-3">
+                        {% if order.stage == 'Delivered' %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                            <i class="fas fa-check-circle mr-1"></i>Delivered
                         </span>
-                        {% elif order.status == 'shipped' %}
-                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold bg-blue-100 text-blue-700">
-                            <i class="fas fa-truck mr-1.5"></i>Shipped
+                        {% elif order.stage == 'Shipped' or order.stage == 'Booked' %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                            <i class="fas fa-truck mr-1"></i>{{ order.stage }}
                         </span>
-                        {% elif order.status == 'cancelled' %}
-                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold bg-red-100 text-red-700">
-                            <i class="fas fa-times-circle mr-1.5"></i>Cancelled
+                        {% elif order.stage == 'Cancelled' %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                            <i class="fas fa-times-circle mr-1"></i>Cancelled
                         </span>
-                        {% elif order.status == 'confirmed' %}
-                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold bg-purple-100 text-purple-700">
-                            <i class="fas fa-check mr-1.5"></i>Confirmed
+                        {% elif order.stage == 'Confirm' %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-700">
+                            <i class="fas fa-check mr-1"></i>Confirmed
                         </span>
                         {% else %}
-                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-700">
-                            <i class="fas fa-clock mr-1.5"></i>{{ order.status|title }}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+                            <i class="fas fa-clock mr-1"></i>{{ order.stage }}
                         </span>
                         {% endif %}
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-4 py-3">
                         <p class="text-sm text-gray-500">{{ order.created|date:"d M Y" }}</p>
                         <p class="text-xs text-gray-400">{{ order.created|time:"h:i A" }}</p>
                     </td>
-                    <td class="px-6 py-4 text-right">
-                        <div class="flex items-center justify-end space-x-2">
+                    <td class="px-4 py-3 text-right">
+                        <div class="flex items-center justify-end space-x-1">
                             <a href="{% url 'master:order_detail' order.id %}" class="p-2 text-gray-500 hover:text-primary-500 hover:bg-gray-100 rounded-lg transition-colors" title="View">
                                 <i class="fas fa-eye"></i>
                             </a>
@@ -155,13 +253,22 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="px-6 py-16 text-center">
+                    <td colspan="8" class="px-6 py-16 text-center">
                         <div class="flex flex-col items-center">
                             <div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                                 <i class="fas fa-shopping-cart text-3xl text-gray-400"></i>
                             </div>
                             <p class="text-lg font-semibold text-gray-700">No orders found</p>
-                            <p class="text-gray-500 mt-1">Create your first order to get started</p>
+                            <p class="text-gray-500 mt-1">
+                                {% if request.GET.type == 'WEB_PAID' %}No WEB PAID orders from Shopify yet
+                                {% elif request.GET.type == 'WEB_COD' %}No WEB COD orders from Shopify yet
+                                {% else %}Create your first order to get started{% endif %}
+                            </p>
+                            {% if request.GET.type == 'WEB_PAID' or request.GET.type == 'WEB_COD' %}
+                            <a href="{% url 'integrations:shopify_portal_select' %}" class="mt-4 px-5 py-2.5 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition-colors flex items-center gap-2">
+                                <i class="fab fa-shopify"></i> Configure Shopify Integration
+                            </a>
+                            {% else %}
                             <div class="flex items-center space-x-3 mt-4">
                                 <a href="{% url 'master:quick_order_entry' %}" class="px-5 py-2.5 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 transition-colors">
                                     <i class="fas fa-bolt mr-2"></i>Quick Entry
@@ -170,6 +277,7 @@
                                     <i class="fas fa-plus mr-2"></i>New Order
                                 </a>
                             </div>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>
@@ -186,9 +294,7 @@
             <i class="fas fa-chevron-left mr-2"></i>Previous
         </a>
         {% endif %}
-        
         <span class="px-4 py-2 text-gray-600">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-        
         {% if page_obj.has_next %}
         <a href="?page={{ page_obj.next_page_number }}" class="px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
             Next<i class="fas fa-chevron-right ml-2"></i>
@@ -198,3 +304,4 @@
     {% endif %}
 </div>
 {% endblock %}
+

@@ -21,7 +21,7 @@ def match_order_to_leads(sender, instance, created, **kwargs):
     
     This enables automatic conversion tracking for ALL lead sources.
     """
-    from .tasks import process_order_for_leads
+    from .meta_tasks import process_order_for_leads
     from .services import LeadService
     
     try:

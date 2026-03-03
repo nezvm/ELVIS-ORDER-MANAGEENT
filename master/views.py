@@ -414,6 +414,16 @@ class OrderListView(mixins.HybridListView):
             return queryset.filter(channel=channel)
         if type:
             return queryset.filter(channel__channel_type=type)
+        
+        # Source filter
+        source = self.request.GET.get("source")
+        if source:
+            return queryset.filter(source=source)
+        
+        # Status filter
+        status = self.request.GET.get("status")
+        if status:
+            return queryset.filter(stage=status)
 
         return queryset
 
@@ -452,6 +462,10 @@ class OrderListView(mixins.HybridListView):
             context["is_counter"] = True
         elif type == "Return":
             context["is_return"] = True
+        elif type == "WEB_PAID":
+            context["is_web_paid"] = True
+        elif type == "WEB_COD":
+            context["is_web_cod"] = True
         
         if type :
             context['can_add'] = True
@@ -468,6 +482,8 @@ class OrderListView(mixins.HybridListView):
         promo = qs.filter(channel__channel_type="Promo")
         counter = qs.filter(channel__channel_type="Counter")
         replacement = qs.filter(channel__channel_type="Return_or_Replace")
+        web_paid = qs.filter(channel__channel_type="WEB_PAID")
+        web_cod = qs.filter(channel__channel_type="WEB_COD")
         context["whatsapp_count"] = WhatsApp.count()
         context['whatsapp_count_today'] = WhatsApp.filter(created__date=today).count()
         context["whatsapp_cod_count"] = cod.count()
@@ -484,6 +500,12 @@ class OrderListView(mixins.HybridListView):
         context["counter_count_today"] = counter.filter(created__date=today).count()
         context["return_or_replace_count"] = replacement.count()
         context["return_or_replace_count_today"] = replacement.filter(created__date=today).count()
+        context["web_paid_count"] = web_paid.count()
+        context["web_paid_count_today"] = web_paid.filter(created__date=today).count()
+        context["web_cod_count"] = web_cod.count()
+        context["web_cod_count_today"] = web_cod.filter(created__date=today).count()
+        context["shopify_total_count"] = web_paid.count() + web_cod.count()
+        context["shopify_today_count"] = web_paid.filter(created__date=today).count() + web_cod.filter(created__date=today).count()
         context["form"] = form
         context["date"] = date
         context["date__lte"] = date__lte
@@ -494,7 +516,12 @@ class OrderListView(mixins.HybridListView):
         context["order_by"] = order_by
         context["channel"] = channel
         context["title"] = " Orders"
-        
+        # Pass orders with shopify_order prefetched
+        qs_filtered = self.get_queryset().select_related(
+            'channel', 'customer', 'account', 'shopify_order'
+        ).prefetch_related('orderitem_set')
+        context["orders"] = qs_filtered
+        context["order_count"] = qs_filtered.count()
         
         return context
 

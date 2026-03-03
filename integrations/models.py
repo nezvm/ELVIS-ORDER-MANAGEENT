@@ -219,6 +219,12 @@ class ShopifyOrder(BaseModel):
     # Status
     financial_status = models.CharField(max_length=50, blank=True, null=True)  # paid, pending, refunded
     fulfillment_status = models.CharField(max_length=50, blank=True, null=True)  # fulfilled, unfulfilled
+    channel_split = models.CharField(max_length=20, choices=[
+        ('WEB_PAID', 'Web Paid'),
+        ('WEB_COD', 'Web COD'),
+    ], blank=True, null=True, db_index=True, help_text="Calculated channel: WEB_PAID or WEB_COD")
+    gateway = models.CharField(max_length=100, blank=True, null=True, help_text="Shopify payment gateway")
+    shopify_tags = models.CharField(max_length=500, blank=True, null=True)
     sync_status = models.CharField(max_length=30, choices=[
         ('pending', 'Pending'),
         ('synced', 'Synced'),

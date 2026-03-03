@@ -288,8 +288,70 @@ class ShopifyOrderSyncService:
     """Syncs Shopify orders to ERP with channel split."""
     
     @staticmethod
+    def _get_or_create_erp_customer(phone, email, name, shopify_customer_id=None):
+        """Find or create an ERP Customer record."""
+        from master.models import Customer
+        import re
+        phone_digits = re.sub(r'\D', '', str(phone or ''))
+        phone_normalized = phone_digits[-10:] if len(phone_digits) >= 10 else None
+        
+        customer = None
+        # Try to find by phone
+        if phone_normalized:
+            customer = Customer.objects.filter(phone_no__endswith=phone_normalized).first()
+        # Try email-like search via phone as fallback
+        if not customer and phone_normalized:
+            customer = Customer.objects.filter(phone_no=phone_normalized).first()
+        
+        if not customer:
+            # Create new customer
+            parts = str(name or 'Shopify Customer').split(' ', 1)
+            customer = Customer.objects.create(
+                customer_name=name or 'Shopify Customer',
+                phone_no=phone_normalized or '0000000000',
+                pincode='000000',
+                city='',
+                state='',
+                country='India',
+            )
+        return customer
+    
+    @staticmethod
+    def _get_channel_for_split(channel_split):
+        """Return the master.Channel for WEB_PAID or WEB_COD."""
+        from master.models import Channel
+        try:
+            return Channel.objects.get(channel_type=channel_split)
+        except Channel.DoesNotExist:
+            # Try to create it
+            prefix = 'WP' if channel_split == 'WEB_PAID' else 'WC'
+            channel, _ = Channel.objects.get_or_create(
+                channel_type=channel_split,
+                defaults={'prefix': prefix}
+            )
+            return channel
+    
+    @staticmethod
+    def _get_or_create_shopify_account():
+        """Get or create the Shopify account for order assignment."""
+        from master.models import Account
+        account, _ = Account.objects.get_or_create(
+            name='Shopify',
+            defaults={'opening_balance': 0}
+        )
+        return account
+    
+    @staticmethod
+    def _get_or_create_system_user():
+        """Get a system user for auto-created orders."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        user = User.objects.filter(is_superuser=True).first() or User.objects.first()
+        return user
+    
+    @staticmethod
     def process_order(store: ShopifyStore, payload: dict, log=None):
-        """Process an inbound Shopify order webhook."""
+        """Process an inbound Shopify order webhook - creates ERP Order."""
         import time
         start = time.time()
         
@@ -297,9 +359,23 @@ class ShopifyOrderSyncService:
         order_number = payload.get('order_number', '') or payload.get('name', '')
         financial_status = payload.get('financial_status', '')
         fulfillment_status = payload.get('fulfillment_status', '')
+        gateway = payload.get('gateway', '')
+        tags = payload.get('tags', '')
         
-        # Determine channel
-        channel = ShopifyChannelSplitService.determine_channel(store, payload)
+        # Determine channel split
+        channel_split = ShopifyChannelSplitService.determine_channel(store, payload)
+        
+        # Get customer info
+        customer_data = payload.get('customer', {}) or {}
+        shipping = payload.get('shipping_address', {}) or {}
+        billing = payload.get('billing_address', {}) or {}
+        phone = (customer_data.get('phone') or shipping.get('phone') or 
+                 billing.get('phone') or payload.get('phone', ''))
+        email = customer_data.get('email') or payload.get('email', '')
+        first_name = (customer_data.get('first_name') or shipping.get('first_name') or billing.get('first_name', ''))
+        last_name = (customer_data.get('last_name') or shipping.get('last_name') or billing.get('last_name', ''))
+        name = f"{first_name} {last_name}".strip() or 'Shopify Customer'
+        shopify_customer_id = str(customer_data.get('id', '')) if customer_data else None
         
         # Create or update ShopifyOrder
         shopify_order, created = ShopifyOrder.objects.update_or_create(
@@ -310,9 +386,74 @@ class ShopifyOrderSyncService:
                 'shopify_data': payload,
                 'financial_status': financial_status,
                 'fulfillment_status': fulfillment_status,
+                'channel_split': channel_split,
+                'gateway': gateway,
+                'shopify_tags': tags,
                 'sync_status': 'synced'
             }
         )
+        
+        # Create ERP Order if not already linked
+        erp_order = shopify_order.erp_order
+        if not erp_order:
+            try:
+                erp_channel = ShopifyOrderSyncService._get_channel_for_split(channel_split)
+                erp_account = ShopifyOrderSyncService._get_or_create_shopify_account()
+                erp_user = ShopifyOrderSyncService._get_or_create_system_user()
+                erp_customer = ShopifyOrderSyncService._get_or_create_erp_customer(
+                    phone, email, name, shopify_customer_id
+                )
+                
+                # Update customer address from Shopify
+                if shipping.get('city') and not erp_customer.city:
+                    erp_customer.city = shipping.get('city', '')
+                    erp_customer.state = shipping.get('province', '') or shipping.get('state', '')
+                    erp_customer.country = shipping.get('country', 'India')
+                    if shipping.get('zip'):
+                        erp_customer.pincode = shipping.get('zip', '000000')[:6]
+                    erp_customer.save()
+                
+                total_price = Decimal(str(payload.get('total_price', '0')))
+                cod_charge = Decimal('0')
+                if channel_split == 'WEB_COD':
+                    # Try to get COD charge from Shopify shipping lines
+                    for sl in (payload.get('shipping_lines', []) or []):
+                        if 'cod' in str(sl.get('title', '')).lower():
+                            cod_charge = Decimal(str(sl.get('price', '0')))
+                            break
+                
+                from master.models import Order as ERPOrder
+                erp_order = ERPOrder.objects.create(
+                    channel=erp_channel,
+                    customer=erp_customer,
+                    account=erp_account,
+                    order_by=erp_user,
+                    total_amount=total_price,
+                    cod_charge=cod_charge,
+                    source='shopify',
+                    name=name,
+                    phone=phone or erp_customer.phone_no,
+                    address=shipping.get('address1', '') or billing.get('address1', ''),
+                    city=shipping.get('city', '') or billing.get('city', ''),
+                    state=shipping.get('province', '') or billing.get('province', ''),
+                    country=shipping.get('country', 'India'),
+                    pincode=(shipping.get('zip', '') or billing.get('zip', ''))[:6] if (shipping.get('zip') or billing.get('zip')) else '',
+                    stage='Pending',
+                )
+                shopify_order.erp_order = erp_order
+                shopify_order.save(update_fields=['erp_order'])
+            except Exception as e:
+                logger.error(f"ERP Order creation failed for Shopify order {order_id}: {e}")
+        else:
+            # Update channel on existing order if channel_split changed
+            try:
+                erp_channel = ShopifyOrderSyncService._get_channel_for_split(channel_split)
+                if erp_order.channel != erp_channel:
+                    erp_order.channel = erp_channel
+                    erp_order.source = 'shopify'
+                    erp_order.save(update_fields=['channel', 'source'])
+            except Exception as e:
+                logger.error(f"ERP Order update failed: {e}")
         
         # Create external map
         ShopifyExternalMap.objects.update_or_create(
@@ -322,20 +463,8 @@ class ShopifyOrderSyncService:
             defaults={'internal_id': str(shopify_order.id)}
         )
         
-        # Sync customer
-        customer_data = payload.get('customer', {}) or {}
-        if customer_data.get('id'):
-            source = 'shopify_customer'
-        else:
-            source = 'shopify_guest_checkout'
-        
-        # Merge customer data with shipping address
-        shipping = payload.get('shipping_address', {}) or {}
-        billing = payload.get('billing_address', {}) or {}
-        phone = (customer_data.get('phone') or shipping.get('phone') or billing.get('phone') or
-                 payload.get('phone', ''))
-        email = customer_data.get('email') or payload.get('email', '')
-        
+        # Sync customer to leads
+        source_type = 'shopify_customer' if customer_data.get('id') else 'shopify_guest_checkout'
         if not customer_data.get('phone') and phone:
             customer_data = dict(customer_data)
             customer_data['phone'] = phone
@@ -343,14 +472,12 @@ class ShopifyOrderSyncService:
             customer_data = dict(customer_data)
             customer_data['email'] = email
         if not customer_data.get('first_name'):
-            customer_data['first_name'] = shipping.get('first_name', '') or billing.get('first_name', '')
-            customer_data['last_name'] = shipping.get('last_name', '') or billing.get('last_name', '')
+            customer_data['first_name'] = first_name
+            customer_data['last_name'] = last_name
         
         lead = None
         if phone or email:
-            lead, _ = ShopifyCustomerSyncService.sync_customer(store, customer_data, source)
-            
-            # Update lead to Won
+            lead, _ = ShopifyCustomerSyncService.sync_customer(store, customer_data, source_type)
             if lead:
                 order_value = Decimal(str(payload.get('total_price', 0)))
                 if lead.conversion_status != 'won':
@@ -372,10 +499,10 @@ class ShopifyOrderSyncService:
         if log:
             log.processed = True
             log.processing_time_ms = int((time.time() - start) * 1000)
-            log.action_taken = 'order_created' if created else 'order_updated'
+            log.action_taken = f"order_{'created' if created else 'updated'}:{channel_split}"
             log.save()
         
-        return shopify_order, lead, channel
+        return shopify_order, lead, channel_split
     
     @staticmethod
     def _check_checkout_recovery(store, shopify_order, payload, lead=None):
