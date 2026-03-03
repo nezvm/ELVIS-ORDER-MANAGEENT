@@ -1,0 +1,191 @@
+{% load django_tables2 %}
+{% load i18n %}
+
+{# ================= TABLE WRAPPER ================= #}
+{% block table-wrapper %}
+<div class="relative border border-gray-200 rounded-lg bg-white">
+
+    {% block table %}
+    <table {% render_attrs table.attrs %}
+           class="w-full border border-gray-200 text-[13px] text-gray-800 " style="width: 100%;">
+
+        {# ================= THEAD ================= #}
+        {% if table.show_header %}
+        <thead class="sticky top-0 z-20 bg-gray-100">
+            <tr class="border-b border-gray-300">
+        
+                {# Serial No #}
+                <th
+                    class="px-3 py-2 text-left text-[12px]
+                           font-semibold uppercase tracking-wide
+                           border-r border-gray-300"
+                >
+                    SL NO
+                </th>
+        
+                {% for column in table.columns %}
+                <th
+                    class="px-3 py-2 text-left text-[12px]
+                            font-semibold uppercase tracking-wide
+                            border-r border-gray-300 last:border-r-0"
+                    >
+                    {% if column.orderable %}
+                    <a
+                        href="{% querystring table.prefixed_order_by_field=column.order_by_alias.next %}"
+                        class="flex items-center justify-between gap-2 group w-full"
+                    >
+                        <!-- Column label -->
+                        <span class="whitespace-nowrap">
+                        {{ column.header }}
+                        </span>
+
+                        <!-- SORT ARROWS (RIGHT ALIGNED) -->
+                        <span class="flex flex-col leading-none text-[9px] ml-2">
+                        <span
+                            class="{% if column.is_ordered and column.order_by_alias.is_ascending %}
+                                    text-primary-500
+                                {% else %}
+                                    text-gray-300 group-hover:text-gray-500
+                                {% endif %}">
+                            ▲
+                        </span>
+                        <span
+                            class="{% if column.is_ordered and not column.order_by_alias.is_ascending %}
+                                    text-primary-500
+                                {% else %}
+                                    text-gray-300 group-hover:text-gray-500
+                                {% endif %}">
+                            ▼
+                        </span>
+                        </span>
+                    </a>
+                    {% else %}
+                        {{ column.header }}
+                    {% endif %}
+                    </th>
+
+                {% endfor %}
+        
+            </tr>
+        </thead>
+        
+        {% endif %}
+
+        {# ================= TBODY ================= #}
+        <tbody class="hover:bg-gray-100 transition-colors">
+
+            {% for row in table.paginated_rows %}
+            <tr class="px-2 py-1 border border-gray-300 odd:bg-white even:bg-gray-50 hover:bg-gray-100 transition-colors">
+
+                {# Serial No value #}
+                <td class="px-2 py-1.5 border border-gray-300  text-[13px] border-b border-gray-200 whitespace-nowrap">
+                    {{ forloop.counter0|add:table.page.start_index }}
+                </td>
+
+                {% for column, cell in row.items %}
+                <td class="px-2 py-1.5  border border-gray-300 text-[13px] border-b border-gray-200 whitespace-nowrap">
+                    {% if column.localize == None %}
+                        {{ cell }}
+                    {% else %}
+                        {% if column.localize %}
+                            {{ cell|localize }}
+                        {% else %}
+                            {{ cell|unlocalize }}
+                        {% endif %}
+                    {% endif %}
+                </td>
+                {% endfor %}
+
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="{{ table.columns|length|add:1 }}"
+                    class="px-4 py-6 text-center text-gray-500">
+                    {{ table.empty_text|default:"No data found" }}
+                </td>
+            </tr>
+            {% endfor %}
+
+        </tbody>
+
+        {# ================= TFOOT ================= #}
+        {% if table.has_footer %}
+        <tfoot class="bg-gray-50">
+            <tr>
+                <td class="px-4 py-2"></td>
+                {% for column in table.columns %}
+                <td class="px-4 py-2 text-sm font-medium text-gray-700">
+                    {{ column.footer }}
+                </td>
+                {% endfor %}
+            </tr>
+        </tfoot>
+        {% endif %}
+
+    </table>
+    {% endblock table %}
+
+</div>
+{% endblock table-wrapper %}
+
+{# ================= PAGINATION ================= #}
+
+    {% block pagination %}
+    
+    {% if table.page and table.paginator.num_pages > 1 %}
+    <div class="m-4 overflow-x-hidden">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+            <!-- Pagination buttons -->
+            <nav class="flex justify-center sm:justify-start flex-wrap gap-1">
+
+                {% if table.page.has_previous %}
+                <a href="{% querystring table.prefixed_page_field=table.page.previous_page_number %}"
+                class="h-9 w-9 flex items-center justify-center rounded-lg border hover:bg-gray-100">
+                    ‹
+                </a>
+                {% endif %}
+
+                {% for p in table.page|table_page_range:table.paginator %}
+                    {% if p == '...' %}
+                        <span class="px-2 text-gray-400">…</span>
+                    {% else %}
+                        <a href="{% querystring table.prefixed_page_field=p %}"
+                        class="h-9 min-w-[2.25rem] px-3
+                                flex items-center justify-center rounded-lg border
+                                {% if p == table.page.number %}
+                                    bg-primary-500 text-white border-primary-500
+                                {% else %}
+                                    hover:bg-gray-100
+                                {% endif %}">
+                            {{ p }}
+                        </a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if table.page.has_next %}
+                <a href="{% querystring table.prefixed_page_field=table.page.next_page_number %}"
+                class="h-9 w-9 flex items-center justify-center rounded-lg border hover:bg-gray-100">
+                    ›
+                </a>
+                {% endif %}
+            </nav>
+
+            <!-- Page info -->
+            <p class="text-sm text-gray-500 text-center sm:text-right whitespace-nowrap">
+                Showing
+                <span class="font-medium text-gray-900">{{ table.page.start_index }}</span>
+                –
+                <span class="font-medium text-gray-900">{{ table.page.end_index }}</span>
+                of
+                <span class="font-medium text-gray-900">{{ table.paginator.count }}</span>
+            </p>
+
+        </div>
+    </div>
+    {% endif %}
+    
+    {% endblock pagination %}
+
+
+
