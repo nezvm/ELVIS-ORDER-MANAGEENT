@@ -35,6 +35,7 @@ INSTALLED_PLUGINS = [
     "django_extensions",
     "django_filters",
     "django_tables2",
+    'rangefilter',
     "import_export",
     "registration",
     "tinymce",

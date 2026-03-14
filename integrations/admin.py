@@ -1,5 +1,7 @@
 from django.contrib import admin
 from core.base import BaseAdmin
+from rangefilter.filters import DateTimeRangeFilter
+
 from .models import (
     GoogleWorkspaceConfig, ContactSyncLog, SyncedContact,
     ShopifyStore, ShopifyOrder, ShopifySyncLog,
@@ -35,10 +37,24 @@ class ShopifyStoreAdmin(BaseAdmin):
 
 @admin.register(ShopifyOrder)
 class ShopifyOrderAdmin(BaseAdmin):
-    list_display = ['shopify_order_number', 'store', 'erp_order', 'financial_status', 'fulfillment_status', 'sync_status']
-    list_filter = ['sync_status', 'financial_status', 'fulfillment_status', 'store']
-    search_fields = ['shopify_order_number', 'shopify_order_id']
+    list_display = [
+        'shopify_order_number',
+        'store',
+        'erp_order',
+        'financial_status',
+        'fulfillment_status',
+        'sync_status'
+    ]
 
+    list_filter = [
+        'sync_status',
+        'financial_status',
+        'fulfillment_status',
+        'store',
+        ('created', DateTimeRangeFilter),  # 👈 From / To picker
+    ]
+
+    search_fields = ['shopify_order_number', 'shopify_order_id']
 
 @admin.register(ShopifySyncLog)
 class ShopifySyncLogAdmin(BaseAdmin):
